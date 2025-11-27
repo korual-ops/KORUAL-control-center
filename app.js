@@ -121,3 +121,4 @@ function renderTable(data) {
 document.addEventListener("DOMContentLoaded", () => {
   loadMenu();
 });
+
