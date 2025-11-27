@@ -1,4 +1,6 @@
-/* 기본 레이아웃 */
+/* ----------------------------------------------------
+   GLOBAL
+---------------------------------------------------- */
 body {
   margin: 0;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
@@ -6,16 +8,19 @@ body {
   color: #eee;
 }
 
+.hidden { display: none !important; }
+
 .layout {
   display: flex;
   height: 100vh;
 }
 
-/* 사이드바 */
-.sidebar,
-#sidebar {
+/* ----------------------------------------------------
+   SIDEBAR
+---------------------------------------------------- */
+.sidebar {
   width: 240px;
-  background: radial-gradient(circle at top left, #222 0, #000 40%, #000 100%);
+  background: radial-gradient(circle at top left, #222 0%, #000 40%, #000 100%);
   border-right: 1px solid #333;
   padding: 20px 12px;
   box-sizing: border-box;
@@ -24,7 +29,7 @@ body {
 .sidebar .logo {
   font-size: 18px;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   color: #f5d67a;
   letter-spacing: 0.08em;
 }
@@ -35,22 +40,28 @@ body {
   cursor: pointer;
 }
 
-/* 메뉴 버튼 (nav-btn) */
+/* NAV BUTTONS */
 .nav-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
-  background: linear-gradient(135deg, #101010, #050505);
+  background: linear-gradient(135deg, #111, #070707);
   color: #eee;
-  padding: 10px 10px;
-  margin-bottom: 6px;
+  padding: 10px 11px;
+  margin-bottom: 8px;
+  border-radius: 10px;
   border: 1px solid #222;
   cursor: pointer;
-  text-align: left;
-  border-radius: 10px;
   transition: 0.18s ease;
   font-size: 13px;
+}
+
+.nav-btn:hover {
+  background: linear-gradient(135deg, #181818, #101010);
+  border-color: #444;
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(245, 214, 122, 0.15);
 }
 
 .nav-btn .icon {
@@ -58,19 +69,11 @@ body {
   text-align: center;
   opacity: 0.75;
 }
+.nav-btn .label { flex: 1; }
 
-.nav-btn .label {
-  flex: 1;
-}
-
-.nav-btn:hover {
-  background: linear-gradient(135deg, #181818, #070707);
-  border-color: #444;
-  transform: translateY(-1px);
-  box-shadow: 0 0 10px rgba(245, 214, 122, 0.12);
-}
-
-/* 메인 영역 */
+/* ----------------------------------------------------
+   MAIN
+---------------------------------------------------- */
 #main-content {
   flex: 1;
   padding: 24px 28px;
@@ -85,7 +88,9 @@ h1 {
   letter-spacing: 0.04em;
 }
 
-/* 대시보드 카드 */
+/* ----------------------------------------------------
+   DASHBOARD CARDS
+---------------------------------------------------- */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -93,54 +98,64 @@ h1 {
 }
 
 .card {
-  background: radial-gradient(circle at top left, #252525 0, #141414 40%, #101010 100%);
+  background: radial-gradient(circle at top left, #252525 0%, #141414 40%, #101010 100%);
   padding: 18px;
   border-radius: 12px;
   border: 1px solid #333;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
 }
+
+.card .label { font-size: 13px; color: #aaa; }
+.card .value { margin-top: 8px; font-size: 24px; font-weight: 600; color: #fff; }
 
 .card.warning {
   border-color: #ffae00;
-  box-shadow: 0 0 20px rgba(255, 174, 0, 0.22);
+  box-shadow: 0 0 22px rgba(255, 174, 0, 0.22);
 }
 
-.card .label {
-  font-size: 13px;
-  color: #aaa;
-}
-
-.card .value {
-  font-size: 24px;
-  margin-top: 8px;
-  color: #fff;
-  font-weight: 600;
-}
-
-/* 테이블 상단 액션영역 */
-.table-actions {
+/* ----------------------------------------------------
+   FILTER BAR
+---------------------------------------------------- */
+#filter-bar {
+  margin-bottom: 14px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.table-actions .hint {
-  font-size: 11px;
-  color: #999;
+.filter-input,
+.filter-select {
+  background: #0f0f0f;
+  color: #ddd;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  font-size: 13px;
 }
 
-/* 테이블 */
+.filter-btn {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  color: #eee;
+  cursor: pointer;
+  background: #181818;
+  transition: 0.16s ease;
+}
+.filter-btn:hover {
+  background: #222;
+}
+
+/* ----------------------------------------------------
+   TABLE
+---------------------------------------------------- */
 .table-wrapper {
   overflow-x: auto;
-  margin-top: 8px;
   border-radius: 10px;
   border: 1px solid #222;
   background: #101010;
 }
 
-/* 드래그 앤 드롭 강조 */
 .table-wrapper.drag-over {
   border-style: dashed;
   border-color: #f5d67a;
@@ -150,7 +165,6 @@ h1 {
 table {
   width: 100%;
   border-collapse: collapse;
-  background: transparent;
   font-size: 13px;
 }
 
@@ -158,12 +172,11 @@ th {
   background: linear-gradient(180deg, #222, #181818);
   padding: 10px 8px;
   border-bottom: 1px solid #444;
+  color: #f5d67a;
+  font-weight: 500;
   position: sticky;
   top: 0;
-  z-index: 1;
-  text-align: left;
-  font-weight: 500;
-  color: #f5d67a;
+  z-index: 5;
 }
 
 td {
@@ -172,257 +185,141 @@ td {
   white-space: nowrap;
 }
 
-/* 수정 가능한 셀 */
 .cell-editable {
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: 0.15s ease;
 }
-
 .cell-editable:hover {
-  background: rgba(245, 214, 122, 0.08);
+  background: rgba(245,214,122,0.08);
 }
 
-/* 빈 상태 */
 .empty {
   padding: 20px 8px;
-  font-size: 13px;
   color: #888;
+  font-size: 13px;
 }
 
-/* 작은 버튼 공통 */
+/* TABLE BUTTONS */
 .small-btn {
   padding: 4px 9px;
-  font-size: 11px;
   border-radius: 999px;
+  font-size: 11px;
   border: 1px solid #444;
   cursor: pointer;
   background: #181818;
   color: #eee;
   transition: 0.16s ease;
 }
+.small-btn:hover { background: #222; }
 
-.small-btn:hover {
-  background: #222;
-}
-
-/* 버튼 타입별 */
 .small-btn.primary {
+  background: #251d12;
   border-color: #f5d67a;
-  background: #252016;
   color: #fbe8a8;
 }
-
 .small-btn.primary:hover {
-  background: #3b3118;
-  box-shadow: 0 0 12px rgba(245, 214, 122, 0.35);
+  box-shadow: 0 0 12px rgba(245,214,122,0.35);
 }
 
 .small-btn.danger {
-  border-color: #ff4b4b;
   background: #2a1515;
+  border-color: #ff4b4b;
   color: #ffc4c4;
 }
-
 .small-btn.danger:hover {
-  background: #3a1818;
-  box-shadow: 0 0 10px rgba(255, 75, 75, 0.35);
+  box-shadow: 0 0 10px rgba(255,75,75,0.35);
 }
 
-/* 에러 메시지 */
+/* ----------------------------------------------------
+   ERROR BOX
+---------------------------------------------------- */
 .error {
   padding: 14px 12px;
-  border-radius: 8px;
   background: #2a1313;
+  border-radius: 8px;
   border: 1px solid #ff4b4b;
   color: #ffdada;
   font-size: 13px;
 }
 
-/* 모바일 메뉴 버튼 (기본은 숨김) */
-.menu-toggle {
-  display: none;
-}
-
-/* 반응형 */
-@media (max-width: 768px) {
-  .layout {
-    flex-direction: column;
-  }
-
-  .sidebar,
-  #sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 240px;
-    height: 100vh;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease-out;
-    z-index: 1000;
-  }
-
-  .sidebar.open,
-  #sidebar.open {
-    transform: translateX(0);
-  }
-
-  #main-content {
-    padding: 60px 14px 16px 14px;
-  }
-
-  .menu-toggle {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    z-index: 1100;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(245, 214, 122, 0.4);
-    font-size: 13px;
-    font-weight: 600;
-    background: rgba(0, 0, 0, 0.75);
-    color: #f7f7f7;
-    backdrop-filter: blur(8px);
-  }
-
-  .nav-btn {
-    font-size: 12px;
-    padding: 7px 8px;
-  }
-
-  table {
-    font-size: 11px;
-  }
-
-  .table-wrapper {
-    max-height: calc(100vh - 180px);
-  }
-
-  .dashboard-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-}
-/* ---------- 모달 공통 ---------- */
-.hidden {
-  display: none !important;
-}
-
+/* ----------------------------------------------------
+   MODAL
+---------------------------------------------------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at top left, rgba(245, 214, 122, 0.15), transparent),
-              rgba(0, 0, 0, 0.75);
+  background: rgba(0,0,0,0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
 }
 
-.modal {
-  width: min(480px, 90vw);
-  background: linear-gradient(135deg, #141414 0%, #050505 100%);
-  border-radius: 16px;
-  border: 1px solid rgba(245, 214, 122, 0.25);
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(255, 255, 255, 0.02);
-  color: #f5f5f5;
+.modal-window {
+  width: min(440px, 92vw);
+  background: linear-gradient(135deg, #141414, #050505);
+  border-radius: 14px;
+  border: 1px solid rgba(245,214,122,0.25);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
-/* 헤더 */
 .modal-header {
+  padding: 14px 16px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: radial-gradient(circle at top left, rgba(245, 214, 122, 0.12), transparent);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(245, 214, 122, 0.12);
 }
 
 .modal-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.04em;
   color: #f5d67a;
+  letter-spacing: 0.04em;
 }
 
 .modal-close {
+  background: none;
   border: none;
-  background: transparent;
   color: #aaa;
   font-size: 18px;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 999px;
 }
+.modal-close:hover { color: #fff; }
 
-.modal-close:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-}
+.modal-body { padding: 18px; display: flex; flex-direction: column; gap: 13px; }
 
-/* 바디 */
-.modal-body {
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field label {
-  font-size: 13px;
-  color: #ddd;
-}
-
+.field label { font-size: 13px; color: #ddd; }
 .field select,
 .field textarea {
   background: #0f0f0f;
-  border-radius: 8px;
   border: 1px solid #333;
-  color: #f5f5f5;
-  padding: 8px 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: #fff;
   font-size: 13px;
-  outline: none;
 }
-
 .field select:focus,
 .field textarea:focus {
   border-color: #f5d67a;
-  box-shadow: 0 0 0 1px rgba(245, 214, 122, 0.45);
 }
 
-.hint {
-  font-size: 11px;
-  color: #999;
-}
-
-/* 푸터 버튼 */
 .modal-footer {
-  padding: 12px 18px 16px;
+  padding: 14px 16px;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 
 .btn {
-  border-radius: 999px;
   padding: 7px 16px;
-  font-size: 13px;
-  border: 1px solid transparent;
+  border-radius: 999px;
   cursor: pointer;
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -430,18 +327,53 @@ td {
   background: linear-gradient(135deg, #f5d67a, #f1b85a);
   color: #111;
 }
-
-.btn.primary:hover {
-  filter: brightness(1.05);
-}
+.btn.primary:hover { filter: brightness(1.03); }
 
 .btn.ghost {
   background: transparent;
-  border-color: #444;
+  border: 1px solid #666;
   color: #ddd;
 }
+.btn.ghost:hover { border-color: #888; }
 
-.btn.ghost:hover {
-  border-color: #666;
+/* ----------------------------------------------------
+   MOBILE
+---------------------------------------------------- */
+.menu-toggle {
+  display: none;
 }
 
+@media (max-width: 768px) {
+  .layout { flex-direction: column; }
+
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+    z-index: 1200;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .menu-toggle {
+    display: inline-flex;
+    position: fixed;
+    top: 10px; left: 10px;
+    z-index: 1500;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    border: 1px solid rgba(245,214,122,0.4);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+  }
+
+  #main-content {
+    padding: 70px 14px 16px;
+  }
+
+  table { font-size: 11px; }
+  .dashboard-grid { grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); }
+}
