@@ -1,15 +1,21 @@
 /****************************************
  KORUAL CONTROL CENTER Frontend v3.0
- - 구글 Apps Script 웹앱 API와 통신 + 셀 수정
-*****************************************/
+ - Google Apps Script 웹앱 API 연동
+ - 시트 조회 + 웹에서 직접 셀 수정
+****************************************/
 
-// 배포한 웹앱 URL
+/** 1. 설정 영역 *****************************************/
+
+// ❗ 여기를 "현재 배포된" 웹앱 URL 로 바꿔줘야 한다.
 const API = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
-// 백엔드 SECRET 과 반드시 동일해야 함
+// Apps Script 코드의 SECRET 과 동일해야 한다.
 const API_SECRET = "KORUAL-ONLY";
 
-/** GET 헬퍼 */
+
+/** 2. 공통 API 헬퍼 *****************************************/
+
+/** GET 호출 */
 async function apiGet(params) {
   const url = API + "?" + new URLSearchParams(params).toString();
   const res = await fetch(url);
@@ -17,7 +23,7 @@ async function apiGet(params) {
   return await res.json();
 }
 
-/** POST 헬퍼 */
+/** POST 호출 */
 async function apiPost(payload) {
   const res = await fetch(API, {
     method: "POST",
@@ -28,7 +34,21 @@ async function apiPost(payload) {
   return await res.json();
 }
 
-/** 메뉴 로딩 */
+
+/** 3. 전역 상태 *****************************************/
+
+// 현재 보고 있는 섹션 key (예: 'dashboard', 'sales', 'hr' ...)
+window.currentKey = null;
+
+// 현재 섹션에 사용된 필터/페이지 파라미터 (지금은 비어있지만 확장용)
+window.currentParams = {};
+
+// 현재 테이블 헤더 (컬럼명 리스트) – 셀 수정 시 사용
+window.currentHeaders = [];
+
+
+/** 4. 메뉴 로딩 *****************************************/
+
 async function loadMenu() {
   try {
     const data = await apiGet({ target: "routes" });
@@ -46,7 +66,7 @@ async function loadMenu() {
       </button>
     `).join("");
 
-    // 처음엔 대시보드 표시
+    // 최초 진입 시 대시보드 표시
     await loadSectionInternal("dashboard");
   } catch (err) {
     console.error(err);
@@ -55,12 +75,14 @@ async function loadMenu() {
   }
 }
 
-// 현재 보고 있는 섹션/필터 정보 전역 저장
-window.currentKey = null;
-window.currentParams = {};
-window.currentHeaders = [];
 
-/** 실제 섹션 로딩 로직 (내부용) */
+/** 5. 섹션 로딩 *****************************************/
+
+/**
+ * 실제 섹션 로딩 함수 (내부용)
+ * @param {string} key - ROUTES.key 값
+ * @param {object} extraParams - 필터/페이지 파라미터 (확장용)
+ */
 async function loadSectionInternal(key, extraParams = {}) {
   try {
     const params = Object.assign({ target: key }, extraParams);
@@ -70,7 +92,7 @@ async function loadSectionInternal(key, extraParams = {}) {
       throw new Error(data.error || "데이터 로딩 실패");
     }
 
-    // 전역에 현재 상태 저장 (수정 후 새로고침에 사용)
+    // 전역 상태 저장
     window.currentKey = key;
     window.currentParams = extraParams;
 
@@ -86,7 +108,21 @@ async function loadSectionInternal(key, extraParams = {}) {
   }
 }
 
-/** 대시보드 렌더 */
+/**
+ * HTML에서 직접 쓰는 wrapper
+ * (모바일에서 메뉴 자동 닫기까지 포함)
+ */
+window.loadSection = async (key) => {
+  await loadSectionInternal(key);
+  const sidebar = document.getElementById("sidebar");
+  if (window.innerWidth <= 768 && sidebar) {
+    sidebar.classList.remove("open");
+  }
+};
+
+
+/** 6. 렌더링 – 대시보드 *****************************************/
+
 function renderDashboard(d) {
   const main = document.getElementById("main-content");
   if (!d) {
@@ -117,13 +153,15 @@ function renderDashboard(d) {
   `;
 }
 
-/** 테이블 렌더 (+ 각 행마다 '수정' 버튼) */
+
+/** 7. 렌더링 – 테이블(편집 버튼 포함) *****************************/
+
 function renderTable(data) {
   const main = document.getElementById("main-content");
   const headers = data.headers || [];
   const rows = data.rows || [];
 
-  // 전역에 저장해서 editCell 에서도 사용
+  // 전역에 저장 → editCell 에서 사용
   window.currentHeaders = headers;
 
   if (!headers.length) {
@@ -134,7 +172,7 @@ function renderTable(data) {
     return;
   }
 
-  // 마지막에 '편집' 컬럼 하나 더 추가
+  // 헤더 + 마지막에 '편집' 컬럼 하나 추가
   const thead = headers.map(h => `<th>${h}</th>`).join("") + `<th>편집</th>`;
 
   const tbody = rows.map((r, idx) => {
@@ -156,30 +194,14 @@ function renderTable(data) {
   `;
 }
 
-/** 페이지 로드 시 1번만 실행 + 모바일 토글 */
-document.addEventListener("DOMContentLoaded", () => {
-  loadMenu();
 
-  const toggle = document.getElementById("menu-toggle");
-  const sidebar = document.getElementById("sidebar");
+/** 8. 셀 수정 로직 *****************************************/
 
-  if (toggle && sidebar) {
-    toggle.addEventListener("click", () => {
-      sidebar.classList.toggle("open");
-    });
-  }
-});
-
-/** HTML onclick용 전역 wrapper (모바일에서 메뉴 자동 닫기) */
-window.loadSection = async (key) => {
-  await loadSectionInternal(key);
-  const sidebar = document.getElementById("sidebar");
-  if (window.innerWidth <= 768 && sidebar) {
-    sidebar.classList.remove("open");
-  }
-};
-
-/** 행 수정: 컬럼 이름과 새 값을 받아서 updateCell 호출 */
+/**
+ * 행 수정 버튼 클릭 시 실행
+ * @param {string} key      - ROUTES.key (예: 'hr', 'sales')
+ * @param {number} rowIndex - 현재 페이지에서의 0부터 시작하는 행 인덱스
+ */
 window.editCell = async (key, rowIndex) => {
   const headers = window.currentHeaders || [];
   if (!headers.length) {
@@ -214,10 +236,28 @@ window.editCell = async (key, rowIndex) => {
 
     alert("수정 완료!");
 
-    // 방금 보고 있던 섹션 다시 로딩
+    // 방금 보던 섹션을 다시 로딩해서 최신 데이터 반영
     await loadSectionInternal(key, window.currentParams || {});
   } catch (e) {
     console.error(e);
     alert("에러: " + e.message);
   }
 };
+
+
+/** 9. 초기화 (DOM 로드 시점) ***************************************/
+
+document.addEventListener("DOMContentLoaded", () => {
+  // 메뉴 + 기본 대시보드 로딩
+  loadMenu();
+
+  // 모바일 사이드바 토글
+  const toggle = document.getElementById("menu-toggle");
+  const sidebar = document.getElementById("sidebar");
+
+  if (toggle && sidebar) {
+    toggle.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+    });
+  }
+});
