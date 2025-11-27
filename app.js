@@ -173,25 +173,54 @@ window.loadSection = async (key) => {
 };
 
 /** 행 수정 */
-window.editCell = async (key, rowIndex) => {
+// 모달 상태 저장용 전역 변수
+let editState = {
+  key: null,
+  rowIndex: null,
+};
+
+// 행 수정: 모달 열기
+window.editCell = (key, rowIndex) => {
   const headers = window.currentHeaders || [];
   if (!headers.length) {
     alert("수정할 수 있는 컬럼이 없습니다.");
     return;
   }
 
-  const list = headers.join(", ");
-  const column = prompt(
-    "수정할 컬럼명을 정확히 입력하세요.\n\n사용 가능 컬럼:\n" + list
-  );
-  if (column === null) return;
-  if (!headers.includes(column)) {
-    alert("컬럼명이 헤더와 일치해야 합니다.");
-    return;
-  }
+  editState.key = key;
+  editState.rowIndex = rowIndex;
 
-  const value = prompt(`'${column}' 컬럼의 새 값을 입력하세요:`);
-  if (value === null) return;
+  const modal = document.getElementById("edit-modal");
+  const select = document.getElementById("edit-column");
+  const textarea = document.getElementById("edit-value");
+
+  // 컬럼 셀렉트박스 채우기
+  select.innerHTML = headers
+    .map(h => `<option value="${h}">${h}</option>`)
+    .join("");
+
+  textarea.value = "";
+
+  modal.classList.remove("hidden");
+};
+
+// 모달 닫기 함수
+function closeEditModal() {
+  const modal = document.getElementById("edit-modal");
+  modal.classList.add("hidden");
+  editState.key = null;
+  editState.rowIndex = null;
+}
+
+// 저장 버튼 동작
+async function saveEditModal() {
+  const key = editState.key;
+  const rowIndex = editState.rowIndex;
+
+  if (key == null || rowIndex == null) return;
+
+  const column = document.getElementById("edit-column").value;
+  const value = document.getElementById("edit-value").value;
 
   try {
     const res = await apiPost({
@@ -205,10 +234,42 @@ window.editCell = async (key, rowIndex) => {
 
     if (!res.ok) throw new Error(res.error || "업데이트 실패");
 
-    alert("수정 완료!");
+    closeEditModal();
     await loadSectionInternal(key, window.currentParams || {});
   } catch (e) {
     console.error(e);
     alert("에러: " + e.message);
   }
-};
+}
+
+/** DOMContentLoaded 안에 모달 연결 추가 */
+document.addEventListener("DOMContentLoaded", () => {
+  loadMenu();
+
+  const toggle = document.getElementById("menu-toggle");
+  const sidebar = document.getElementById("sidebar");
+
+  if (toggle && sidebar) {
+    toggle.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+    });
+  }
+
+  // 모달 버튼 이벤트
+  const closeBtn = document.getElementById("edit-close-btn");
+  const cancelBtn = document.getElementById("edit-cancel-btn");
+  const saveBtn = document.getElementById("edit-save-btn");
+  const modal = document.getElementById("edit-modal");
+
+  closeBtn?.addEventListener("click", closeEditModal);
+  cancelBtn?.addEventListener("click", closeEditModal);
+  saveBtn?.addEventListener("click", saveEditModal);
+
+  // 바깥 클릭 시 닫기
+  modal?.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeEditModal();
+    }
+  });
+});
+
