@@ -177,3 +177,11 @@ td {
     max-height: calc(100vh - 160px);
   }
 }
+.small-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
