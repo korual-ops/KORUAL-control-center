@@ -6,7 +6,7 @@
 ********************************************/
 
 // 🔥 관제탑 API URL — 김양수님 Apps Script 웹앱 URL로 변경
-const API_BASE = "AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0";
+const API_BASE = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
 /* --------------------------
    초기 실행
@@ -139,4 +139,5 @@ function renderTable(data) {
     </section>
   `;
 }
+
 
