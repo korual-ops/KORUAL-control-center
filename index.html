@@ -1,61 +1,43 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>KORUAL CONTROL CENTER</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>KORUAL CONTROL CENTER</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Pretendard 폰트 -->
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css" rel="stylesheet">
+
+  <!-- 스타일 -->
+  <link rel="stylesheet" href="style.css">
 </head>
-
-<body onload="initializeControlCenter()">
-
-<!-- 전체 레이아웃 -->
-<div class="layout">
-
-  <!-- 사이드바 -->
-  <aside class="sidebar">
-    <div class="logo">
-      <a onclick="loadSection('dashboard')">KORUAL CONTROL CENTER</a>
-    </div>
-
-    <nav id="sidebar-menu">
-      <!-- JS에서 ROUTES 기반으로 자동 생성 -->
-    </nav>
-  </aside>
-
-  <!-- 메인 콘텐츠 -->
-  <main id="main-content">
-    <!-- 대시보드 / 테이블이 여기에 표시됨 -->
-  </main>
-
-</div>
-
-<script src="app.js"></script>
-
-</body>
-</html>
-
 <body>
+
+  <!-- 모바일 메뉴 버튼 -->
+  <button id="menu-toggle" class="menu-toggle">☰</button>
+
   <div class="layout">
-    <aside class="sidebar" id="sidebar">
-      <h1 class="logo">KORUAL<br>CONTROL CENTER</h1>
-      <div id="sidebar-menu" class="sidebar-menu">
-        <!-- 메뉴 버튼들 -->
+
+    <!-- 사이드바 -->
+    <aside id="sidebar" class="sidebar">
+      <div class="logo">
+        <a href="javascript:void(0);" onclick="loadSection('dashboard')">
+          KORUAL CONTROL CENTER
+        </a>
       </div>
+
+      <!-- JS에서 자동 생성 -->
+      <nav id="sidebar-menu"></nav>
     </aside>
 
-    <!-- 여기 ↓ 추가 -->
-    <button class="menu-toggle" id="menu-toggle">
-      ☰ 메뉴
-    </button>
-    <!-- 여기 ↑ 추가 -->
-
-    <main class="main">
-      <div id="main-content" class="main-content">
-        ...
-      </div>
+    <!-- 메인 컨텐츠 -->
+    <main id="main-content">
+      <h1>Loading...</h1>
     </main>
+
   </div>
 
-  <script src="/app.js"></script>
+  <!-- 자바스크립트 -->
+  <script src="app.js"></script>
 </body>
+</html>
