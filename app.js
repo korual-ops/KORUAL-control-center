@@ -144,3 +144,34 @@ window.loadSection = async (key) => {
     sidebar.classList.remove("open");
   }
 };
+
+window.editHr = async (id) => {
+  if (!id) {
+    alert("직원ID가 없습니다.");
+    return;
+  }
+
+  const newDept = prompt("새 부서를 입력하세요 (예: 3. 운영 & 자동화 본부)");
+  if (newDept === null) return; // 취소
+
+  try {
+    const res = await apiPost({
+      target: "hr_update",
+      secret: "KORUAL-ONLY",      // doPost의 SECRET 과 동일
+      id: id,
+      values: {
+        "부서": newDept
+        // 필요하면 "직책": "대리" 이런식으로 여러 컬럼 추가 가능
+      }
+    });
+
+    if (!res.ok) throw new Error(res.error || "업데이트 실패");
+    alert("수정 완료!");
+
+    // 다시 로딩해서 화면 갱신
+    await loadSectionInternal("hr");
+  } catch (e) {
+    console.error(e);
+    alert("에러: " + e.message);
+  }
+};
