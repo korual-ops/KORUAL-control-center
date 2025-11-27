@@ -12,6 +12,34 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+</html>
+
+  <!-- 모바일 메뉴 버튼 -->
+  <button id="menu-toggle" class="menu-toggle">☰</button>
+
+  <div class="layout">
+
+    <!-- 사이드바 -->
+    <aside id="sidebar" class="sidebar">
+      <div class="logo">
+        <a href="javascript:void(0);" onclick="loadSection('dashboard')">
+          KORUAL CONTROL CENTER
+        </a>
+      </div>
+
+      <!-- JS에서 자동 생성 -->
+      <nav id="sidebar-menu"></nav>
+    </aside>
+
+    <!-- 메인 컨텐츠 -->
+    <main id="main-content">
+      <h1>Loading...</h1>
+    </main>
+
+  </div>
+
+  <!-- 자바스크립트 -->
+  <script src="app.js"></script>
   <!-- 셀 편집 모달 -->
   <div id="edit-modal" class="modal-overlay hidden">
     <div class="modal">
@@ -46,32 +74,4 @@
 </body>
 </html>
 
-  <!-- 모바일 메뉴 버튼 -->
-  <button id="menu-toggle" class="menu-toggle">☰</button>
-
-  <div class="layout">
-
-    <!-- 사이드바 -->
-    <aside id="sidebar" class="sidebar">
-      <div class="logo">
-        <a href="javascript:void(0);" onclick="loadSection('dashboard')">
-          KORUAL CONTROL CENTER
-        </a>
-      </div>
-
-      <!-- JS에서 자동 생성 -->
-      <nav id="sidebar-menu"></nav>
-    </aside>
-
-    <!-- 메인 컨텐츠 -->
-    <main id="main-content">
-      <h1>Loading...</h1>
-    </main>
-
-  </div>
-
-  <!-- 자바스크립트 -->
-  <script src="app.js"></script>
-</body>
-</html>
 
