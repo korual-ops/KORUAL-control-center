@@ -135,3 +135,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+window.loadSection = async (key) => {
+  await loadSection(key);
+  const sidebar = document.getElementById("sidebar");
+  if (window.innerWidth <= 768 && sidebar) {
+    sidebar.classList.remove("open");
+  }
+};
+
