@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KORUAL CONTROL CENTER</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+
+<body onload="initializeControlCenter()">
+
+<!-- 전체 레이아웃 -->
+<div class="layout">
+
+  <!-- 사이드바 -->
+  <aside class="sidebar">
+    <div class="logo">
+      <a onclick="loadSection('dashboard')">KORUAL CONTROL CENTER</a>
+    </div>
+
+    <nav id="sidebar-menu">
+      <!-- JS에서 ROUTES 기반으로 자동 생성 -->
+    </nav>
+  </aside>
+
+  <!-- 메인 콘텐츠 -->
+  <main id="main-content">
+    <!-- 대시보드 / 테이블이 여기에 표시됨 -->
+  </main>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>

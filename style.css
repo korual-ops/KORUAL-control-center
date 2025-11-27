@@ -1,0 +1,111 @@
+/* 레이아웃 */
+body {
+  margin: 0;
+  font-family: 'Pretendard', sans-serif;
+  background: #111;
+  color: #eee;
+}
+
+.layout {
+  display: flex;
+  height: 100vh;
+}
+
+/* 사이드바 */
+.sidebar {
+  width: 240px;
+  background: #000;
+  border-right: 1px solid #333;
+  padding: 20px 10px;
+}
+
+.sidebar .logo {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #f5d67a;
+}
+
+.sidebar .logo a {
+  color: #f5d67a;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menu-btn {
+  display: block;
+  width: 100%;
+  background: #111;
+  color: #eee;
+  padding: 12px 10px;
+  margin-bottom: 6px;
+  border: 1px solid #222;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 6px;
+  transition: 0.2s;
+}
+
+.menu-btn:hover {
+  background: #222;
+  border-color: #444;
+}
+
+/* 메인 */
+#main-content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+h1 {
+  margin-top: 0;
+  color: #f5d67a;
+}
+
+/* 대시보드 카드 */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #1a1a1a;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #333;
+}
+
+.card.warning {
+  border-color: #ffae00;
+}
+
+.card .value {
+  font-size: 26px;
+  margin-top: 10px;
+  color: #fff;
+}
+
+/* 테이블 */
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1a1a1a;
+}
+
+th {
+  background: #222;
+  padding: 10px;
+  border-bottom: 2px solid #444;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid #333;
+}
