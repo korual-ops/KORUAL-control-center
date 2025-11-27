@@ -1,66 +1,50 @@
-/********************************************
- KORUAL CONTROL CENTER — Unified Frontend
- - ROUTES 기반 메뉴 자동 생성
- - target별 페이지 자동 렌더링
- - Dashboard / Tables 자동 처리
-********************************************/
+/****************************************
+ KORUAL CONTROL CENTER Frontend v2.0
+ - 구글 Apps Script 웹앱 API와 통신
+*****************************************/
 
-// 🔥 관제탑 API URL — 김양수님 Apps Script 웹앱 URL로 변경
-const API_BASE = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
+// 여기를 네가 배포한 웹앱 URL로 바꿔줘
+const API = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
-/* --------------------------
-   초기 실행
---------------------------- */
-async function initializeControlCenter() {
-  await loadMenu();
-  await loadSection("dashboard");
+async function apiGet(params) {
+  const url = API + "?" + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return await res.json();
 }
 
-/* --------------------------
-   ROUTES → 메뉴 자동 생성
---------------------------- */
 async function loadMenu() {
-  const sidebar = document.getElementById("sidebar-menu");
-  sidebar.innerHTML = `<div class='loading'>Loading menu...</div>`;
-
   try {
-    const res = await fetch(`${API_BASE}?target=routes`);
-    const data = await res.json();
+    const data = await apiGet({ target: "routes" });
+    if (!data.ok) throw new Error(data.error || "routes 불러오기 실패");
 
-    if (!data.ok) {
-      sidebar.innerHTML = `<div class='error'>ROUTES 불러오기 실패</div>`;
-      return;
-    }
+    const routes = (data.routes || [])
+      .filter(r => String(r.isActive).trim() === "Y")
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
 
-    let routes = data.routes
-      .filter(r => r.isActive === "Y")
-      .sort((a, b) => Number(a.order) - Number(b.order));
-
+    const sidebar = document.getElementById("sidebar-menu");
     sidebar.innerHTML = routes.map(r => `
-      <button class="menu-btn" onclick="loadSection('${r.key}')">
-        ${r.icon || ""} ${r.desc || r.key.toUpperCase()}
+      <button class="nav-btn" onclick="loadSection('${r.key}')">
+        <span class="icon">${r.icon || ""}</span>
+        <span class="label">${(r.desc || r.key || "").toUpperCase()}</span>
       </button>
     `).join("");
 
+    // 처음엔 대시보드 표시
+    await loadSection("dashboard");
   } catch (err) {
-    sidebar.innerHTML = `<div class='error'>연결 오류</div>`;
+    console.error(err);
+    const sidebar = document.getElementById("sidebar-menu");
+    sidebar.innerHTML = `<div class="error">메뉴 로딩 실패: ${err.message}</div>`;
   }
 }
 
-/* --------------------------
-   target별 페이지 로딩
---------------------------- */
 async function loadSection(key) {
-  const main = document.getElementById("main-content");
-  main.innerHTML = `<div class='loading'>Loading ${key}...</div>`;
-
   try {
-    const res = await fetch(`${API_BASE}?target=${key}`);
-    const data = await res.json();
+    const data = await apiGet({ target: key });
 
     if (!data.ok) {
-      main.innerHTML = `<div class='error'>${data.error}</div>`;
-      return;
+      throw new Error(data.error || "데이터 로딩 실패");
     }
 
     if (key === "dashboard") {
@@ -68,76 +52,72 @@ async function loadSection(key) {
     } else {
       renderTable(data);
     }
-
   } catch (err) {
-    main.innerHTML = `<div class='error'>네트워크 오류 발생</div>`;
+    console.error(err);
+    const main = document.getElementById("main-content");
+    main.innerHTML = `<div class="error">섹션 로딩 실패: ${err.message}</div>`;
   }
 }
 
-/* --------------------------
-   대시보드 렌더링
---------------------------- */
 function renderDashboard(d) {
   const main = document.getElementById("main-content");
+  if (!d) {
+    main.innerHTML = `<div class="error">대시보드 데이터를 불러올 수 없습니다.</div>`;
+    return;
+  }
 
   main.innerHTML = `
-    <section class="dashboard">
-      <h1>📊 KORUAL Dashboard</h1>
-
-      <div class="card-grid">
-
-        <div class="card">
-          <h2>오늘 매출</h2>
-          <div class="value">${(d.salesToday || 0).toLocaleString()} 원</div>
-        </div>
-
-        <div class="card">
-          <h2>오늘 주문수</h2>
-          <div class="value">${d.ordersToday || 0} 건</div>
-        </div>
-
-        <div class="card warning">
-          <h2>배송지연</h2>
-          <div class="value">${d.delayedShipments || 0} 건</div>
-        </div>
-
-        <div class="card">
-          <h2>신규회원</h2>
-          <div class="value">${d.newMembersToday || 0} 명</div>
-        </div>
-
+    <h1>대시보드 요약</h1>
+    <div class="dashboard-grid">
+      <div class="card">
+        <div class="label">오늘 매출</div>
+        <div class="value">${Number(d.salesToday || 0).toLocaleString()} 원</div>
       </div>
-    </section>
+      <div class="card">
+        <div class="label">오늘 주문 건수</div>
+        <div class="value">${Number(d.ordersToday || 0).toLocaleString()} 건</div>
+      </div>
+      <div class="card">
+        <div class="label">배송 지연 건수</div>
+        <div class="value">${Number(d.delayedShipments || 0).toLocaleString()} 건</div>
+      </div>
+      <div class="card">
+        <div class="label">금일 신규 회원</div>
+        <div class="value">${Number(d.newMembersToday || 0).toLocaleString()} 명</div>
+      </div>
+    </div>
   `;
 }
 
-/* --------------------------
-   공통 테이블 렌더링
---------------------------- */
 function renderTable(data) {
   const main = document.getElementById("main-content");
+  const headers = data.headers || [];
+  const rows = data.rows || [];
 
-  const headers = data.headers;
-  const rows = data.rows;
+  if (!headers.length) {
+    main.innerHTML = `
+      <h1>${data.desc || data.key}</h1>
+      <div class="empty">데이터가 없습니다.</div>
+    `;
+    return;
+  }
 
   const thead = headers.map(h => `<th>${h}</th>`).join("");
-  const tbody = rows.map(row => `
-    <tr>
-      ${headers.map(h => `<td>${row[h] ?? ""}</td>`).join("")}
-    </tr>
+  const tbody = rows.map(r => `
+    <tr>${headers.map(h => `<td>${r[h] !== undefined ? r[h] : ""}</td>`).join("")}</tr>
   `).join("");
 
   main.innerHTML = `
-    <section>
-      <h1>${data.desc || data.key}</h1>
-      <div class="table-wrapper">
-        <table>
-          <thead><tr>${thead}</tr></thead>
-          <tbody>${tbody}</tbody>
-        </table>
-      </div>
-    </section>
+    <h1>${data.desc || data.key}</h1>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr>${thead}</tr></thead>
+        <tbody>${tbody}</tbody>
+      </table>
+    </div>
   `;
 }
 
-
+document.addEventListener("DOMContentLoaded", () => {
+  loadMenu();
+});
