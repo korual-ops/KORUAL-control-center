@@ -1,14 +1,29 @@
 /****************************************
- KORUAL CONTROL CENTER Frontend v2.1
- - 구글 Apps Script 웹앱 API와 통신
+ KORUAL CONTROL CENTER Frontend v3.0
+ - 구글 Apps Script 웹앱 API와 통신 + 셀 수정
 *****************************************/
 
 // 배포한 웹앱 URL
 const API = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
+// 백엔드 SECRET 과 반드시 동일해야 함
+const API_SECRET = "KORUAL-ONLY";
+
+/** GET 헬퍼 */
 async function apiGet(params) {
   const url = API + "?" + new URLSearchParams(params).toString();
   const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return await res.json();
+}
+
+/** POST 헬퍼 */
+async function apiPost(payload) {
+  const res = await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   if (!res.ok) throw new Error("HTTP " + res.status);
   return await res.json();
 }
@@ -40,14 +55,24 @@ async function loadMenu() {
   }
 }
 
+// 현재 보고 있는 섹션/필터 정보 전역 저장
+window.currentKey = null;
+window.currentParams = {};
+window.currentHeaders = [];
+
 /** 실제 섹션 로딩 로직 (내부용) */
-async function loadSectionInternal(key) {
+async function loadSectionInternal(key, extraParams = {}) {
   try {
-    const data = await apiGet({ target: key });
+    const params = Object.assign({ target: key }, extraParams);
+    const data = await apiGet(params);
 
     if (!data.ok) {
       throw new Error(data.error || "데이터 로딩 실패");
     }
+
+    // 전역에 현재 상태 저장 (수정 후 새로고침에 사용)
+    window.currentKey = key;
+    window.currentParams = extraParams;
 
     if (key === "dashboard") {
       renderDashboard(data.dashboard);
@@ -92,11 +117,14 @@ function renderDashboard(d) {
   `;
 }
 
-/** 테이블 렌더 */
+/** 테이블 렌더 (+ 각 행마다 '수정' 버튼) */
 function renderTable(data) {
   const main = document.getElementById("main-content");
   const headers = data.headers || [];
   const rows = data.rows || [];
+
+  // 전역에 저장해서 editCell 에서도 사용
+  window.currentHeaders = headers;
 
   if (!headers.length) {
     main.innerHTML = `
@@ -106,10 +134,16 @@ function renderTable(data) {
     return;
   }
 
-  const thead = headers.map(h => `<th>${h}</th>`).join("");
-  const tbody = rows.map(r => `
-    <tr>${headers.map(h => `<td>${r[h] !== undefined ? r[h] : ""}</td>`).join("")}</tr>
-  `).join("");
+  // 마지막에 '편집' 컬럼 하나 더 추가
+  const thead = headers.map(h => `<th>${h}</th>`).join("") + `<th>편집</th>`;
+
+  const tbody = rows.map((r, idx) => {
+    const tds = headers
+      .map(h => `<td>${r[h] !== undefined ? r[h] : ""}</td>`)
+      .join("");
+    const editBtn = `<td><button class="small-btn" onclick="editCell('${data.key}', ${idx})">수정</button></td>`;
+    return `<tr>${tds}${editBtn}</tr>`;
+  }).join("");
 
   main.innerHTML = `
     <h1>${data.desc || data.key}</h1>
@@ -145,31 +179,43 @@ window.loadSection = async (key) => {
   }
 };
 
-window.editHr = async (id) => {
-  if (!id) {
-    alert("직원ID가 없습니다.");
+/** 행 수정: 컬럼 이름과 새 값을 받아서 updateCell 호출 */
+window.editCell = async (key, rowIndex) => {
+  const headers = window.currentHeaders || [];
+  if (!headers.length) {
+    alert("수정할 수 있는 컬럼이 없습니다.");
     return;
   }
 
-  const newDept = prompt("새 부서를 입력하세요 (예: 3. 운영 & 자동화 본부)");
-  if (newDept === null) return; // 취소
+  const list = headers.join(", ");
+  const column = prompt(
+    "수정할 컬럼명을 정확히 입력하세요.\n\n사용 가능 컬럼:\n" + list
+  );
+  if (column === null) return; // 취소
+  if (!headers.includes(column)) {
+    alert("컬럼명이 헤더와 일치해야 합니다.");
+    return;
+  }
+
+  const value = prompt(`'${column}' 컬럼의 새 값을 입력하세요:`);
+  if (value === null) return;
 
   try {
     const res = await apiPost({
-      target: "hr_update",
-      secret: "KORUAL-ONLY",      // doPost의 SECRET 과 동일
-      id: id,
-      values: {
-        "부서": newDept
-        // 필요하면 "직책": "대리" 이런식으로 여러 컬럼 추가 가능
-      }
+      target: "updateCell",
+      secret: API_SECRET,
+      key,
+      rowIndex,
+      column,
+      value,
     });
 
     if (!res.ok) throw new Error(res.error || "업데이트 실패");
+
     alert("수정 완료!");
 
-    // 다시 로딩해서 화면 갱신
-    await loadSectionInternal("hr");
+    // 방금 보고 있던 섹션 다시 로딩
+    await loadSectionInternal(key, window.currentParams || {});
   } catch (e) {
     console.error(e);
     alert("에러: " + e.message);
