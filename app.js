@@ -1,9 +1,9 @@
 /****************************************
- KORUAL CONTROL CENTER Frontend v2.0
+ KORUAL CONTROL CENTER Frontend v2.1
  - 구글 Apps Script 웹앱 API와 통신
 *****************************************/
 
-// 여기를 네가 배포한 웹앱 URL로 바꿔줘
+// 배포한 웹앱 URL
 const API = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
 async function apiGet(params) {
@@ -13,6 +13,7 @@ async function apiGet(params) {
   return await res.json();
 }
 
+/** 메뉴 로딩 */
 async function loadMenu() {
   try {
     const data = await apiGet({ target: "routes" });
@@ -31,7 +32,7 @@ async function loadMenu() {
     `).join("");
 
     // 처음엔 대시보드 표시
-    await loadSection("dashboard");
+    await loadSectionInternal("dashboard");
   } catch (err) {
     console.error(err);
     const sidebar = document.getElementById("sidebar-menu");
@@ -39,7 +40,8 @@ async function loadMenu() {
   }
 }
 
-async function loadSection(key) {
+/** 실제 섹션 로딩 로직 (내부용) */
+async function loadSectionInternal(key) {
   try {
     const data = await apiGet({ target: key });
 
@@ -59,6 +61,7 @@ async function loadSection(key) {
   }
 }
 
+/** 대시보드 렌더 */
 function renderDashboard(d) {
   const main = document.getElementById("main-content");
   if (!d) {
@@ -89,6 +92,7 @@ function renderDashboard(d) {
   `;
 }
 
+/** 테이블 렌더 */
 function renderTable(data) {
   const main = document.getElementById("main-content");
   const headers = data.headers || [];
@@ -118,11 +122,7 @@ function renderTable(data) {
   `;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadMenu();
-});
-
-
+/** 페이지 로드 시 1번만 실행 + 모바일 토글 */
 document.addEventListener("DOMContentLoaded", () => {
   loadMenu();
 
@@ -135,11 +135,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+/** HTML onclick용 전역 wrapper (모바일에서 메뉴 자동 닫기) */
 window.loadSection = async (key) => {
-  await loadSection(key);
+  await loadSectionInternal(key);
   const sidebar = document.getElementById("sidebar");
   if (window.innerWidth <= 768 && sidebar) {
     sidebar.classList.remove("open");
   }
 };
-
