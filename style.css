@@ -4,18 +4,6 @@
    - 대리석 + 골드 + 글라스 느낌
    =================================== */
 
-.welcome-text {
-  font-size: 13px;
-  color: #555;
-  margin: 0 10px;
-  white-space: nowrap;
-}
-
-body.dark-mode .welcome-text {
-  color: #ddd;
-}
-
-
 :root {
   /* Theme tokens (light 기본값) */
   --app-bg: #f5f5f7;
@@ -723,4 +711,3 @@ body.dark-mode .sales-chart-date {
     width: 140px;
   }
 }
-
