@@ -310,18 +310,37 @@ const KEY={
 };
 
 /***** Google Sheets Auth API *****/
-const GS_API="https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
+const GS_API = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
 
-async function apiSignup(payload){
-  const res=await fetch(GS_API,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({mode:"signup",...payload})
+async function apiSignup(payload) {
+  const res = await fetch(GS_API, {
+    method: "POST",
+    // headers 삭제 (브라우저가 text/plain으로 보내게 둠)
+    body: JSON.stringify({
+      mode: "signup",
+      ...payload
+    })
   });
-  const data=await res.json();
-  if(!data.ok) throw new Error(data.message||"Signup error");
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.message || "Signup error");
   return data;
 }
+
+async function apiLogin(username, password) {
+  const res = await fetch(GS_API, {
+    method: "POST",
+    // headers 삭제
+    body: JSON.stringify({
+      mode: "login",
+      username,
+      password
+    })
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.message || "Login error");
+  return data;
+}
+
 
 async function apiLogin(username,password){
   const res=await fetch(GS_API,{
@@ -858,6 +877,7 @@ async function runTests(){
 
 </body>
 </html>
+
 
 
 
