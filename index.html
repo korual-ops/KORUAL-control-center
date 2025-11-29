@@ -82,7 +82,7 @@
           <span class="text-slate-400">PW</span>
           <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">korual1228!</code>
         </div>
-        <p>로그인 후에는 자동으로 <span class="text-sky-300">korual-control-center.vercel.app</span> 으로 이동합니다.</p>
+        <p>로그인 후에는 자동으로 <span class="text-sky-300">dashboard.html</span> 으로 이동합니다.</p>
       </div>
     </div>
 
@@ -355,7 +355,7 @@ async function runTests(){const out=[]; const ok=(n,c)=>{out.push(`${c?'✅':'�
         return;
     }
     // 로그인 성공 → Control Center로 이동
-    window.location.href = "https://korual-control-center.vercel.app/";
+    window.location.href = "dashboard.html";
 }); renderPosts(); renderAdmin()});
   $('btnLogout').addEventListener('click',()=>{CUR=null; location.reload()});
 
@@ -396,3 +396,4 @@ async function runTests(){const out=[]; const ok=(n,c)=>{out.push(`${c?'✅':'�
 </script>
 </body>
 </html>
+
