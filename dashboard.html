@@ -224,33 +224,6 @@
 
   <script
    <script>
-
-// ✅ 대시보드에서 로그인한 유저 정보 출력
-function loadKorualUser() {
-  try {
-    const raw = localStorage.getItem("korual_user");
-    if (!raw) return;
-
-    const user = JSON.parse(raw);
-    const name =
-      user.full_name && user.full_name.trim()
-        ? user.full_name.trim()
-        : (user.username || "게스트");
-
-    const span = document.getElementById("welcomeUser");
-    if (span) span.textContent = name;
-  } catch (e) {
-    console.error("korual_user 파싱 오류:", e);
-  }
-}
-
-// 페이지 로드 시 실행
-document.addEventListener("DOMContentLoaded", () => {
-  loadKorualUser();
-
-  // ⚠️ 여기에 기존 대시보드 초기화 함수가 있으면 그대로 유지
-  // initDashboard();
-});
 </script>
  src="app.js">
 </script>
