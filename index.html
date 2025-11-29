@@ -9,46 +9,133 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root { color-scheme: light dark; }
+
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
     }
-    .glass { backdrop-filter: blur(20px); }
+
+    .glass {
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+
     .btn {
-      @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-600 text-white
-             text-sm font-medium tracking-tight hover:bg-blue-700 disabled:opacity-60
-             disabled:cursor-not-allowed transition shadow-sm;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 1.1rem;
+      border-radius: 0.9rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #fff;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.65),
+        0 0 0 1px rgba(148, 163, 184, 0.15);
+      transition: all 0.18s ease-out;
     }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow:
+        0 22px 45px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(129, 140, 248, 0.5);
+      filter: saturate(1.1);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow:
+        0 10px 25px rgba(15, 23, 42, 0.4),
+        0 0 0 1px rgba(148, 163, 184, 0.3);
+    }
+
     .btn-alt {
-      @apply inline-flex items-center justify-center px-3.5 py-2 rounded-xl border border-slate-300/70
-             dark:border-slate-700/80 text-sm hover:bg-slate-100/70 dark:hover:bg-slate-800/70
-             transition;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.55rem 0.95rem;
+      border-radius: 0.9rem;
+      font-size: 0.8rem;
+      border: 1px solid rgba(148, 163, 184, 0.65);
+      background: radial-gradient(circle at top left, rgba(148,163,184,0.18), transparent 55%),
+                  rgba(15,23,42,0.8);
+      color: #e5e7eb;
+      transition: all 0.16s ease-out;
     }
+
+    .btn-alt:hover {
+      background: radial-gradient(circle at top left, rgba(148,163,184,0.32), transparent 55%),
+                  rgba(15,23,42,0.96);
+      border-color: rgba(148, 163, 184, 0.9);
+      transform: translateY(-0.5px);
+    }
+
     .input {
-      @apply w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700
-             bg-white/90 dark:bg-slate-900/80 text-sm placeholder:text-slate-400
-             focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70;
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border-radius: 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.55);
+      background: rgba(15, 23, 42, 0.9);
+      color: #e5e7eb;
+      font-size: 0.875rem;
+      outline: none;
+      transition: all 0.14s ease-out;
     }
+
+    .input::placeholder {
+      color: rgba(148, 163, 184, 0.7);
+    }
+
+    .input:focus {
+      border-color: rgba(96, 165, 250, 0.9);
+      box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.9),
+                  0 0 0 8px rgba(37, 99, 235, 0.08);
+      background: rgba(15, 23, 42, 0.96);
+    }
+
     .pill {
-      @apply px-3 py-1.5 rounded-full text-xs bg-slate-900/5 dark:bg-white/5
-             border border-slate-200/60 dark:border-slate-700/70;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      border: 1px solid rgba(148, 163, 184, 0.55);
+      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(15,23,42,0.75));
+      color: #cbd5f5;
+      gap: 0.35rem;
     }
+
+    .pill::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #38bdf8, #1d4ed8);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.85);
+    }
+
     .auth-bg {
       background:
-        radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.20), transparent 60%),
-        radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.25), transparent 60%);
+        radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.22), transparent 60%),
+        radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.28), transparent 60%),
+        linear-gradient(to bottom right, #020617, #020617);
     }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 auth-bg">
+<body class="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-950 dark:to-slate-950 text-slate-50 auth-bg">
 
   <!-- Top bar -->
   <header class="max-w-6xl mx-auto px-4 md:px-8 pt-5 pb-3 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-2xl bg-slate-900 text-white grid place-content-center text-xl font-bold shadow-md">
+      <div class="w-11 h-11 rounded-2xl bg-slate-900/90 text-white grid place-content-center text-xl font-bold shadow-[0_15px_35px_rgba(15,23,42,0.9)] ring-1 ring-slate-700/80">
         K
       </div>
       <div>
-        <p class="text-[11px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+        <p class="text-[11px] uppercase tracking-[0.3em] text-slate-400">
           Korual Control Center
         </p>
         <h1 class="text-xl md:text-2xl font-semibold leading-tight">
@@ -57,7 +144,7 @@
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <select id="langTop" class="input w-28 py-2 text-xs">
+      <select id="langTop" class="input w-28 py-2 text-xs border-slate-700 bg-slate-900/80">
         <option value="ko">한국어</option>
         <option value="en">English</option>
       </select>
@@ -67,11 +154,15 @@
 
   <!-- Auth card -->
   <main class="max-w-6xl mx-auto px-4 md:px-8 pb-10">
-    <section class="w-full grid md:grid-cols-[1.05fr,1.25fr] gap-0 rounded-3xl overflow-hidden shadow-2xl border border-slate-200/70 dark:border-slate-800 glass bg-slate-900">
+    <section class="relative w-full grid md:grid-cols-[1.05fr,1.25fr] gap-0 rounded-3xl overflow-hidden shadow-[0_40px_120px_rgba(15,23,42,0.95)] border border-slate-800/90 glass bg-slate-900">
+      <!-- subtle outer glow -->
+      <div class="pointer-events-none absolute inset-0 border border-sky-500/10 rounded-[1.45rem]"></div>
+
       <!-- Left info -->
-      <div class="hidden md:flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-950 to-slate-950 p-8 text-slate-50">
-        <div class="space-y-7">
-          <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-sm">
+      <div class="hidden md:flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/95 p-8 text-slate-50 relative">
+        <div class="absolute inset-x-10 top-20 h-32 bg-gradient-to-r from-sky-500/15 via-cyan-400/10 to-indigo-500/15 blur-3xl opacity-70"></div>
+        <div class="relative space-y-7">
+          <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-md">
             <div class="w-10 h-10 rounded-2xl bg-white text-slate-900 grid place-content-center text-xl font-bold">K</div>
             <div>
               <p class="text-[11px] uppercase tracking-[0.3em] text-slate-300">Korual Control Center</p>
@@ -105,9 +196,9 @@
           </div>
         </div>
 
-        <div class="mt-8 space-y-3 text-[11px] text-slate-400">
+        <div class="relative mt-8 space-y-3 text-[11px] text-slate-400">
           <p class="font-medium text-slate-200">테스트용 기본 계정</p>
-          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/70 border border-slate-700/80">
+          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/80 border border-slate-700/80 shadow-inner">
             <span class="text-slate-400">ID</span>
             <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">KORUAL</code>
             <span class="text-slate-600">/</span>
@@ -119,39 +210,49 @@
       </div>
 
       <!-- Right auth form -->
-      <div class="bg-slate-900/90 text-slate-50 px-6 py-7 lg:px-8 lg:py-8">
-        <div class="flex items-center justify-between mb-7">
+      <div class="bg-slate-950/95 text-slate-50 px-6 py-7 lg:px-8 lg:py-8 relative">
+        <div class="absolute -top-10 right-14 h-28 w-28 bg-sky-500/20 blur-3xl rounded-full pointer-events-none"></div>
+
+        <div class="flex items-center justify-between mb-7 relative">
           <div class="space-y-1">
             <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400" data-i18n="sign_to_korual">
               SIGN IN TO KORUAL
             </p>
             <h1 class="text-xl font-semibold" data-i18n="headline">KORUAL 계정으로 접속</h1>
           </div>
-          <select id="langAuth" class="input w-28 py-2 text-xs bg-slate-950/70 border-slate-700/80">
+          <select id="langAuth" class="input w-28 py-2 text-xs bg-slate-950/80 border-slate-700/80">
             <option value="ko">한국어</option>
             <option value="en">English</option>
           </select>
         </div>
 
-        <div class="grid gap-6">
+        <div class="grid gap-6 relative">
           <!-- Login -->
-          <div class="space-y-4 rounded-2xl border border-slate-700/80 bg-slate-950/70 px-5 py-5">
+          <div class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/85 px-5 py-5 shadow-[0_16px_40px_rgba(15,23,42,0.9)]">
             <div class="flex items-center justify-between gap-2">
               <h2 class="text-base font-semibold" data-i18n="login">로그인</h2>
-              <span class="pill text-[11px] text-slate-300" data-i18n="login_badge">
+              <span class="pill text-[11px] text-slate-200" data-i18n="login_badge">
                 Control Center 입장
               </span>
             </div>
             <div class="space-y-3.5">
               <div>
                 <label class="block mb-1.5 text-sm" data-i18n="username">아이디</label>
-                <input id="loginUsername" class="input bg-slate-950/60 border-slate-700/70"
-                       placeholder="예: KORUAL" autocomplete="username" />
+                <div class="relative">
+                  <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">@</span>
+                  <input id="loginUsername"
+                         class="input pl-7 border-slate-700/70 bg-slate-950/80"
+                         placeholder="예: KORUAL" autocomplete="username" />
+                </div>
               </div>
               <div>
                 <label class="block mb-1.5 text-sm" data-i18n="password">비밀번호</label>
-                <input id="loginPassword" class="input bg-slate-950/60 border-slate-700/70"
-                       type="password" placeholder="••••••••" autocomplete="current-password" />
+                <div class="relative">
+                  <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">••</span>
+                  <input id="loginPassword"
+                         class="input pl-7 border-slate-700/70 bg-slate-950/80"
+                         type="password" placeholder="••••••••" autocomplete="current-password" />
+                </div>
               </div>
               <div class="flex flex-wrap items-center gap-2 justify-between">
                 <button id="btnLogin" class="btn min-w-[120px]" data-i18n="login_btn">로그인</button>
@@ -162,30 +263,30 @@
           </div>
 
           <!-- Signup -->
-          <div class="space-y-4 rounded-2xl border border-slate-700/70 bg-slate-950/60 px-5 py-5">
+          <div class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-5">
             <div class="flex items-center justify-between gap-2">
               <h2 class="text-base font-semibold" data-i18n="signup">회원가입</h2>
-              <span class="pill text-[11px] text-slate-300" data-i18n="signup_badge">
+              <span class="pill text-[11px] text-slate-200" data-i18n="signup_badge">
                 Google Sheets 계정 저장
               </span>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label class="block mb-1 text-sm" data-i18n="full_name">이름</label>
-                <input id="suName" class="input bg-slate-950/60 border-slate-700/70" placeholder="홍길동" />
+                <input id="suName" class="input bg-slate-950/80 border-slate-700/70" placeholder="홍길동" />
               </div>
               <div>
                 <label class="block mb-1 text-sm" data-i18n="email">이메일</label>
-                <input id="suEmail" class="input bg-slate-950/60 border-slate-700/70" placeholder="you@korual.app" />
+                <input id="suEmail" class="input bg-slate-950/80 border-slate-700/70" placeholder="you@korual.app" />
               </div>
               <div>
                 <label class="block mb-1 text-sm" data-i18n="username">아이디</label>
-                <input id="suUser" class="input bg-slate-950/60 border-slate-700/70"
+                <input id="suUser" class="input bg-slate-950/80 border-slate-700/70"
                        placeholder="영문/숫자 조합" autocomplete="username" />
               </div>
               <div>
                 <label class="block mb-1 text-sm" data-i18n="password">비밀번호</label>
-                <input id="suPass" class="input bg-slate-950/60 border-slate-700/70"
+                <input id="suPass" class="input bg-slate-950/80 border-slate-700/70"
                        type="password" placeholder="최소 6자리" autocomplete="new-password" />
               </div>
             </div>
@@ -270,7 +371,7 @@
     async function apiSignup(payload) {
       const res = await fetch(GS_API, {
         method: "POST",
-        body: JSON.stringify({ mode: "signup", ...payload })   // 헤더 없음 = simple request
+        body: JSON.stringify({ mode: "signup", ...payload })   // simple request
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.message || "Signup error");
@@ -350,7 +451,7 @@
         $("btnLogin").textContent = "Loading...";
         try {
           await apiLogin(username, password);
-          // ✅ 로그인 성공 → dashboard.html 이동
+          // ✅ 로그인 성공 → dashboard.html 이동 (파일명을 바꾸면 여기도 같이 바꾸면 됨)
           window.location.href = "dashboard.html";
         } catch (e) {
           $("loginMsg").textContent = e.message || I18N[LANG].login_failed;
@@ -371,5 +472,3 @@
   </script>
 </body>
 </html>
-
-
