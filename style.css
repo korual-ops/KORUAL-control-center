@@ -1,11 +1,11 @@
 /* ===================================
-   KORUAL CONTROL CENTER – STYLE v1.0
+   KORUAL CONTROL CENTER – STYLE v2.0
    =================================== */
 
 :root {
   --bg-dark: #111111;
   --bg-light: #f7f7f7;
-  --color-primary: #d4af37; /* 고급 골드 */
+  --color-primary: #d4af37;
   --color-text: #222;
   --color-text-light: #666;
   --sidebar-width: 240px;
@@ -167,6 +167,11 @@ body {
   transition: var(--transition);
 }
 
+.btn.small {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
 .btn:hover {
   background: #ccc;
 }
@@ -318,6 +323,177 @@ tbody tr:hover {
   font-size: 14px;
 }
 
+/* 정렬 가능한 헤더 표시 */
+th.sortable {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+th.sortable::after {
+  content: "↕";
+  font-size: 11px;
+  margin-left: 6px;
+  color: #aaa;
+}
+
+th.sortable.sorted-asc::after {
+  content: "▲";
+  color: var(--color-primary);
+}
+
+th.sortable.sorted-desc::after {
+  content: "▼";
+  color: var(--color-primary);
+}
+
+/* 인라인 편집 셀 */
+td.editable-cell {
+  cursor: pointer;
+}
+td.editable-cell:hover {
+  background: #f5f5f5;
+}
+
+/* ===================================
+   매출 차트
+   =================================== */
+.sales-chart-wrapper {
+  padding: 15px;
+}
+
+.sales-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  height: 180px;
+}
+
+.sales-chart-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sales-chart-bar {
+  width: 60%;
+  background: var(--color-primary);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
+}
+
+.sales-chart-value {
+  font-size: 11px;
+  margin-bottom: 4px;
+  color: #555;
+}
+
+.sales-chart-date {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #777;
+}
+
+/* ===================================
+   다크 모드
+   =================================== */
+body.dark-mode {
+  background: #050505;
+  color: #e2e2e2;
+}
+
+body.dark-mode .content {
+  background: #111;
+}
+
+body.dark-mode .topbar {
+  background: #151515;
+  border-bottom-color: #333;
+}
+
+body.dark-mode .topbar-title {
+  color: #f5f5f5;
+}
+
+body.dark-mode #last-sync {
+  color: #bbb;
+}
+
+body.dark-mode .card {
+  background: #181818;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+body.dark-mode .panel {
+  background: #181818;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+body.dark-mode .section-desc {
+  color: #aaa;
+}
+
+body.dark-mode .input {
+  background: #111;
+  border-color: #444;
+  color: #e2e2e2;
+}
+
+body.dark-mode .table-wrapper {
+  background: #181818;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+body.dark-mode table {
+  color: #ddd;
+}
+
+body.dark-mode thead {
+  background: #202020;
+}
+
+body.dark-mode th,
+body.dark-mode td {
+  border-bottom-color: #333;
+}
+
+body.dark-mode tbody tr:hover {
+  background: #222;
+}
+
+body.dark-mode .empty-state {
+  color: #aaa;
+}
+
+body.dark-mode .btn {
+  background: #333;
+  color: #eee;
+}
+body.dark-mode .btn:hover {
+  background: #444;
+}
+body.dark-mode .btn.ghost {
+  border-color: #555;
+}
+body.dark-mode .btn.primary {
+  background: var(--color-primary);
+  color: #111;
+}
+body.dark-mode .btn.primary:hover {
+  background: #c59e2f;
+}
+
+body.dark-mode .sales-chart-bar {
+  background: var(--color-primary);
+}
+
+body.dark-mode .sales-chart-value,
+body.dark-mode .sales-chart-date {
+  color: #bbb;
+}
+
 /* ===================================
    모바일 대응
    =================================== */
@@ -335,6 +511,6 @@ tbody tr:hover {
     grid-template-columns: 1fr 1fr;
   }
   .input {
-    width: 100px;
+    width: 120px;
   }
 }
