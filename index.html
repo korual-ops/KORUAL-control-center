@@ -347,16 +347,49 @@ async function runTests(){const out=[]; const ok=(n,c)=>{out.push(`${c?'✅':'�
   $('runTests').addEventListener('click',runTests);
 
   // auth
-  $('btnSignup').addEventListener('click',async()=>{const payload={full_name:$('suName').value.trim(),email:$('suEmail').value.trim(),username:$('suUser').value.trim(),password:$('suPass').value}; if(!payload.username||!payload.password){$('signupMsg').textContent='Username & password required.';return} try{await signupUser(payload); $('signupMsg').textContent=I18N[LANG].signup_done}catch{ $('signupMsg').textContent=I18N[LANG].user_exists }});
-  $('btnLogin').addEventListener('click', async () => {
-    const ok = await loginUser($('loginUsername').value.trim(), $('loginPassword').value);
-    if (!ok) {
-        $('loginMsg').textContent = I18N[LANG].login_failed;
-        return;
+// auth
+$('btnSignup').addEventListener('click', async () => {
+  const payload = {
+    full_name: $('suName').value.trim(),
+    email: $('suEmail').value.trim(),
+    username: $('suUser').value.trim(),
+    password: $('suPass').value
+  };
+  if (!payload.username || !payload.password) {
+    $('signupMsg').textContent = 'Username & password required.';
+    return;
+  }
+  try {
+    await signupUser(payload);
+    $('signupMsg').textContent = I18N[LANG].signup_done;
+  } catch {
+    $('signupMsg').textContent = I18N[LANG].user_exists;
+  }
+});
+
+$('btnLogin').addEventListener('click', async () => {
+  const ok = await loginUser(
+    $('loginUsername').value.trim(),
+    $('loginPassword').value
+  );
+  if (!ok) {
+    $('loginMsg').textContent = I18N[LANG].login_failed;
+    return;
+  }
+  // ✅ 로그인 성공 → dashboard.html 로 이동
+  window.location.href = "dashboard.html";
+});
+// Enter 키로 로그인
+['loginUsername', 'loginPassword'].forEach(id => {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      $('btnLogin').click();
     }
-    // 로그인 성공 → Control Center로 이동
-    window.location.href = "dashboard.html";
-}); renderPosts(); renderAdmin()});
+  });
+});
+
   $('btnLogout').addEventListener('click',()=>{CUR=null; location.reload()});
 
   // tabs
@@ -396,4 +429,5 @@ async function runTests(){const out=[]; const ok=(n,c)=>{out.push(`${c?'✅':'�
 </script>
 </body>
 </html>
+
 
