@@ -76,22 +76,53 @@ function filterRows(rows, keyword) {
   );
 }
 
-// API 헬스체크
+// API 헬스체크 (개선 버전)
 async function checkApiHealth() {
   const el = document.getElementById("api-status");
+
+  // 초기 상태
+  el.textContent = "API 체크 중...";
+  el.classList.remove("ok", "error");
+
   try {
-    const res = await fetch(`${API_BASE}?target=ping`);
-    const json = await res.json();
+    const res = await fetch(`${API_BASE}?target=ping`, {
+      method: "GET",
+    });
+
+    // 1) HTTP 상태 체크
+    if (!res.ok) {
+      el.textContent = `API 오류 (HTTP ${res.status})`;
+      el.classList.add("error");
+      console.error("[KORUAL] ping HTTP error:", res.status, res.statusText);
+      return;
+    }
+
+    // 2) JSON 파싱 (HTML이 오면 여기서 걸림)
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (parseErr) {
+      el.textContent = "API 응답 형식 오류(JSON 아님)";
+      el.classList.add("error");
+      console.error("[KORUAL] ping response not JSON:", text);
+      return;
+    }
+
+    // 3) 앱 레벨 ok 플래그 체크
     if (json.ok) {
       el.textContent = "API 연결 정상";
       el.classList.add("ok");
     } else {
       el.textContent = "API 오류";
       el.classList.add("error");
+      console.error("[KORUAL] ping json error:", json);
     }
   } catch (e) {
+    // 4) 네트워크 / CORS 등 진짜 연결 실패
     el.textContent = "API 연결 실패";
     el.classList.add("error");
+    console.error("[KORUAL] ping network error:", e);
   }
 }
 
@@ -319,3 +350,4 @@ function initApp() {
 }
 
 window.addEventListener("DOMContentLoaded", initApp);
+
