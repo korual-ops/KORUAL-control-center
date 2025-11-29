@@ -18,6 +18,8 @@
         <button class="nav-link" data-section="products">상품 관리</button>
         <button class="nav-link" data-section="orders">주문 관리</button>
         <button class="nav-link" data-section="members">회원 관리</button>
+        <button class="nav-link" data-section="stock">재고 관리</button>
+        <button class="nav-link" data-section="logs">로그 모니터링</button>
       </nav>
       <div class="sidebar-footer">
         <div class="api-status" id="api-status">API 체크 중...</div>
@@ -32,11 +34,13 @@
       <header class="topbar">
         <div class="topbar-title">KORUAL CONTROL CENTER</div>
         <div class="topbar-right">
+          <button id="toggle-theme" class="btn ghost small">Dark</button>
           <span id="last-sync">마지막 동기화: -</span>
           <button id="refresh-all" class="btn primary">전체 새로고침</button>
         </div>
       </header>
 
+      <!-- DASHBOARD -->
       <section id="section-dashboard" class="section active">
         <h1>대시보드</h1>
         <p class="section-desc">
@@ -72,8 +76,18 @@
             데이터 로딩 중...
           </div>
         </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>최근 7일 매출 추이</h2>
+          </div>
+          <div id="sales-chart" class="sales-chart-wrapper empty-state">
+            데이터 로딩 중...
+          </div>
+        </div>
       </section>
 
+      <!-- PRODUCTS -->
       <section id="section-products" class="section">
         <div class="section-header-row">
           <div>
@@ -95,6 +109,7 @@
         <div id="products-table" class="table-wrapper">데이터 로딩 중...</div>
       </section>
 
+      <!-- ORDERS -->
       <section id="section-orders" class="section">
         <div class="section-header-row">
           <div>
@@ -116,6 +131,7 @@
         <div id="orders-table" class="table-wrapper">데이터 로딩 중...</div>
       </section>
 
+      <!-- MEMBERS -->
       <section id="section-members" class="section">
         <div class="section-header-row">
           <div>
@@ -135,6 +151,50 @@
           </div>
         </div>
         <div id="members-table" class="table-wrapper">데이터 로딩 중...</div>
+      </section>
+
+      <!-- STOCK -->
+      <section id="section-stock" class="section">
+        <div class="section-header-row">
+          <div>
+            <h1>재고 관리</h1>
+            <p class="section-desc">
+              STOCK 시트를 연동합니다. 상품코드·옵션별 재고를 관리합니다.
+            </p>
+          </div>
+          <div class="section-actions">
+            <input
+              type="text"
+              id="stock-search"
+              class="input"
+              placeholder="상품명, 코드, 공급처 검색"
+            />
+            <button id="stock-reload" class="btn">새로고침</button>
+          </div>
+        </div>
+        <div id="stock-table" class="table-wrapper">데이터 로딩 중...</div>
+      </section>
+
+      <!-- LOGS -->
+      <section id="section-logs" class="section">
+        <div class="section-header-row">
+          <div>
+            <h1>로그 모니터링</h1>
+            <p class="section-desc">
+              LOGS 시트의 이벤트/에러/배송지연 로그를 한 눈에 봅니다.
+            </p>
+          </div>
+          <div class="section-actions">
+            <input
+              type="text"
+              id="logs-search"
+              class="input"
+              placeholder="타입, 메시지, 주문번호 검색"
+            />
+            <button id="logs-reload" class="btn">새로고침</button>
+          </div>
+        </div>
+        <div id="logs-table" class="table-wrapper">데이터 로딩 중...</div>
       </section>
     </main>
   </div>
