@@ -8,7 +8,6 @@
 </head>
 <body>
   <div class="app-shell">
-    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-title">KORUAL</div>
@@ -27,18 +26,11 @@
       </div>
     </aside>
 
-    <!-- MAIN -->
     <main class="content">
-      <!-- TOP BAR -->
       <header class="topbar">
         <div class="topbar-title">KORUAL CONTROL CENTER</div>
         <div class="topbar-right">
-      
           <button id="toggle-theme" class="btn ghost small">Dark</button>
-            <span class="welcome-text">
-    반갑습니다! <span id="welcomeUser">KORUAL</span>님
-  </span>
-
           <span id="last-sync">마지막 동기화: -</span>
           <button id="refresh-all" class="btn primary">전체 새로고침</button>
         </div>
@@ -51,7 +43,6 @@
           코루알 전체 현황을 한 눈에 보는 관제탑입니다. 상품·주문·회원 데이터를 구글 시트에서 자동 불러옵니다.
         </p>
 
-        <!-- 상단 카드 -->
         <div class="cards-grid">
           <div class="card">
             <div class="card-label">총 상품 수</div>
@@ -72,23 +63,6 @@
           </div>
         </div>
 
-        <!-- 오늘 기준 KPI 스트립 -->
-        <div class="kpi-strip">
-          <div class="kpi-item">
-            <div class="kpi-label">오늘 주문 수</div>
-            <div class="kpi-value" id="stat-today-orders">-</div>
-          </div>
-          <div class="kpi-item">
-            <div class="kpi-label">오늘 매출</div>
-            <div class="kpi-value" id="stat-today-amount">-</div>
-          </div>
-          <div class="kpi-item">
-            <div class="kpi-label">준비중 주문</div>
-            <div class="kpi-value" id="stat-pending-orders">-</div>
-          </div>
-        </div>
-
-        <!-- 최근 주문 -->
         <div class="panel">
           <div class="panel-header">
             <h2>최근 주문 미리보기</h2>
@@ -99,7 +73,6 @@
           </div>
         </div>
 
-        <!-- 7일 매출 차트 -->
         <div class="panel">
           <div class="panel-header">
             <h2>최근 7일 매출 추이</h2>
@@ -138,7 +111,7 @@
           <div>
             <h1>주문 관리</h1>
             <p class="section-desc">
-              구글 시트 주문 시트를 그대로 보여줍니다. ROUTES 시트에서 key가 orders인 시트를 사용합니다.
+              구글 시트 주문 시트를 그대로 보여줍니다. ROUTES 시트에서 key가 orders인 시트가 대상입니다.
             </p>
           </div>
           <div class="section-actions">
@@ -222,10 +195,6 @@
     </main>
   </div>
 
-  <script
-   <script>
-</script>
- src="app.js">
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
