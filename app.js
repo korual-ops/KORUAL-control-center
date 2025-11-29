@@ -1,6 +1,7 @@
 // KORUAL CONTROL CENTER – FRONTEND v1.0
 
-const API_BASE ="https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
+const API_BASE =
+  "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
 // 공통: JSON 요청
 async function loadSheet(key) {
@@ -12,7 +13,6 @@ async function loadSheet(key) {
     throw new Error("HTTP " + res.status);
   }
   const data = await res.json();
-  // code.gs에서 { ok: true, rows: [...] } 형태라고 가정
   if (data.ok === false) {
     throw new Error(data.error || "API error");
   }
@@ -38,7 +38,6 @@ function renderDynamicTable(container, rows) {
 
   const headers = Object.keys(rows[0] || {});
 
-  // 헤더
   const headTr = document.createElement("tr");
   headers.forEach((h) => {
     const th = document.createElement("th");
@@ -47,7 +46,6 @@ function renderDynamicTable(container, rows) {
   });
   thead.appendChild(headTr);
 
-  // 바디
   rows.forEach((row) => {
     const tr = document.createElement("tr");
     headers.forEach((h) => {
@@ -125,7 +123,6 @@ async function renderDashboard() {
     ordersCountEl.textContent = orders.length;
     membersCountEl.textContent = members.length;
 
-    // 금액 합계 계산 (주문 시트에 "금액" 컬럼이 있다고 가정)
     let totalAmount = 0;
     orders.forEach((o) => {
       const raw = o["금액"] ?? o["amount"] ?? o["Total"] ?? 0;
@@ -141,7 +138,6 @@ async function renderDashboard() {
       ordersAmountEl.textContent = "-";
     }
 
-    // 최근 주문 상위 10개만 미리보기
     const preview = orders.slice(0, 10);
     renderDynamicTable(ordersPreviewEl, preview);
   } catch (e) {
@@ -237,7 +233,6 @@ function showSection(sectionId) {
   );
   if (currentBtn) currentBtn.classList.add("active");
 
-  // 라우팅에 따라 데이터 로딩
   if (sectionId === "dashboard") {
     renderDashboard();
   } else if (sectionId === "products") {
@@ -265,7 +260,6 @@ function updateLastSync() {
 
 // 초기화
 function initApp() {
-  // 네비게이션 클릭
   document.querySelectorAll(".nav-link").forEach((btn) => {
     btn.addEventListener("click", () => {
       const sectionId = btn.getAttribute("data-section");
@@ -275,7 +269,6 @@ function initApp() {
     });
   });
 
-  // 대시보드에서 버튼으로 점프
   document
     .querySelectorAll("button[data-jump]")
     .forEach((btn) => {
@@ -287,7 +280,6 @@ function initApp() {
       });
     });
 
-  // 새로고침 버튼들
   document
     .getElementById("products-reload")
     .addEventListener("click", () => renderProducts(true));
@@ -300,18 +292,15 @@ function initApp() {
 
   document
     .getElementById("refresh-all")
-    .addEventListener("click", async () => {
+    .addEventListener("click", () => {
       productsCache = [];
       ordersCache = [];
       membersCache = [];
-      const activeSection = document.querySelector(
-        ".section.active"
-      ).id.replace("section-", "");
+      const activeSection = document.querySelector(".section.active").id.replace("section-", "");
       showSection(activeSection);
       updateLastSync();
     });
 
-  // 검색 인풋 입력 시 필터링
   document
     .getElementById("products-search")
     .addEventListener("input", () => renderProducts(false));
@@ -322,7 +311,6 @@ function initApp() {
     .getElementById("members-search")
     .addEventListener("input", () => renderMembers(false));
 
-  // 해시 기반 초기 라우팅
   let initial = window.location.hash.replace("#", "");
   if (!initial) initial = "dashboard";
   showSection(initial);
@@ -331,4 +319,3 @@ function initApp() {
 }
 
 window.addEventListener("DOMContentLoaded", initApp);
-
