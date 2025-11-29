@@ -1,883 +1,373 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Korual — Web</title>
-<link rel="icon" href="data:," />
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com"></script>
-<!-- Chart.js + Luxon time adapter for time scales -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
-<style>
-  :root{color-scheme:light dark}
-  .glass{backdrop-filter: blur(18px)}
-  .card{ @apply bg-white/80 dark:bg-slate-900/80 glass rounded-2xl shadow-xl p-6 md:p-7 border border-slate-100/60 dark:border-slate-800; }
-  .btn{ @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium tracking-tight hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition; }
-  .btn-alt{ @apply inline-flex items-center justify-center px-3.5 py-2 rounded-xl border border-slate-300/70 dark:border-slate-700/80 text-sm hover:bg-slate-100/70 dark:hover:bg-slate-800/70 transition; }
-  .input{ @apply w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70; }
-  .pill{ @apply px-3 py-1.5 rounded-full text-xs bg-slate-900/5 dark:bg-white/5 border border-slate-200/60 dark:border-slate-700/70; }
-  .tab{ @apply px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition; }
-  .tab.active{ @apply bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm; }
-  .auth-hero{background: radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.23), transparent 60%), radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.25), transparent 60%);} 
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KORUAL Control Center – Sign In</title>
+  <link rel="icon" href="data:," />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
+    }
+    .glass { backdrop-filter: blur(20px); }
+    .btn {
+      @apply inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-600 text-white
+             text-sm font-medium tracking-tight hover:bg-blue-700 disabled:opacity-60
+             disabled:cursor-not-allowed transition shadow-sm;
+    }
+    .btn-alt {
+      @apply inline-flex items-center justify-center px-3.5 py-2 rounded-xl border border-slate-300/70
+             dark:border-slate-700/80 text-sm hover:bg-slate-100/70 dark:hover:bg-slate-800/70
+             transition;
+    }
+    .input {
+      @apply w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700
+             bg-white/90 dark:bg-slate-900/80 text-sm placeholder:text-slate-400
+             focus:outline-none focus:ring-2 focus:ring-blue-500/70 focus:border-blue-500/70;
+    }
+    .pill {
+      @apply px-3 py-1.5 rounded-full text-xs bg-slate-900/5 dark:bg-white/5
+             border border-slate-200/60 dark:border-slate-700/70;
+    }
+    .auth-bg {
+      background:
+        radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.20), transparent 60%),
+        radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.25), transparent 60%);
+    }
+  </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100">
-<div class="max-w-6xl mx-auto p-4 md:p-8">
-  <!-- Header -->
-  <header class="flex flex-wrap items-center justify-between gap-3 mb-6">
+<body class="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100 auth-bg">
+
+  <!-- Top bar -->
+  <header class="max-w-6xl mx-auto px-4 md:px-8 pt-5 pb-3 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-2xl bg-blue-600 text-white grid place-content-center text-xl font-bold">K</div>
+      <div class="w-10 h-10 rounded-2xl bg-slate-900 text-white grid place-content-center text-xl font-bold shadow-md">
+        K
+      </div>
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold leading-tight">Korual</h1>
-        <p class="text-sm text-slate-500 -mt-1">Lightweight community & tools</p>
+        <p class="text-[11px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
+          Korual Control Center
+        </p>
+        <h1 class="text-xl md:text-2xl font-semibold leading-tight">
+          24h 자동화 커머스 레이더
+        </h1>
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <input id="searchPosts" class="input w-44" placeholder="검색 / Search" />
-      <select id="langSelect" class="input w-28">
+      <select id="langTop" class="input w-28 py-2 text-xs">
         <option value="ko">한국어</option>
         <option value="en">English</option>
       </select>
-      <button id="toggleTheme" class="btn-alt" title="Theme">🌓</button>
-      <button id="btnExport" class="btn-alt" title="Export JSON">Export</button>
-      <label class="btn-alt cursor-pointer" title="Import JSON">
-        <input id="fileImport" type="file" accept="application/json" class="hidden"/>Import
-      </label>
-      <button id="runTests" class="btn-alt">Run Tests</button>
+      <button id="toggleTheme" class="btn-alt text-lg" title="Theme">🌓</button>
     </div>
   </header>
 
-  <!-- AUTH -->
-  <section id="authView" class="auth-hero min-h-[80vh] flex items-center justify-center mb-8">
-  <div class="w-full max-w-5xl grid md:grid-cols-[1.05fr,1.25fr] gap-0 rounded-3xl overflow-hidden shadow-2xl bg-slate-950/80 text-slate-50 border border-slate-800">
-    <!-- Brand / Preview side -->
-    <div class="relative hidden md:flex flex-col justify-between p-7 lg:p-8 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-950">
-      <div class="space-y-6">
-        <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10">
-          <div class="w-10 h-10 rounded-2xl bg-white text-slate-900 grid place-content-center text-xl font-bold">K</div>
-          <div>
-            <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Korual Control Center</p>
-            <p class="text-sm text-slate-200">24h 자동화 커머스 레이더</p>
+  <!-- Auth card -->
+  <main class="max-w-6xl mx-auto px-4 md:px-8 pb-10">
+    <section class="w-full grid md:grid-cols-[1.05fr,1.25fr] gap-0 rounded-3xl overflow-hidden shadow-2xl border border-slate-200/70 dark:border-slate-800 glass bg-slate-900">
+      <!-- Left info -->
+      <div class="hidden md:flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-950 to-slate-950 p-8 text-slate-50">
+        <div class="space-y-7">
+          <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-sm">
+            <div class="w-10 h-10 rounded-2xl bg-white text-slate-900 grid place-content-center text-xl font-bold">K</div>
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.3em] text-slate-300">Korual Control Center</p>
+              <p class="text-sm text-slate-100/90">24h 자동화 커머스 레이더</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <h2 class="text-3xl font-semibold leading-snug">
+              한 화면에서 보는 <span class="text-sky-400">KORUAL</span> 관제탑
+            </h2>
+            <p class="text-sm text-slate-300/90">
+              로그인하면 실시간 주문, 회원, 자동화 상태를
+              기존 백엔드 <span class="text-sky-300 font-medium">dashboard.html</span> 에서 확인합니다.
+            </p>
+          </div>
+
+          <div class="grid gap-2 text-xs text-slate-300/95">
+            <div class="flex items-start gap-2">
+              <span class="mt-[1px] text-blue-400 text-lg">▌</span>
+              <span>Google Sheets 계정 저장소 기반 – 스프레드시트에서 바로 계정 관리</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="mt-[1px] text-emerald-400 text-lg">▌</span>
+              <span>추후 KORUAL API 연동 시, 주문/매출/멤버십 데이터까지 확장 가능</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="mt-[1px] text-violet-400 text-lg">▌</span>
+              <span>GitHub · Vercel에 정적 배포 가능 – 어디서나 브라우저로 접속</span>
+            </div>
           </div>
         </div>
-        <div class="space-y-3">
-          <h2 class="text-2xl lg:text-3xl font-semibold leading-snug">한 화면에서 보는 <span class="text-blue-400">KORUAL</span> 관제탑</h2>
-          <p class="text-sm text-slate-300/90">로그인하면 실시간 주문, 회원, 자동화 상태를 기존 백엔드 화면에서 바로 확인할 수 있습니다.</p>
-        </div>
-        <div class="grid gap-2 text-xs text-slate-300/90">
-          <div class="flex items-center gap-2"><span class="text-blue-400 text-lg">▌</span><span>브라우저 LocalStorage 기반 – 이 기기에서만 테스트 데이터 저장</span></div>
-          <div class="flex items-center gap-2"><span class="text-emerald-400 text-lg">▌</span><span>추후 KORUAL API 연동 시, 실제 주문/매출 데이터 대시보드로 확장 가능</span></div>
-          <div class="flex items-center gap-2"><span class="text-violet-400 text-lg">▌</span><span>Export / Import 로 설정값 백업 후, GitHub · Vercel에 바로 배포</span></div>
-        </div>
-      </div>
-      <div class="mt-6 space-y-3 text-[11px] text-slate-400">
-        <p class="font-medium text-slate-300">테스트용 기본 계정</p>
-        <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/60 border border-slate-700/80">
-          <span class="text-slate-400">ID</span>
-          <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">KORUAL</code>
-          <span class="text-slate-600">/</span>
-          <span class="text-slate-400">PW</span>
-          <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">korual1228!</code>
-        </div>
-        <p>로그인 후에는 자동으로 <span class="text-sky-300">dashboard.html</span> 으로 이동합니다.</p>
-      </div>
-    </div>
 
-    <!-- Auth side -->
-    <div class="bg-slate-900/80 backdrop-blur px-6 py-7 lg:px-8 lg:py-8">
-      <div class="flex items-center justify-between mb-6">
-        <div class="space-y-1">
-          <p class="text-xs uppercase tracking-[0.22em] text-slate-400">Sign in to Korual</p>
-          <h1 class="text-xl font-semibold">KORUAL 계정으로 접속</h1>
+        <div class="mt-8 space-y-3 text-[11px] text-slate-400">
+          <p class="font-medium text-slate-200">테스트용 기본 계정</p>
+          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/70 border border-slate-700/80">
+            <span class="text-slate-400">ID</span>
+            <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">KORUAL</code>
+            <span class="text-slate-600">/</span>
+            <span class="text-slate-400">PW</span>
+            <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">korual1228!</code>
+          </div>
+          <p>로그인 후에는 자동으로 <span class="text-sky-300">dashboard.html</span> 로 이동합니다.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <select id="langSelect" class="input w-28 text-xs bg-slate-900/80 border-slate-700/80">
+      </div>
+
+      <!-- Right auth form -->
+      <div class="bg-slate-900/90 text-slate-50 px-6 py-7 lg:px-8 lg:py-8">
+        <div class="flex items-center justify-between mb-7">
+          <div class="space-y-1">
+            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400" data-i18n="sign_to_korual">
+              SIGN IN TO KORUAL
+            </p>
+            <h1 class="text-xl font-semibold" data-i18n="headline">KORUAL 계정으로 접속</h1>
+          </div>
+          <select id="langAuth" class="input w-28 py-2 text-xs bg-slate-950/70 border-slate-700/80">
             <option value="ko">한국어</option>
             <option value="en">English</option>
           </select>
-          <button id="toggleTheme" class="btn-alt text-lg" title="Theme">🌓</button>
-        </div>
-      </div>
-
-      <div class="grid gap-6">
-        <!-- Login card -->
-        <div class="space-y-4 rounded-2xl border border-slate-700/80 bg-slate-900/70 px-5 py-5">
-          <div class="flex items-center justify-between gap-2">
-            <h2 class="text-base font-semibold" data-i18n="login">로그인</h2>
-            <span class="pill text-[11px] text-slate-400">Control Center 입장</span>
-          </div>
-          <div class="space-y-3.5">
-            <div>
-              <label class="block mb-1.5 text-sm" data-i18n="username">아이디</label>
-              <input id="loginUsername" class="input bg-slate-950/60 border-slate-700/70" placeholder="예: KORUAL" autocomplete="username" />
-            </div>
-            <div>
-              <label class="block mb-1.5 text-sm" data-i18n="password">비밀번호</label>
-              <input id="loginPassword" class="input bg-slate-950/60 border-slate-700/70" type="password" placeholder="••••••••" autocomplete="current-password" />
-            </div>
-            <div class="flex flex-wrap items-center gap-2 justify-between">
-              <button id="btnLogin" class="btn min-w-[120px]" data-i18n="login">로그인</button>
-              <p class="text-xs text-slate-400">엔터키로도 로그인 가능</p>
-            </div>
-            <p id="loginMsg" class="text-xs text-rose-400 min-h-[1rem]"></p>
-          </div>
         </div>
 
-        <!-- Signup card -->
-        <div class="space-y-4 rounded-2xl border border-slate-700/70 bg-slate-900/60 px-5 py-5">
-          <div class="flex items-center justify-between gap-2">
-            <h2 class="text-base font-semibold" data-i18n="signup">회원가입</h2>
-            <span class="pill text-[11px] text-slate-400">로컬 테스트용 계정 생성</span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label class="block mb-1 text-sm" data-i18n="full_name">이름</label>
-              <input id="suName" class="input bg-slate-950/60 border-slate-700/70" placeholder="홍길동" />
+        <div class="grid gap-6">
+          <!-- Login -->
+          <div class="space-y-4 rounded-2xl border border-slate-700/80 bg-slate-950/70 px-5 py-5">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-base font-semibold" data-i18n="login">로그인</h2>
+              <span class="pill text-[11px] text-slate-300" data-i18n="login_badge">
+                Control Center 입장
+              </span>
             </div>
-            <div>
-              <label class="block mb-1 text-sm" data-i18n="email">이메일</label>
-              <input id="suEmail" class="input bg-slate-950/60 border-slate-700/70" placeholder="you@korual.app" />
-            </div>
-            <div>
-              <label class="block mb-1 text-sm" data-i18n="username">아이디</label>
-              <input id="suUser" class="input bg-slate-950/60 border-slate-700/70" placeholder="영문/숫자 조합" autocomplete="username" />
-            </div>
-            <div>
-              <label class="block mb-1 text-sm" data-i18n="password">비밀번호</label>
-              <input id="suPass" class="input bg-slate-950/60 border-slate-700/70" type="password" placeholder="최소 6자리" autocomplete="new-password" />
-            </div>
-          </div>
-          <div class="flex items-center gap-2 mt-1">
-            <button id="btnSignup" class="btn" data-i18n="signup">회원가입</button>
-            <span id="signupMsg" class="text-xs text-slate-300"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-  <!-- APP -->
-  <section id="appView" class="hidden">
-    <div class="card mb-4 flex items-center justify-between">
-      <div>
-        <div id="welcome" class="text-lg font-semibold"></div>
-        <div id="userInfo" class="text-sm text-slate-500"></div>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="btnLogout" class="btn-alt" data-i18n="logout">로그아웃</button>
-      </div>
-    </div>
-
-    <nav id="tabs" class="flex flex-wrap gap-2 mb-4">
-      <button class="tab active" data-tab="dashboard" data-i18n="dashboard">대시보드</button>
-      <button class="tab" data-tab="fx" data-i18n="fx">환율</button>
-      <button class="tab" data-tab="stocks" data-i18n="stocks">주식</button>
-      <button class="tab" data-tab="community" data-i18n="community">커뮤니티</button>
-      <button id="adminTab" class="tab" data-tab="admin" data-i18n="admin">관리자</button>
-    </nav>
-
-    <!-- Dashboard -->
-    <div id="tab-dashboard" class="card">
-      <h3 class="text-xl font-semibold mb-2" data-i18n="dashboard">대시보드</h3>
-      <div class="grid md:grid-cols-3 gap-4">
-        <div class="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/30">
-          <div class="font-semibold mb-1">Tips</div>
-          <ul class="text-sm text-slate-600 dark:text-slate-300 list-disc pl-5">
-            <li>LocalStorage 기반 — 이 브라우저에만 저장됩니다.</li>
-            <li>Export/Import 버튼으로 백업/복원 가능.</li>
-            <li>단축키: <span class="pill">/</span> 검색, <span class="pill">L</span> 로그인, <span class="pill">N</span> 새 글.</li>
-          </ul>
-        </div>
-        <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30">
-          <div class="font-semibold mb-1">Modules</div>
-          <p class="text-sm">FX, Stock, Community, Admin</p>
-        </div>
-        <div class="p-4 rounded-2xl bg-violet-50 dark:bg-violet-900/30">
-          <div class="font-semibold mb-1">Theme</div>
-          <p class="text-sm">라이트/다크/자동 전환 지원</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- FX -->
-    <div id="tab-fx" class="card hidden">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-xl font-semibold" data-i18n="fx">환율</h3>
-        <span id="fxCacheMsg" class="text-xs text-slate-500"></span>
-      </div>
-      <div class="flex flex-wrap items-end gap-3">
-        <div><label class="block mb-1" data-i18n="base_currency">기준통화(예: USD)</label><input id="fxBase" class="input w-28" value="USD"/></div>
-        <div><label class="block mb-1" data-i18n="target_currency">대상통화(예: KRW)</label><input id="fxTarget" class="input w-28" value="KRW"/></div>
-        <button id="btnRate" class="btn" data-i18n="get_rate">환율 조회</button>
-        <span id="fxResult" class="text-lg font-semibold"></span>
-      </div>
-    </div>
-
-    <!-- Stocks -->
-    <div id="tab-stocks" class="card hidden">
-      <h3 class="text-xl font-semibold mb-3" data-i18n="stocks">주식</h3>
-      <div class="flex flex-wrap items-end gap-3 mb-3">
-        <div><label class="block mb-1" data-i18n="ticker">티커(예: AAPL)</label><input id="stockTicker" class="input w-32" value="AAPL"/></div>
-        <button id="btnDraw" class="btn" data-i18n="draw_chart">차트 그리기</button>
-        <span id="stockMsg" class="text-sm text-slate-500"></span>
-      </div>
-      <canvas id="stockCanvas" height="120" aria-label="Stock chart"></canvas>
-    </div>
-
-    <!-- Community -->
-    <div id="tab-community" class="card hidden">
-      <div class="grid md:grid-cols-3 gap-4">
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-lg font-semibold" data-i18n="title_posts">게시글</h3>
-            <button id="btnNewPost" class="btn-alt" data-i18n="new_post">새 글</button>
-          </div>
-          <ul id="postList" class="space-y-2"></ul>
-          <div class="text-xs text-slate-500 mt-2" id="postCount"></div>
-        </div>
-        <div class="md:col-span-2">
-          <div class="grid gap-2">
-            <input id="postTitle" class="input" placeholder="제목" />
-            <textarea id="postContent" class="input h-32" placeholder="내용"></textarea>
-            <div class="flex flex-wrap items-center gap-2 justify-end">
-              <span id="autoSaveMsg" class="text-xs text-slate-500 mr-auto"></span>
-              <button id="btnSavePost" class="btn" data-i18n="save">저장</button>
-              <button id="btnDeletePost" class="btn-alt" data-i18n="delete_post">삭제</button>
+            <div class="space-y-3.5">
+              <div>
+                <label class="block mb-1.5 text-sm" data-i18n="username">아이디</label>
+                <input id="loginUsername" class="input bg-slate-950/60 border-slate-700/70"
+                       placeholder="예: KORUAL" autocomplete="username" />
+              </div>
+              <div>
+                <label class="block mb-1.5 text-sm" data-i18n="password">비밀번호</label>
+                <input id="loginPassword" class="input bg-slate-950/60 border-slate-700/70"
+                       type="password" placeholder="••••••••" autocomplete="current-password" />
+              </div>
+              <div class="flex flex-wrap items-center gap-2 justify-between">
+                <button id="btnLogin" class="btn min-w-[120px]" data-i18n="login_btn">로그인</button>
+                <p class="text-xs text-slate-400" data-i18n="login_hint">엔터키로도 로그인 가능</p>
+              </div>
+              <p id="loginMsg" class="text-xs text-rose-400 min-h-[1rem]"></p>
             </div>
           </div>
-          <div class="mt-6">
-            <h4 class="font-semibold mb-2" data-i18n="comment">댓글</h4>
-            <ul id="commentList" class="space-y-2 mb-2"></ul>
-            <div class="flex gap-2">
-              <input id="commentInput" class="input flex-1" placeholder="댓글" />
-              <button id="btnAddComment" class="btn" data-i18n="add_comment">댓글 추가</button>
+
+          <!-- Signup -->
+          <div class="space-y-4 rounded-2xl border border-slate-700/70 bg-slate-950/60 px-5 py-5">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-base font-semibold" data-i18n="signup">회원가입</h2>
+              <span class="pill text-[11px] text-slate-300" data-i18n="signup_badge">
+                Google Sheets 계정 저장
+              </span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block mb-1 text-sm" data-i18n="full_name">이름</label>
+                <input id="suName" class="input bg-slate-950/60 border-slate-700/70" placeholder="홍길동" />
+              </div>
+              <div>
+                <label class="block mb-1 text-sm" data-i18n="email">이메일</label>
+                <input id="suEmail" class="input bg-slate-950/60 border-slate-700/70" placeholder="you@korual.app" />
+              </div>
+              <div>
+                <label class="block mb-1 text-sm" data-i18n="username">아이디</label>
+                <input id="suUser" class="input bg-slate-950/60 border-slate-700/70"
+                       placeholder="영문/숫자 조합" autocomplete="username" />
+              </div>
+              <div>
+                <label class="block mb-1 text-sm" data-i18n="password">비밀번호</label>
+                <input id="suPass" class="input bg-slate-950/60 border-slate-700/70"
+                       type="password" placeholder="최소 6자리" autocomplete="new-password" />
+              </div>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+              <button id="btnSignup" class="btn" data-i18n="signup_btn">회원가입</button>
+              <span id="signupMsg" class="text-xs text-slate-200"></span>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
+  </main>
 
-    <!-- Admin -->
-    <div id="tab-admin" class="card hidden">
-      <h3 class="text-xl font-semibold mb-3" data-i18n="admin_panel">관리자 패널</h3>
-      <div class="grid md:grid-cols-2 gap-4">
-        <div>
-          <h4 class="font-semibold mb-1" data-i18n="users">사용자</h4>
-          <div id="userTable" class="overflow-auto border rounded-xl"></div>
-        </div>
-        <div>
-          <h4 class="font-semibold mb-1" data-i18n="logs">로그</h4>
-          <div id="logTable" class="overflow-auto border rounded-xl"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-</div>
-
-<template id="tableTpl"><table class="min-w-full text-sm"><thead></thead><tbody></tbody></table></template>
-<script>
-/***** i18n *****/
-const I18N={
-  ko:{login:"로그인",signup:"회원가입",logout:"로그아웃",username:"아이디",password:"비밀번호",full_name:"이름",email:"이메일",dashboard:"대시보드",fx:"환율",stocks:"주식",community:"커뮤니티",admin:"관리자",base_currency:"기준통화(예: USD)",target_currency:"대상통화(예: KRW)",get_rate:"환율 조회",ticker:"티커(예: AAPL)",draw_chart:"차트 그리기",title_posts:"게시글",new_post:"새 글",save:"저장",delete_post:"삭제",comment:"댓글",add_comment:"댓글 추가",login_failed:"로그인 실패: 아이디/비밀번호를 확인하세요.",signup_done:"회원가입 완료! 로그인 해주세요.",user_exists:"이미 존재하는 아이디입니다.",need_title:"제목을 입력하세요.",need_content:"내용을 입력하세요.",not_owner:"본인 소유가 아닙니다.",admin_panel:"관리자 패널",users:"사용자",logs:"로그",welcome:n=>`환영합니다, ${n}님`,rate_result:(b,r,t)=>`1 ${b} = ${(+r).toFixed(4)} ${t}`},
-  en:{login:"Login",signup:"Sign Up",logout:"Logout",username:"Username",password:"Password",full_name:"Full Name",email:"Email",dashboard:"Dashboard",fx:"FX",stocks:"Stocks",community:"Community",admin:"Admin",base_currency:"Base (e.g., USD)",target_currency:"Target (e.g., KRW)",get_rate:"Get Rate",ticker:"Ticker (e.g., AAPL)",draw_chart:"Draw Chart",title_posts:"Posts",new_post:"New",save:"Save",delete_post:"Delete",comment:"Comment",add_comment:"Add Comment",login_failed:"Login failed: check username/password.",signup_done:"Sign-up completed! Please login.",user_exists:"Username already exists.",need_title:"Please enter a title.",need_content:"Please enter content.",not_owner:"You are not the owner.",admin_panel:"Admin Panel",users:"Users",logs:"Logs",welcome:n=>`Welcome, ${n}`,rate_result:(b,r,t)=>`1 ${b} = ${(+r).toFixed(4)} ${t}`}
-};
-let LANG=localStorage.getItem('korual_lang')||'ko';
-function applyI18n(){
-  document.querySelectorAll('[data-i18n]').forEach(el=>{
-    const k=el.dataset.i18n,v=I18N[LANG][k];
-    if(typeof v!=='function'&&v) el.textContent=v;
-  });
-  const sel=document.getElementById('langSelect');
-  if(sel) sel.value=LANG;
-}
-
-/***** Storage *****/
-const LS={
-  get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},
-  set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
-};
-const KEY={
-  users:'korual_users',
-  posts:'korual_posts',
-  comments:'korual_comments',
-  logs:'korual_logs',
-  draft:'korual_draft',
-  theme:'korual_theme'
-};
-
-/***** Google Sheets Auth API *****/
-const GS_API = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
-
-async function apiSignup(payload) {
-  const res = await fetch(GS_API, {
-    method: "POST",
-    // headers 삭제 (브라우저가 text/plain으로 보내게 둠)
-    body: JSON.stringify({
-      mode: "signup",
-      ...payload
-    })
-  });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.message || "Signup error");
-  return data;
-}
-
-async function apiLogin(username, password) {
-  const res = await fetch(GS_API, {
-    method: "POST",
-    // headers 삭제
-    body: JSON.stringify({
-      mode: "login",
-      username,
-      password
-    })
-  });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.message || "Login error");
-  return data;
-}
-
-
-async function apiLogin(username,password){
-  const res=await fetch(GS_API,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({mode:"login",username,password})
-  });
-  const data=await res.json();
-  if(!data.ok) throw new Error(data.message||"Login error");
-  return data;
-}
-
-/***** Crypto (SHA-256, Local test용) *****/
-async function sha256Hex(s){
-  const enc=new TextEncoder();
-  const buf=await crypto.subtle.digest('SHA-256',enc.encode(s));
-  return[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-async function hashPw(password,salt){
-  salt=salt||[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');
-  return{salt,digest:await sha256Hex(salt+password)};
-}
-
-/***** Seed admin (LocalStorage 테스트용) *****/
-async function ensureAdmin(){
-  const users=LS.get(KEY.users,[]);
-  if(!users.find(u=>u.username==='KORUAL')){
-    const {digest,salt}=await hashPw('korual1228!');
-    users.push({
-      id:1,
-      username:'KORUAL',
-      full_name:'Administrator',
-      email:'admin@korual.local',
-      is_admin:true,
-      pw_hash:digest,
-      pw_salt:salt,
-      created_at:new Date().toISOString()
-    });
-    LS.set(KEY.users,users);
-  }
-}
-
-/***** Auth & Logs (LocalStorage 테스트용) *****/
-let CUR=null;
-function log(action,meta){
-  const L=LS.get(KEY.logs,[]);
-  L.unshift({id:Date.now(),user:CUR?.username||null,action,at:new Date().toISOString(),meta});
-  LS.set(KEY.logs,L);
-}
-async function loginUser(u,p){
-  const U=LS.get(KEY.users,[]);
-  const x=U.find(v=>v.username===u);
-  if(!x) return false;
-  const {digest}=await hashPw(p,x.pw_salt);
-  if(digest!==x.pw_hash) return false;
-  CUR=x;
-  log('login',{ua:navigator.userAgent});
-  return true;
-}
-async function signupUser({username,password,full_name,email}){
-  const U=LS.get(KEY.users,[]);
-  if(U.find(v=>v.username===username)) throw new Error('exists');
-  const {digest,salt}=await hashPw(password);
-  const id=U.length?Math.max(...U.map(u=>u.id||0))+1:1;
-  U.push({id,username,full_name,email,is_admin:false,pw_hash:digest,pw_salt:salt,created_at:new Date().toISOString()});
-  LS.set(KEY.users,U);
-}
-
-/***** Bad words *****/
-const BAD=['시발','씨발','병신','fuck','shit'];
-const hasBad=t=>BAD.some(b=>(t||'').toLowerCase().includes(b.toLowerCase()));
-
-/***** Community (LocalStorage) *****/
-const listPosts=()=>LS.get(KEY.posts,[]);
-function savePost(p){
-  const P=listPosts();
-  if(!p.id){p.id=Date.now();P.unshift(p);}
-  else{
-    const i=P.findIndex(x=>x.id===p.id);
-    if(i>=0) P[i]=p; else P.unshift(p);
-  }
-  LS.set(KEY.posts,P);
-}
-function deletePost(id){
-  LS.set(KEY.posts,listPosts().filter(p=>p.id!==id));
-  LS.set(KEY.comments,LS.get(KEY.comments,[]).filter(c=>c.post_id!==id));
-}
-const listComments=pid=>LS.get(KEY.comments,[]).filter(c=>c.post_id===pid);
-function addComment(pid,content){
-  const C=LS.get(KEY.comments,[]);
-  C.push({id:Date.now(),post_id:pid,user:CUR?.username||'guest',content,at:new Date().toISOString()});
-  LS.set(KEY.comments,C);
-}
-function deleteComment(id){
-  LS.set(KEY.comments,LS.get(KEY.comments,[]).filter(c=>c.id!==id));
-}
-
-/***** Helpers *****/
-function $(id){return document.getElementById(id);}
-function show(e){e.classList.remove('hidden');}
-function hide(e){e.classList.add('hidden');}
-function setTab(name){
-  document.querySelectorAll('#tabs .tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
-  ['dashboard','fx','stocks','community','admin'].forEach(t=>{
-    const el=$("tab-"+t);
-    if(!el) return;
-    (t===name?show:hide)(el);
-  });
-}
-function table(headers,rows){
-  const tpl=document.getElementById('tableTpl');
-  const frag=tpl.content.cloneNode(true);
-  frag.querySelector('thead').innerHTML=`<tr>${headers.map(h=>`<th class='text-left px-3 py-2 border-b'>${h}</th>`).join('')}</tr>`;
-  frag.querySelector('tbody').innerHTML=rows.map(r=>`<tr>${r.map(c=>`<td class='px-3 py-2 border-b align-top whitespace-pre-wrap'>${c}</td>`).join('')}</tr>`).join('');
-  return frag;
-}
-
-/***** FX (6h cache) *****/
-function rateCacheKey(b,t){return `korual_fx_${b}_${t}`;}
-async function getRate(base,target){
-  const k=rateCacheKey(base,target);
-  const cached=LS.get(k,null);
-  if(cached && (Date.now()-cached.ts<6*60*60*1000)){
-    $('fxCacheMsg').textContent=`cached ${new Date(cached.ts).toLocaleString()}`;
-    return cached.rate;
-  }
-  $('fxCacheMsg').textContent='';
-  const url=`https://api.exchangerate.host/latest?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(target)}`;
-  const r=await fetch(url);
-  const j=await r.json();
-  const rate=j.rates?.[target];
-  if(rate){LS.set(k,{rate,ts:Date.now()});}
-  return rate;
-}
-
-/***** Stocks *****/
-async function yahooDaily(t){
-  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?range=6mo&interval=1d`;
-  const r=await fetch(url);
-  if(!r.ok) throw new Error('fetch');
-  const j=await r.json();
-  const res=j.chart?.result?.[0];
-  if(!res) throw new Error('nores');
-  const ts=res.timestamp||[];
-  const close=res.indicators?.quote?.[0]?.close||[];
-  return ts.map((tt,i)=>({x:new Date(tt*1000),y:close[i]})).filter(p=>Number.isFinite(p.y));
-}
-let chart;
-function draw(points){
-  const ctx=$('stockCanvas');
-  if(chart) chart.destroy();
-  chart=new Chart(ctx,{
-    type:'line',
-    data:{datasets:[{label:'Close (6M)',data:points,parsing:false,borderWidth:2,tension:.15}]},
-    options:{
-      responsive:true,
-      plugins:{legend:{display:true}},
-      scales:{x:{type:'time',time:{unit:'month'}},y:{beginAtZero:false}}
-    }
-  });
-}
-
-/***** Tests (LocalStorage용) *****/
-async function runTests(){
-  const out=[];
-  const ok=(n,c)=>{out.push(`${c?'✅':'❌'} ${n}`); if(!c) throw new Error(n);};
-  const a1=await hashPw('pw','abc'); const a2=await hashPw('pw','abc');
-  ok('hash determinism',a1.digest===a2.digest);
-  await ensureAdmin();
-  ok('admin exists',!!LS.get(KEY.users,[]).find(u=>u.username==='KORUAL'));
-  ok('bad-true',hasBad('씨발 들어감'));
-  ok('bad-false',!hasBad('깨끗'));
-  await signupUser({username:'__t__',password:'x',full_name:'T',email:'t@x'});
-  ok('signup user',!!LS.get(KEY.users,[]).find(u=>u.username==='__t__'));
-  ok('login',await loginUser('__t__','x'));
-  const msg=$('loginMsg'); if(msg) msg.textContent='Tests OK';
-  alert('All tests passed!');
-  console.log(out.join('\n'));
-}
-
-/***** Bootstrap *****/
-(async function(){
-  // theme
-  const theme=LS.get(KEY.theme,'auto');
-  applyTheme(theme);
-  const themeBtn=document.getElementById('toggleTheme');
-  if(themeBtn){
-    themeBtn.addEventListener('click',()=>{
-      const current=LS.get(KEY.theme,'auto');
-      const next={auto:'light',light:'dark',dark:'auto'}[current]||'auto';
-      LS.set(KEY.theme,next);
-      applyTheme(next);
-    });
-  }
-  function applyTheme(mode){
-    document.documentElement.dataset.theme=mode;
-    const mql=window.matchMedia('(prefers-color-scheme: dark)');
-    document.documentElement.classList.toggle('dark',mode==='dark'||(mode==='auto'&&mql.matches));
-  }
-
-  // Local admin seed (테스트용)
-  await ensureAdmin();
-  applyI18n();
-
-  // language
-  const langSel=document.getElementById('langSelect');
-  if(langSel){
-    langSel.addEventListener('change',e=>{
-      LANG=e.target.value;
-      localStorage.setItem('korual_lang',LANG);
-      applyI18n();
-      if(CUR){
-        $('welcome').textContent=I18N[LANG].welcome(CUR.full_name||CUR.username);
+  <script>
+    /******** i18n ********/
+    const I18N = {
+      ko: {
+        sign_to_korual: "SIGN IN TO KORUAL",
+        headline: "KORUAL 계정으로 접속",
+        login: "로그인",
+        login_btn: "로그인",
+        login_badge: "Control Center 입장",
+        login_hint: "엔터키로도 로그인 가능",
+        signup: "회원가입",
+        signup_btn: "회원가입",
+        signup_badge: "Google Sheets 계정 저장",
+        username: "아이디",
+        password: "비밀번호",
+        full_name: "이름",
+        email: "이메일",
+        login_failed: "로그인 실패: 아이디/비밀번호를 확인하세요.",
+        signup_done: "회원가입 완료! 이제 로그인해 주세요.",
+        user_exists: "이미 존재하는 아이디입니다.",
+        need_id_pw: "아이디와 비밀번호를 입력해주세요."
+      },
+      en: {
+        sign_to_korual: "SIGN IN TO KORUAL",
+        headline: "Sign in with your KORUAL account",
+        login: "Login",
+        login_btn: "Login",
+        login_badge: "Enter Control Center",
+        login_hint: "Press Enter to login",
+        signup: "Sign Up",
+        signup_btn: "Sign Up",
+        signup_badge: "Store account in Google Sheets",
+        username: "Username",
+        password: "Password",
+        full_name: "Full Name",
+        email: "Email",
+        login_failed: "Login failed: check username/password.",
+        signup_done: "Sign-up completed. Please login.",
+        user_exists: "This username already exists.",
+        need_id_pw: "Please enter username & password."
       }
-    });
-  }
-
-  // tests 버튼
-  const testBtn=$('runTests');
-  if(testBtn) testBtn.addEventListener('click',runTests);
-
-  /***** AUTH (Google Sheets 연동) *****/
-  $('btnSignup').addEventListener('click',async()=>{
-    const payload={
-      full_name:$('suName').value.trim(),
-      email:$('suEmail').value.trim(),
-      username:$('suUser').value.trim(),
-      password:$('suPass').value
     };
-    if(!payload.username||!payload.password){
-      $('signupMsg').textContent='Username & password required.';
-      return;
+
+    let LANG = localStorage.getItem("korual_lang") || "ko";
+
+    function applyI18n() {
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.dataset.i18n;
+        const v = I18N[LANG][key];
+        if (typeof v === "string") el.textContent = v;
+      });
+      const selects = [document.getElementById("langTop"), document.getElementById("langAuth")];
+      selects.forEach(sel => { if (sel) sel.value = LANG; });
     }
-    try{
-      await apiSignup(payload);
-      $('signupMsg').textContent=I18N[LANG].signup_done;
-    }catch(e){
-      $('signupMsg').textContent=e.message||I18N[LANG].user_exists;
+
+    /******** Theme ********/
+    function applyTheme(mode) {
+      document.documentElement.dataset.theme = mode;
+      const mql = window.matchMedia("(prefers-color-scheme: dark)");
+      document.documentElement.classList.toggle(
+        "dark",
+        mode === "dark" || (mode === "auto" && mql.matches)
+      );
     }
-  });
 
-  $('btnLogin').addEventListener('click',async()=>{
-    const username=$('loginUsername').value.trim();
-    const password=$('loginPassword').value;
-    try{
-      await apiLogin(username,password);
-      // ✅ 로그인 성공 → dashboard.html 이동
-      window.location.href="dashboard.html";
-    }catch(e){
-      $('loginMsg').textContent=e.message||I18N[LANG].login_failed;
+    /******** Google Sheets API ********/
+    const GS_API = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
+
+    async function apiSignup(payload) {
+      const res = await fetch(GS_API, {
+        method: "POST",
+        body: JSON.stringify({ mode: "signup", ...payload })   // 헤더 없음 = simple request
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.message || "Signup error");
+      return data;
     }
-  });
 
-  // Enter 키로 로그인
-  ['loginUsername','loginPassword'].forEach(id=>{
-    const el=$(id);
-    if(!el) return;
-    el.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){ $('btnLogin').click(); }
-    });
-  });
-
-  // logout (현재 페이지에서는 사용 안 되지만 유지)
-  const logoutBtn=$('btnLogout');
-  if(logoutBtn){
-    logoutBtn.addEventListener('click',()=>{CUR=null; location.reload();});
-  }
-
-  // tabs (현재 로그인 후 다른 페이지로 가지만, 구조는 유지)
-  document.querySelectorAll('#tabs .tab').forEach(b=>{
-    b.addEventListener('click',()=>setTab(b.dataset.tab));
-  });
-
-  // shortcuts
-  window.addEventListener('keydown',e=>{
-    if(e.key==='/'&&!e.metaKey&&!e.ctrlKey){
-      e.preventDefault();
-      const s=$('searchPosts'); if(s) s.focus();
+    async function apiLogin(username, password) {
+      const res = await fetch(GS_API, {
+        method: "POST",
+        body: JSON.stringify({ mode: "login", username, password })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.message || "Login error");
+      return data;
     }
-    if(e.key.toLowerCase()==='l'){
-      const u=$('loginUsername'); if(u) u.focus();
-    }
-    if(e.key.toLowerCase()==='n'){
-      const t=$('postTitle'); if(t) t.focus();
-    }
-  });
 
-  // search filter
-  const search=$('searchPosts');
-  if(search) search.addEventListener('input',()=>renderPosts());
+    /******** Helpers ********/
+    const $ = id => document.getElementById(id);
 
-  // FX
-  const rateBtn=$('btnRate');
-  if(rateBtn){
-    rateBtn.addEventListener('click',async()=>{
-      const b=$('fxBase').value.trim().toUpperCase();
-      const t=$('fxTarget').value.trim().toUpperCase();
-      try{
-        const r=await getRate(b,t);
-        $('fxResult').textContent=I18N[LANG].rate_result(b,r,t);
-      }catch{
-        $('fxResult').textContent='Error';
+    (function bootstrap() {
+      // Theme init
+      const theme = localStorage.getItem("korual_theme") || "auto";
+      applyTheme(theme);
+      const themeBtn = $("toggleTheme");
+      if (themeBtn) {
+        themeBtn.addEventListener("click", () => {
+          const current = localStorage.getItem("korual_theme") || "auto";
+          const next = { auto: "light", light: "dark", dark: "auto" }[current] || "auto";
+          localStorage.setItem("korual_theme", next);
+          applyTheme(next);
+        });
       }
-    });
-  }
 
-  // Stocks
-  const drawBtn=$('btnDraw');
-  if(drawBtn){
-    drawBtn.addEventListener('click',async()=>{
-      const t=$('stockTicker').value.trim();
-      const msg=$('stockMsg');
-      msg.textContent='Fetching...';
-      try{
-        const pts=await yahooDaily(t);
-        if(!pts.length) throw 0;
-        draw(pts);
-        msg.textContent='';
-      }catch{
-        msg.textContent='Fetch/Chart error. Try another ticker.';
-      }
-    });
-  }
+      // i18n init
+      applyI18n();
+      ["langTop", "langAuth"].forEach(id => {
+        const sel = $(id);
+        if (!sel) return;
+        sel.addEventListener("change", e => {
+          LANG = e.target.value;
+          localStorage.setItem("korual_lang", LANG);
+          applyI18n();
+        });
+      });
 
-  /***** Community *****/
-  let currentId=null, saveTimer=null;
-  function renderPosts(){
-    const list=$('postList');
-    if(!list) return;
-    const q=( $('searchPosts')?.value || '' ).toLowerCase();
-    const P=listPosts().filter(p=>(p.title+p.content).toLowerCase().includes(q));
-    list.innerHTML=P.map(p=>`
-      <li class='p-3 border rounded-xl flex items-center justify-between gap-2'>
-        <div>
-          <div class='font-semibold'>${p.title}</div>
-          <div class='text-xs text-slate-500'>@${p.user} • ${new Date(p.created_at).toLocaleString()}</div>
-        </div>
-        <div class='flex gap-2'>
-          <button class='btn-alt' data-act='edit' data-id='${p.id}' data-owner='${p.user}'>Edit</button>
-          <button class='btn-alt' data-act='del' data-id='${p.id}' data-owner='${p.user}'>Delete</button>
-        </div>
-      </li>
-    `).join('');
-    const cnt=$('postCount');
-    if(cnt) cnt.textContent=`${P.length} posts`;
-    list.querySelectorAll('button').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const id=+btn.dataset.id, owner=btn.dataset.owner;
-        if(btn.dataset.act==='edit'){
-          const post=listPosts().find(x=>x.id===id);
-          currentId=id;
-          $('postTitle').value=post.title;
-          $('postContent').value=post.content;
-          renderComments();
-        }else{
-          if(owner!==CUR?.username&&!CUR?.is_admin) return alert(I18N[LANG].not_owner);
-          deletePost(id);
-          currentId=null;
-          $('postTitle').value='';
-          $('postContent').value='';
-          $('commentList').innerHTML='';
-          renderPosts();
+      /***** Signup *****/
+      $("btnSignup").addEventListener("click", async () => {
+        const payload = {
+          full_name: $("suName").value.trim(),
+          email: $("suEmail").value.trim(),
+          username: $("suUser").value.trim(),
+          password: $("suPass").value
+        };
+        if (!payload.username || !payload.password) {
+          $("signupMsg").textContent = I18N[LANG].need_id_pw;
+          return;
+        }
+        $("signupMsg").textContent = "Saving...";
+        try {
+          await apiSignup(payload);
+          $("signupMsg").textContent = I18N[LANG].signup_done;
+        } catch (e) {
+          $("signupMsg").textContent = e.message || I18N[LANG].user_exists;
         }
       });
-    });
-  }
 
-  function renderComments(){
-    const ul=$('commentList');
-    if(!ul || !currentId) return;
-    const items=listComments(currentId);
-    ul.innerHTML=items.map(c=>`
-      <li class='p-2 border rounded-xl flex items-center justify-between'>
-        <div><b>@${c.user}</b> ${c.content}</div>
-        <button class='btn-alt text-xs' data-id='${c.id}' data-owner='${c.user}'>Delete</button>
-      </li>
-    `).join('');
-    ul.querySelectorAll('button').forEach(b=>{
-      b.addEventListener('click',()=>{
-        const cid=+b.dataset.id;
-        const owner=b.dataset.owner;
-        if(owner!==CUR?.username&&!CUR?.is_admin) return alert(I18N[LANG].not_owner);
-        deleteComment(cid);
-        renderComments();
-      });
-    });
-  }
-
-  const newPostBtn=$('btnNewPost');
-  if(newPostBtn){
-    newPostBtn.addEventListener('click',()=>{
-      currentId=null;
-      $('postTitle').value='';
-      $('postContent').value='';
-      $('commentList').innerHTML='';
-    });
-  }
-
-  const savePostBtn=$('btnSavePost');
-  if(savePostBtn){
-    savePostBtn.addEventListener('click',()=>{
-      const title=$('postTitle').value.trim();
-      const content=$('postContent').value.trim();
-      if(!title) return alert(I18N[LANG].need_title);
-      if(!content) return alert(I18N[LANG].need_content);
-      if(hasBad(title)||hasBad(content)) return alert('비속어가 포함되어 저장할 수 없습니다.');
-      const post=currentId?listPosts().find(p=>p.id===currentId):{user:CUR?.username||'guest',created_at:new Date().toISOString()};
-      if(currentId && post.user!==CUR?.username && !CUR?.is_admin) return alert(I18N[LANG].not_owner);
-      post.title=title;
-      post.content=content;
-      savePost(post);
-      LS.set(KEY.draft,null);
-      $('autoSaveMsg').textContent='';
-      renderPosts();
-    });
-  }
-
-  const delPostBtn=$('btnDeletePost');
-  if(delPostBtn){
-    delPostBtn.addEventListener('click',()=>{
-      if(!currentId) return;
-      const post=listPosts().find(p=>p.id===currentId);
-      if(post.user!==CUR?.username&&!CUR?.is_admin) return alert(I18N[LANG].not_owner);
-      deletePost(currentId);
-      currentId=null;
-      $('postTitle').value='';
-      $('postContent').value='';
-      $('commentList').innerHTML='';
-      renderPosts();
-    });
-  }
-
-  const addCommentBtn=$('btnAddComment');
-  if(addCommentBtn){
-    addCommentBtn.addEventListener('click',()=>{
-      if(!currentId) return;
-      const c=$('commentInput').value.trim();
-      if(!c) return;
-      if(hasBad(c)) return alert('비속어가 포함되어 저장할 수 없습니다.');
-      addComment(currentId,c);
-      $('commentInput').value='';
-      renderComments();
-    });
-  }
-
-  const draft=LS.get(KEY.draft,null);
-  if(draft){
-    if($('postTitle')) $('postTitle').value=draft.title||'';
-    if($('postContent')) $('postContent').value=draft.content||'';
-    const msg=$('autoSaveMsg'); if(msg) msg.textContent='(draft restored)';
-  }
-
-  const pt=$('postTitle'), pc=$('postContent');
-  function autoSave(){
-    clearTimeout(saveTimer);
-    saveTimer=setTimeout(()=>{
-      LS.set(KEY.draft,{title:$('postTitle').value,content:$('postContent').value});
-      const m=$('autoSaveMsg');
-      if(m){m.textContent='draft saved'; setTimeout(()=>{m.textContent='';},1200);}
-    },600);
-  }
-  if(pt) pt.addEventListener('input',autoSave);
-  if(pc) pc.addEventListener('input',autoSave);
-
-  // Admin
-  function renderAdmin(){
-    if(!CUR?.is_admin) return;
-    const U=LS.get(KEY.users,[]);
-    const L=LS.get(KEY.logs,[]);
-    const uBox=$('userTable');
-    const lBox=$('logTable');
-    if(uBox){
-      uBox.innerHTML='';
-      uBox.appendChild(
-        table(
-          ['id','username','name','email','admin','created'],
-          U.map(u=>[u.id,u.username,u.full_name||'',u.email||'',String(!!u.is_admin),new Date(u.created_at).toLocaleString()])
-        )
-      );
-    }
-    if(lBox){
-      lBox.innerHTML='';
-      lBox.appendChild(
-        table(
-          ['id','user','action','at','meta'],
-          L.map(g=>[g.id,g.user||'',g.action,new Date(g.at).toLocaleString(),JSON.stringify(g.meta)])
-        )
-      );
-    }
-  }
-
-  // Export / Import (LocalStorage 덤프)
-  const exportBtn=$('btnExport');
-  if(exportBtn){
-    exportBtn.addEventListener('click',()=>{
-      const dump={
-        users:LS.get(KEY.users,[]),
-        posts:LS.get(KEY.posts,[]),
-        comments:LS.get(KEY.comments,[]),
-        logs:LS.get(KEY.logs,[])
-      };
-      const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'});
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download='korual_export.json';
-      a.click();
-      URL.revokeObjectURL(a.href);
-    });
-  }
-
-  const importInput=$('fileImport');
-  if(importInput){
-    importInput.addEventListener('change',async e=>{
-      const f=e.target.files[0];
-      if(!f) return;
-      const txt=await f.text();
-      try{
-        const obj=JSON.parse(txt);
-        if(obj.users) LS.set(KEY.users,obj.users);
-        if(obj.posts) LS.set(KEY.posts,obj.posts);
-        if(obj.comments) LS.set(KEY.comments,obj.comments);
-        if(obj.logs) LS.set(KEY.logs,obj.logs);
-        alert('Imported.');
-        renderAdmin();
-        renderPosts();
-      }catch{
-        alert('Invalid JSON');
+      /***** Login *****/
+      async function handleLogin() {
+        const username = $("loginUsername").value.trim();
+        const password = $("loginPassword").value;
+        if (!username || !password) {
+          $("loginMsg").textContent = I18N[LANG].need_id_pw;
+          return;
+        }
+        $("loginMsg").textContent = "";
+        $("btnLogin").disabled = true;
+        $("btnLogin").textContent = "Loading...";
+        try {
+          await apiLogin(username, password);
+          // ✅ 로그인 성공 → dashboard.html 이동
+          window.location.href = "dashboard.html";
+        } catch (e) {
+          $("loginMsg").textContent = e.message || I18N[LANG].login_failed;
+        } finally {
+          $("btnLogin").disabled = false;
+          $("btnLogin").textContent = I18N[LANG].login_btn;
+        }
       }
-      e.target.value='';
-    });
-  }
-})();
-</script>
 
+      $("btnLogin").addEventListener("click", handleLogin);
+      ["loginUsername", "loginPassword"].forEach(id => {
+        const el = $(id);
+        el.addEventListener("keydown", e => {
+          if (e.key === "Enter") handleLogin();
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
-
-
-
-
