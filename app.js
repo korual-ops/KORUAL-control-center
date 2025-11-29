@@ -1,7 +1,6 @@
 // KORUAL CONTROL CENTER – FRONTEND v1.0
 
-const API_BASE =
-  "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
+const API_BASE ="https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
 // 공통: JSON 요청
 async function loadSheet(key) {
@@ -332,3 +331,4 @@ function initApp() {
 }
 
 window.addEventListener("DOMContentLoaded", initApp);
+
