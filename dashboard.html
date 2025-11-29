@@ -195,6 +195,44 @@
     </main>
   </div>
 
+  <!-- 기존 내용들 ... -->
+
+  <!-- app.js 먼저 로드 -->
   <script src="app.js"></script>
+
+  <!-- 로그인 유저 이름 표시 스크립트 -->
+  <script>
+    // ✅ 대시보드에서 로그인한 유저 정보 출력
+    function loadKorualUser() {
+      try {
+        const raw = localStorage.getItem("korual_user");
+        if (!raw) return;
+
+        const user = JSON.parse(raw);
+        const name =
+          user.full_name && user.full_name.trim()
+            ? user.full_name.trim()
+            : (user.username || "게스트");
+
+        const span = document.getElementById("welcomeUser");
+        if (span) span.textContent = name;
+      } catch (e) {
+        console.error("korual_user 파싱 오류:", e);  // ← 오타 수정 (eroor → error)
+      }
+    }
+
+    // 페이지 로드 시 실행
+    document.addEventListener("DOMContentLoaded", () => {
+      loadKorualUser();
+
+      // 대시보드 초기화 함수가 app.js 안에 있을 때
+      if (typeof initDashboard === "function") {
+        initDashboard();
+      }
+    });
+  </script>
+</body>
+</html>
+
 </body>
 </html>
