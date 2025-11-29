@@ -1,327 +1,334 @@
-/****************************************
- KORUAL CONTROL CENTER Frontend v3.1
- - Apps Script 웹앱과 통신
- - 조회 + 셀 수정 + 행 추가/삭제
-****************************************/
+// KORUAL CONTROL CENTER – FRONTEND v1.0
 
-// 배포한 웹앱 URL (Code.gs 배포 URL 그대로)
-const API = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
+const API_BASE =
+  "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
-// Code.gs 의 API_SECRET 과 동일해야 함
-const API_SECRET = "KORUAL-ONLY";
-
-/** GET 헬퍼 */
-async function apiGet(params) {
-  const url = API + "?" + new URLSearchParams(params).toString();
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return await res.json();
-}
-
-/** POST 헬퍼 (preflight 피하려고 text/plain 사용) */
-async function apiPost(payload) {
-  const res = await fetch(API, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
+// 공통: JSON 요청
+async function loadSheet(key) {
+  const url = `${API_BASE}?target=${encodeURIComponent(key)}`;
+  const res = await fetch(url, {
+    method: "GET",
   });
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return await res.json();
+  if (!res.ok) {
+    throw new Error("HTTP " + res.status);
+  }
+  const data = await res.json();
+  // code.gs에서 { ok: true, rows: [...] } 형태라고 가정
+  if (data.ok === false) {
+    throw new Error(data.error || "API error");
+  }
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.rows)) return data.rows;
+  return [];
 }
 
-// 현재 보고 있는 섹션/필터/헤더 전역 저장
-window.currentKey = null;
-window.currentParams = {};
-window.currentHeaders = [];
-window.currentRows = [];
-
-// 행 추가/수정 모달 상태
-let editState = {
-  mode: "edit",  // "edit" | "add"
-  key: null,
-  rowIndex: null,
-};
-
-/** 메뉴 로딩 */
-async function loadMenu() {
-  try {
-    const data = await apiGet({ target: "routes" });
-    if (!data.ok) throw new Error(data.error || "routes 불러오기 실패");
-
-    const routes = (data.routes || [])
-      .filter(r => String(r.isActive).trim() === "Y")
-      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
-
-    const sidebarMenu = document.getElementById("sidebar-menu");
-    sidebarMenu.innerHTML = routes.map(r => `
-      <button class="menu-btn" onclick="loadSection('${r.key}')">
-        <span class="icon">${r.icon || ""}</span>
-        <span class="label">${(r.desc || r.key || "").toUpperCase()}</span>
-      </button>
-    `).join("");
-
-    await loadSectionInternal("dashboard");
-  } catch (err) {
-    console.error(err);
-    const sidebarMenu = document.getElementById("sidebar-menu");
-    sidebarMenu.innerHTML = `<div class="error">메뉴 로딩 실패: ${err.message}</div>`;
-  }
-}
-
-/** 섹션 로딩 내부 함수 */
-async function loadSectionInternal(key, extraParams = {}) {
-  try {
-    const params = Object.assign({ target: key }, extraParams);
-    const data = await apiGet(params);
-
-    if (!data.ok) {
-      throw new Error(data.error || "데이터 로딩 실패");
-    }
-
-    window.currentKey = key;
-    window.currentParams = extraParams;
-    window.currentHeaders = data.headers || [];
-    window.currentRows = data.rows || [];
-
-    if (key === "dashboard") {
-      renderDashboard(data.dashboard);
-    } else {
-      renderTable(data);
-    }
-  } catch (err) {
-    console.error(err);
-    const main = document.getElementById("main-content");
-    main.innerHTML = `<div class="error">섹션 로딩 실패: ${err.message}</div>`;
-  }
-}
-
-/** 외부에서 쓰는 섹션 로더 (모바일 사이드바 닫기 포함) */
-window.loadSection = async (key) => {
-  await loadSectionInternal(key);
-  const sidebar = document.getElementById("sidebar");
-  if (window.innerWidth <= 768 && sidebar) {
-    sidebar.classList.remove("open");
-  }
-};
-
-/** 대시보드 렌더 */
-function renderDashboard(d) {
-  const main = document.getElementById("main-content");
-  if (!d) {
-    main.innerHTML = `<div class="error">대시보드 데이터를 불러올 수 없습니다.</div>`;
+// 공통: 동적 테이블 렌더링
+function renderDynamicTable(container, rows) {
+  if (!rows || rows.length === 0) {
+    container.classList.add("empty-state");
+    container.textContent = "데이터가 없습니다.";
     return;
   }
 
-  main.innerHTML = `
-    <h1>대시보드 요약</h1>
-    <div class="card-grid">
-      <div class="card">
-        <div class="label">오늘 매출</div>
-        <div class="value">${Number(d.salesToday || 0).toLocaleString()} 원</div>
-      </div>
-      <div class="card">
-        <div class="label">오늘 주문 건수</div>
-        <div class="value">${Number(d.ordersToday || 0).toLocaleString()} 건</div>
-      </div>
-      <div class="card">
-        <div class="label">배송 지연 건수</div>
-        <div class="value">${Number(d.delayedShipments || 0).toLocaleString()} 건</div>
-      </div>
-      <div class="card">
-        <div class="label">금일 신규 회원</div>
-        <div class="value">${Number(d.newMembersToday || 0).toLocaleString()} 명</div>
-      </div>
-      <div class="card">
-        <div class="label">전체 회원 수</div>
-        <div class="value">${Number(d.totalMembers || 0).toLocaleString()} 명</div>
-      </div>
-      <div class="card">
-        <div class="label">전체 직원 수</div>
-        <div class="value">${Number(d.totalEmployees || 0).toLocaleString()} 명</div>
-      </div>
-      <div class="card">
-        <div class="label">금일 입사자 수</div>
-        <div class="value">${Number(d.newEmployeesToday || 0).toLocaleString()} 명</div>
-      </div>
-    </div>
-  `;
-}
+  container.classList.remove("empty-state");
+  container.innerHTML = "";
 
-/** 테이블 렌더 (+ 상단 툴바, 행 수정/삭제 버튼) */
-function renderTable(data) {
-  const main = document.getElementById("main-content");
-  const headers = data.headers || [];
-  const rows = data.rows || [];
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
 
-  if (!headers.length) {
-    main.innerHTML = `
-      <h1>${data.desc || data.key}</h1>
-      <div class="empty">데이터가 없습니다.</div>
-    `;
-    return;
-  }
+  const headers = Object.keys(rows[0] || {});
 
-  const thead = headers.map(h => `<th>${h}</th>`).join("") + `<th style="width:90px;">액션</th>`;
-
-  const tbody = rows.map((r, idx) => {
-    const tds = headers
-      .map(h => `<td>${r[h] !== undefined ? r[h] : ""}</td>`)
-      .join("");
-    const actionTd = `
-      <td>
-        <button class="small-btn" onclick="openEditModal('edit', '${data.key}', ${idx})">수정</button>
-        <button class="small-btn danger" onclick="deleteRowConfirm('${data.key}', ${idx})">삭제</button>
-      </td>`;
-    return `<tr>${tds}${actionTd}</tr>`;
-  }).join("");
-
-  main.innerHTML = `
-    <h1>${data.desc || data.key}</h1>
-    <div class="toolbar">
-      <button class="small-btn primary" onclick="openEditModal('add', '${data.key}', -1)">행 추가</button>
-      <span class="toolbar-info">총 ${data.totalRows || rows.length}행</span>
-    </div>
-    <div class="table-wrapper">
-      <table>
-        <thead><tr>${thead}</tr></thead>
-        <tbody>${tbody}</tbody>
-      </table>
-    </div>
-  `;
-}
-
-/** 모달 열기 (mode: edit | add) */
-window.openEditModal = (mode, key, rowIndex) => {
-  const headers = window.currentHeaders || [];
-  if (!headers.length) {
-    alert("수정할 수 있는 컬럼이 없습니다.");
-    return;
-  }
-
-  editState.mode = mode;
-  editState.key = key;
-  editState.rowIndex = rowIndex;
-
-  const modal = document.getElementById("edit-modal");
-  const titleEl = document.getElementById("edit-modal-title");
-  const select = document.getElementById("edit-column");
-  const textarea = document.getElementById("edit-value");
-
-  titleEl.textContent = (mode === "add") ? "행 추가" : "셀 편집";
-
-  select.innerHTML = headers
-    .map(h => `<option value="${h}">${h}</option>`)
-    .join("");
-
-  if (mode === "edit" && rowIndex >= 0) {
-    const row = window.currentRows[rowIndex] || {};
-    const firstCol = headers[0];
-    select.value = firstCol;
-    textarea.value = row[firstCol] !== undefined ? row[firstCol] : "";
-  } else {
-    textarea.value = "";
-  }
-
-  modal.classList.remove("hidden");
-};
-
-/** 모달 닫기 */
-function closeEditModal() {
-  const modal = document.getElementById("edit-modal");
-  modal.classList.add("hidden");
-  editState.key = null;
-  editState.rowIndex = null;
-}
-
-/** 모달 저장 */
-async function saveEditModal() {
-  const mode = editState.mode;
-  const key = editState.key;
-  const rowIndex = editState.rowIndex;
-
-  if (!key) return;
-
-  const column = document.getElementById("edit-column").value;
-  const value = document.getElementById("edit-value").value;
-
-  try {
-    if (mode === "edit") {
-      const res = await apiPost({
-        target: "updateCell",
-        secret: API_SECRET,
-        key,
-        rowIndex,
-        column,
-        value,
-      });
-      if (!res.ok) throw new Error(res.error || "업데이트 실패");
-    } else {
-      const valuesObj = {};
-      window.currentHeaders.forEach(h => { valuesObj[h] = ""; });
-      valuesObj[column] = value;
-
-      const res = await apiPost({
-        target: "addRow",
-        secret: API_SECRET,
-        key,
-        values: valuesObj,
-      });
-      if (!res.ok) throw new Error(res.error || "행 추가 실패");
-    }
-
-    closeEditModal();
-    await loadSectionInternal(key, window.currentParams || {});
-  } catch (e) {
-    console.error(e);
-    alert("에러: " + e.message);
-  }
-}
-
-/** 행 삭제 */
-window.deleteRowConfirm = async (key, rowIndex) => {
-  if (!confirm("정말 이 행을 삭제하시겠습니까?")) return;
-
-  try {
-    const res = await apiPost({
-      target: "deleteRow",
-      secret: API_SECRET,
-      key,
-      rowIndex,
-    });
-    if (!res.ok) throw new Error(res.error || "삭제 실패");
-
-    await loadSectionInternal(key, window.currentParams || {});
-  } catch (e) {
-    console.error(e);
-    alert("에러: " + e.message);
-  }
-};
-
-/** DOMContentLoaded: 초기화 + 모바일 메뉴 + 모달 버튼 */
-document.addEventListener("DOMContentLoaded", () => {
-  loadMenu();
-
-  const toggle = document.getElementById("menu-toggle");
-  const sidebar = document.getElementById("sidebar");
-
-  if (toggle && sidebar) {
-    toggle.addEventListener("click", () => {
-      sidebar.classList.toggle("open");
-    });
-  }
-
-  const modal = document.getElementById("edit-modal");
-  const closeBtn = document.getElementById("edit-close-btn");
-  const cancelBtn = document.getElementById("edit-cancel-btn");
-  const saveBtn = document.getElementById("edit-save-btn");
-
-  closeBtn?.addEventListener("click", closeEditModal);
-  cancelBtn?.addEventListener("click", closeEditModal);
-  saveBtn?.addEventListener("click", saveEditModal);
-
-  modal?.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      closeEditModal();
-    }
+  // 헤더
+  const headTr = document.createElement("tr");
+  headers.forEach((h) => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    headTr.appendChild(th);
   });
-});
+  thead.appendChild(headTr);
+
+  // 바디
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    headers.forEach((h) => {
+      const td = document.createElement("td");
+      let v = row[h];
+      if (v === null || v === undefined) v = "";
+      td.textContent = v;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+// 공통: 검색 필터
+function filterRows(rows, keyword) {
+  if (!keyword) return rows;
+  const lower = keyword.toLowerCase();
+  return rows.filter((row) =>
+    Object.values(row).some((v) =>
+      String(v || "")
+        .toLowerCase()
+        .includes(lower)
+    )
+  );
+}
+
+// API 헬스체크
+async function checkApiHealth() {
+  const el = document.getElementById("api-status");
+  try {
+    const res = await fetch(`${API_BASE}?target=ping`);
+    const json = await res.json();
+    if (json.ok) {
+      el.textContent = "API 연결 정상";
+      el.classList.add("ok");
+    } else {
+      el.textContent = "API 오류";
+      el.classList.add("error");
+    }
+  } catch (e) {
+    el.textContent = "API 연결 실패";
+    el.classList.add("error");
+  }
+}
+
+// 대시보드 렌더링
+async function renderDashboard() {
+  const productsCountEl = document.getElementById("stat-products-count");
+  const ordersCountEl = document.getElementById("stat-orders-count");
+  const ordersAmountEl = document.getElementById("stat-orders-amount");
+  const membersCountEl = document.getElementById("stat-members-count");
+  const ordersPreviewEl = document.getElementById(
+    "dashboard-orders-preview"
+  );
+
+  productsCountEl.textContent = "-";
+  ordersCountEl.textContent = "-";
+  ordersAmountEl.textContent = "-";
+  membersCountEl.textContent = "-";
+  ordersPreviewEl.textContent = "데이터 로딩 중...";
+  ordersPreviewEl.classList.add("empty-state");
+
+  try {
+    const [products, orders, members] = await Promise.all([
+      loadSheet("products").catch(() => []),
+      loadSheet("orders").catch(() => []),
+      loadSheet("members").catch(() => []),
+    ]);
+
+    productsCountEl.textContent = products.length;
+    ordersCountEl.textContent = orders.length;
+    membersCountEl.textContent = members.length;
+
+    // 금액 합계 계산 (주문 시트에 "금액" 컬럼이 있다고 가정)
+    let totalAmount = 0;
+    orders.forEach((o) => {
+      const raw = o["금액"] ?? o["amount"] ?? o["Total"] ?? 0;
+      const num = Number(
+        String(raw).replace(/,/g, "").replace(/원/g, "")
+      );
+      if (!isNaN(num)) totalAmount += num;
+    });
+    if (totalAmount > 0) {
+      ordersAmountEl.textContent =
+        totalAmount.toLocaleString("ko-KR") + "원";
+    } else {
+      ordersAmountEl.textContent = "-";
+    }
+
+    // 최근 주문 상위 10개만 미리보기
+    const preview = orders.slice(0, 10);
+    renderDynamicTable(ordersPreviewEl, preview);
+  } catch (e) {
+    ordersPreviewEl.textContent = "대시보드 데이터를 불러올 수 없습니다.";
+    ordersPreviewEl.classList.add("empty-state");
+  }
+}
+
+// 상품 화면
+let productsCache = [];
+async function renderProducts(initial = false) {
+  const container = document.getElementById("products-table");
+  const searchInput = document.getElementById("products-search");
+
+  if (initial || productsCache.length === 0) {
+    container.textContent = "데이터 로딩 중...";
+    container.classList.add("empty-state");
+    try {
+      productsCache = await loadSheet("products");
+    } catch (e) {
+      container.textContent = "상품 데이터를 불러올 수 없습니다.";
+      container.classList.add("empty-state");
+      return;
+    }
+  }
+
+  const keyword = searchInput.value.trim();
+  const filtered = filterRows(productsCache, keyword);
+  renderDynamicTable(container, filtered);
+}
+
+// 주문 화면
+let ordersCache = [];
+async function renderOrders(initial = false) {
+  const container = document.getElementById("orders-table");
+  const searchInput = document.getElementById("orders-search");
+
+  if (initial || ordersCache.length === 0) {
+    container.textContent = "데이터 로딩 중...";
+    container.classList.add("empty-state");
+    try {
+      ordersCache = await loadSheet("orders");
+    } catch (e) {
+      container.textContent = "주문 데이터를 불러올 수 없습니다.";
+      container.classList.add("empty-state");
+      return;
+    }
+  }
+
+  const keyword = searchInput.value.trim();
+  const filtered = filterRows(ordersCache, keyword);
+  renderDynamicTable(container, filtered);
+}
+
+// 회원 화면
+let membersCache = [];
+async function renderMembers(initial = false) {
+  const container = document.getElementById("members-table");
+  const searchInput = document.getElementById("members-search");
+
+  if (initial || membersCache.length === 0) {
+    container.textContent = "데이터 로딩 중...";
+    container.classList.add("empty-state");
+    try {
+      membersCache = await loadSheet("members");
+    } catch (e) {
+      container.textContent =
+        "회원 시트가 없거나 데이터를 불러올 수 없습니다.";
+      container.classList.add("empty-state");
+      return;
+    }
+  }
+
+  const keyword = searchInput.value.trim();
+  const filtered = filterRows(membersCache, keyword);
+  renderDynamicTable(container, filtered);
+}
+
+// 섹션 전환
+function showSection(sectionId) {
+  document
+    .querySelectorAll(".section")
+    .forEach((sec) => sec.classList.remove("active"));
+  document
+    .getElementById("section-" + sectionId)
+    .classList.add("active");
+
+  document
+    .querySelectorAll(".nav-link")
+    .forEach((btn) => btn.classList.remove("active"));
+  const currentBtn = document.querySelector(
+    `.nav-link[data-section="${sectionId}"]`
+  );
+  if (currentBtn) currentBtn.classList.add("active");
+
+  // 라우팅에 따라 데이터 로딩
+  if (sectionId === "dashboard") {
+    renderDashboard();
+  } else if (sectionId === "products") {
+    renderProducts(true);
+  } else if (sectionId === "orders") {
+    renderOrders(true);
+  } else if (sectionId === "members") {
+    renderMembers(true);
+  }
+}
+
+// 마지막 동기화 시간 표시
+function updateLastSync() {
+  const el = document.getElementById("last-sync");
+  const now = new Date();
+  const formatted = now.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  el.textContent = "마지막 동기화: " + formatted;
+}
+
+// 초기화
+function initApp() {
+  // 네비게이션 클릭
+  document.querySelectorAll(".nav-link").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const sectionId = btn.getAttribute("data-section");
+      showSection(sectionId);
+      window.location.hash = sectionId;
+      updateLastSync();
+    });
+  });
+
+  // 대시보드에서 버튼으로 점프
+  document
+    .querySelectorAll("button[data-jump]")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const target = btn.getAttribute("data-jump");
+        showSection(target);
+        window.location.hash = target;
+        updateLastSync();
+      });
+    });
+
+  // 새로고침 버튼들
+  document
+    .getElementById("products-reload")
+    .addEventListener("click", () => renderProducts(true));
+  document
+    .getElementById("orders-reload")
+    .addEventListener("click", () => renderOrders(true));
+  document
+    .getElementById("members-reload")
+    .addEventListener("click", () => renderMembers(true));
+
+  document
+    .getElementById("refresh-all")
+    .addEventListener("click", async () => {
+      productsCache = [];
+      ordersCache = [];
+      membersCache = [];
+      const activeSection = document.querySelector(
+        ".section.active"
+      ).id.replace("section-", "");
+      showSection(activeSection);
+      updateLastSync();
+    });
+
+  // 검색 인풋 입력 시 필터링
+  document
+    .getElementById("products-search")
+    .addEventListener("input", () => renderProducts(false));
+  document
+    .getElementById("orders-search")
+    .addEventListener("input", () => renderOrders(false));
+  document
+    .getElementById("members-search")
+    .addEventListener("input", () => renderMembers(false));
+
+  // 해시 기반 초기 라우팅
+  let initial = window.location.hash.replace("#", "");
+  if (!initial) initial = "dashboard";
+  showSection(initial);
+  updateLastSync();
+  checkApiHealth();
+}
+
+window.addEventListener("DOMContentLoaded", initApp);
