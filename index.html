@@ -622,51 +622,39 @@
       });
 
       /***** Login *****/
-      /***** Login *****/
-async function handleLogin() {
-  clearInputErrors();
-  const username = $("loginUsername").value.trim();
-  const password = $("loginPassword").value;
+      async function handleLogin() {
+        clearInputErrors();
+        const username = $("loginUsername").value.trim();
+        const password = $("loginPassword").value;
 
-  if (!username || !password) {
-    $("loginMsg").textContent = I18N[LANG].need_id_pw;
-    if (!username) $("loginUsername").classList.add("input-error");
-    if (!password) $("loginPassword").classList.add("input-error");
-    return;
-  }
+        if (!username || !password) {
+          $("loginMsg").textContent = I18N[LANG].need_id_pw;
+          if (!username) $("loginUsername").classList.add("input-error");
+          if (!password) $("loginPassword").classList.add("input-error");
+          return;
+        }
 
-  $("loginMsg").textContent = "";
-  $("btnLogin").disabled = true;
-  $("btnLogin").textContent = "Loading...";
-  if (overlay) overlay.classList.remove("hidden");
+        $("loginMsg").textContent = "";
+        $("btnLogin").disabled = true;
+        $("btnLogin").textContent = "Loading...";
+        if (overlay) overlay.classList.remove("hidden");
 
-  // remember ID
-  const remember = $("rememberId")?.checked;
-  if (remember) localStorage.setItem("korual_login_id", username);
-  else localStorage.removeItem("korual_login_id");
+        // remember ID
+        const remember = $("rememberId")?.checked;
+        if (remember) localStorage.setItem("korual_login_id", username);
+        else localStorage.removeItem("korual_login_id");
 
-  try {
-    const data = await apiLogin(username, password);
-
-    // 🔹 로그인 성공 시, 대시보드에서 쓸 유저 정보 저장
-    const userPayload = {
-      username: data.username || username,
-      full_name: data.full_name || "",   // Apps Script에서 넘겨주면 사용
-      login_at: new Date().toISOString()
-    };
-    localStorage.setItem("korual_user", JSON.stringify(userPayload));
-
-    // 🔹 대시보드로 이동
-    window.location.href = "dashboard.html";
-  } catch (e) {
-    $("loginMsg").textContent = e.message || I18N[LANG].login_failed;
-  } finally {
-    $("btnLogin").disabled = false;
-    $("btnLogin").textContent = I18N[LANG].login_btn;
-    if (overlay) overlay.classList.add("hidden");
-  }
-}
-
+        try {
+          await apiLogin(username, password);
+          window.location.href = "dashboard.html";
+        } catch (e) {
+          $("loginMsg").textContent = e.message || I18N[LANG].login_failed;
+        } finally {
+          $("btnLogin").disabled = false;
+          $("btnLogin").textContent = I18N[LANG].login_btn;
+          if (overlay) overlay.classList.add("hidden");
+        }
+      }
 
       $("btnLogin").addEventListener("click", handleLogin);
       ["loginUsername", "loginPassword"].forEach(id => {
