@@ -1,3 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>KORUAL CONTROL CENTER</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-title">KORUAL</div>
+        <div class="brand-subtitle">Control Center</div>
+      </div>
+      <nav class="nav">
+        <button class="nav-link active" data-section="dashboard">대시보드</button>
+        <button class="nav-link" data-section="products">상품 관리</button>
+        <button class="nav-link" data-section="orders">주문 관리</button>
+        <button class="nav-link" data-section="members">회원 관리</button>
+        <button class="nav-link" data-section="stock">재고 관리</button>
+        <button class="nav-link" data-section="logs">로그 모니터링</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="api-status" id="api-status">API 체크 중...</div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div class="topbar-title">KORUAL CONTROL CENTER</div>
+        <div class="topbar-right">
+          <button id="toggle-theme" class="btn ghost small">Dark</button>
+          <span id="last-sync">마지막 동기화: -</span>
+          <button id="refresh-all" class="btn primary">전체 새로고침</button>
+        </div>
+      </header>
+
+      <!-- DASHBOARD -->
+      <section id="section-dashboard" class="section active">
+        <h1>대시보드</h1>
+        <p class="section-desc">
+          코루알 전체 현황을 한 눈에 보는 관제탑입니다. 상품·주문·회원 데이터를 구글 시트에서 자동 불러옵니다.
+        </p>
+
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-label">총 상품 수</div>
+            <div class="card-value" id="stat-products-count">-</div>
+          </div>
+          <div class="card">
+            <div class="card-label">총 주문 수</div>
+            <div class="card-value" id="stat-orders-count">-</div>
+          </div>
+          <div class="card">
+            <div class="card-label">추정 매출 합계</div>
+            <div class="card-value" id="stat-orders-amount">-</div>
+            <div class="card-hint">주문 시트에 [금액] 컬럼 기준</div>
+          </div>
+          <div class="card">
+            <div class="card-label">회원 수</div>
+            <div class="card-value" id="stat-members-count">-</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>최근 주문 미리보기</h2>
+            <button class="btn ghost" data-jump="orders">주문 관리로 이동</button>
+          </div>
+          <div id="dashboard-orders-preview" class="table-wrapper empty-state">
+            데이터 로딩 중...
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>최근 7일 매출 추이</h2>
+          </div>
+          <div id="sales-chart" class="sales-chart-wrapper empty-state">
+            데이터 로딩 중...
+          </div>
+        </div>
+      </section>
+
+      <!-- PRODUCTS -->
+      <section id="section-products" class="section">
+        <div class="section-header-row">
+          <div>
+            <h1>상품 관리</h1>
+            <p class="section-desc">
+              구글 시트의 상품 목록을 그대로 연동합니다. ROUTES 시트에서 key가 products인 시트가 대상입니다.
+            </p>
+          </div>
+          <div class="section-actions">
+            <input
+              type="text"
+              id="products-search"
+              class="input"
+              placeholder="상품명, 코드 검색"
+            />
+            <button id="products-reload" class="btn">새로고침</button>
+          </div>
+        </div>
+        <div id="products-table" class="table-wrapper">데이터 로딩 중...</div>
+      </section>
+
+      <!-- ORDERS -->
+      <section id="section-orders" class="section">
+        <div class="section-header-row">
+          <div>
+            <h1>주문 관리</h1>
+            <p class="section-desc">
+              구글 시트 주문 시트를 그대로 보여줍니다. ROUTES 시트에서 key가 orders인 시트가 대상입니다.
+            </p>
+          </div>
+          <div class="section-actions">
+            <input
+              type="text"
+              id="orders-search"
+              class="input"
+              placeholder="주문번호, 상품명, 채널 검색"
+            />
+            <button id="orders-reload" class="btn">새로고침</button>
+          </div>
+        </div>
+        <div id="orders-table" class="table-wrapper">데이터 로딩 중...</div>
+      </section>
+
+      <!-- MEMBERS -->
+      <section id="section-members" class="section">
+        <div class="section-header-row">
+          <div>
+            <h1>회원 관리</h1>
+            <p class="section-desc">
+              회원 DB 시트를 연동합니다. ROUTES 시트에서 key가 members인 시트를 설정하면 자동으로 불러옵니다.
+            </p>
+          </div>
+          <div class="section-actions">
+            <input
+              type="text"
+              id="members-search"
+              class="input"
+              placeholder="이름, 전화번호, 이메일 검색"
+            />
+            <button id="members-reload" class="btn">새로고침</button>
+          </div>
+        </div>
+        <div id="members-table" class="table-wrapper">데이터 로딩 중...</div>
+      </section>
+
+      <!-- STOCK -->
+      <section id="section-stock" class="section">
+        <div class="section-header-row">
+          <div>
+            <h1>재고 관리</h1>
+            <p class="section-desc">
+              STOCK 시트를 연동합니다. 상품코드·옵션별 재고를 관리합니다.
+            </p>
+          </div>
+          <div class="section-actions">
+            <input
+              type="text"
+              id="stock-search"
+              class="input"
+              placeholder="상품명, 코드, 공급처 검색"
+            />
+            <button id="stock-reload" class="btn">새로고침</button>
+          </div>
+        </div>
+        <div id="stock-table" class="table-wrapper">데이터 로딩 중...</div>
+      </section>
+
+      <!-- LOGS -->
+      <section id="section-logs" class="section">
+        <div class="section-header-row">
+          <div>
+            <h1>로그 모니터링</h1>
+            <p class="section-desc">
+              LOGS 시트의 이벤트/에러/배송지연 로그를 한 눈에 봅니다.
+            </p>
+          </div>
+          <div class="section-actions">
+            <input
+              type="text"
+              id="logs-search"
+              class="input"
+              placeholder="타입, 메시지, 주문번호 검색"
+            />
+            <button id="logs-reload" class="btn">새로고침</button>
+          </div>
+        </div>
+        <div id="logs-table" class="table-wrapper">데이터 로딩 중...</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
 // KORUAL CONTROL CENTER – FRONTEND v2.1
 
 // 여기에 대표님 실제 웹앱 /exec URL 넣기
@@ -770,3 +970,4 @@ function initApp() {
 }
 
 window.addEventListener("DOMContentLoaded", initApp);
+
