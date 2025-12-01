@@ -11,8 +11,7 @@ const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 // 실제 구글 Apps Script / Control Center API 주소로 바꿔 써줘
-const API_BASE =
-  "https://script.google.com/macros/s/AKfycbx3s5j7YgqcWLGGGuzdtQy0Ayl3QHtHP7xwhEAv3N-BClUVFN/exec"; // 예시
+const API_BASE ="https://script.google.com/macros/s/AKfycbx3s5j7YgqcWLGGGuzdtQy0Ayl3QHtHP7xwhEAv3N-BClUVFN/exec"; // 예시
 
 async function apiGet(target, extraParams = {}) {
   const url = new URL(API_BASE);
@@ -306,3 +305,4 @@ document.addEventListener("DOMContentLoaded", () => {
   pingApi();
   loadDashboardData(); // 첫 로드 시 한 번
 });
+
