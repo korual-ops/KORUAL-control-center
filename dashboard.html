@@ -39,20 +39,36 @@
     <main class="content">
       <!-- 상단바 -->
       <header class="topbar">
-        <div class="topbar-title">KORUAL CONTROL CENTER</div>
-
-        <div class="topbar-right">
-          <span id="themeLabel" style="cursor:pointer;">Light</span>
-
-          <span>
-            반갑습니다! <strong id="welcomeUser">KORUAL</strong>님
+  <body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-greeting">
+          반갑습니다! KORUAL님
+        </span>
+      </div>
+    <div class="topbar-right">
+        <!-- 🔽 라이트 / 다크 모드 토글 버튼 -->
+        <button
+          id="themeToggle"
+          class="theme-toggle"
+          type="button"
+          aria-label="테마 전환"
+        >
+          <span class="theme-toggle-label" data-light="Light" data-dark="Dark">
+            Light
           </span>
+          <span class="theme-toggle-track">
+            <span class="theme-toggle-thumb"></span>
+          </span>
+        </button>
 
-          <span id="last-sync">마지막 동기화: -</span>
+        <!-- 기존 새로고침 버튼은 그대로 두기 -->
+        <button id="syncButton" class="primary-btn">새로고침</button>
+      </div>
+    </header>
+    <!-- ... 나머지 기존 콘텐츠 ... -->
 
-          <button id="btnRefreshAll" class="btn small primary">새로고침</button>
-        </div>
-      </header>
 
       <!-- ===============================
            1) 대시보드
@@ -287,3 +303,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
