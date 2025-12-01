@@ -133,6 +133,38 @@ function initThemeToggle() {
     topbarThemeBtn.addEventListener("click", toggle);
   }
 }
+// ========== LIGHT / DARK THEME TOGGLE ==========
+
+(function setupThemeToggle() {
+  const body = document.body;
+  const toggleBtn = document.getElementById("themeToggle");
+  const labelEl = toggleBtn?.querySelector(".theme-toggle-label");
+
+  if (!toggleBtn || !labelEl) return;
+
+  // 1) 저장된 테마 불러오기
+  const savedTheme = localStorage.getItem("korual-theme");
+  if (savedTheme === "dark") {
+    body.classList.add("theme-dark");
+    labelEl.textContent = labelEl.dataset.dark || "Dark";
+  } else {
+    body.classList.remove("theme-dark");
+    labelEl.textContent = labelEl.dataset.light || "Light";
+  }
+
+  // 2) 클릭 시 테마 전환
+  toggleBtn.addEventListener("click", () => {
+    const isDark = body.classList.toggle("theme-dark");
+    if (isDark) {
+      labelEl.textContent = labelEl.dataset.dark || "Dark";
+      localStorage.setItem("korual-theme", "dark");
+    } else {
+      labelEl.textContent = labelEl.dataset.light || "Light";
+      localStorage.setItem("korual-theme", "light");
+    }
+  });
+})();
+
 
 // ===== 4. API 상태 표시 =====
 function setApiStatus(ok, msg) {
@@ -305,5 +337,6 @@ document.addEventListener("DOMContentLoaded", () => {
   pingApi();
   loadDashboardData(); // 첫 로드 시 한 번
 });
+
 
 
