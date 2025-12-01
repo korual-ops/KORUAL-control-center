@@ -338,5 +338,40 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDashboardData(); // 첫 로드 시 한 번
 });
 
+// ===== 8. 로그아웃 기능 =====
+function initLogout() {
+  const btn = $("btnLogout");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    const ok = confirm("KORUAL CONTROL CENTER에서 로그아웃하시겠습니까?");
+    if (!ok) return;
+
+    try {
+      // 로그인 정보 / 테마 / 토큰 등 정리
+      localStorage.removeItem("korual_user");
+      localStorage.removeItem("korual_theme");
+      localStorage.removeItem("korual-theme");
+      // 필요하면 다른 KORUAL 관련 키도 여기서 같이 제거 가능
+      // localStorage.clear();  // 아예 전체 날리고 싶으면 이걸로 교체
+    } catch (e) {
+      console.error("로그아웃 정리 중 오류:", e);
+    }
+
+    // 로그인 페이지로 이동
+    window.location.href = "index.html";
+  });
+}
+// ===== 7. 초기화 =====
+document.addEventListener("DOMContentLoaded", () => {
+  loadKorualUser();
+  initSidebarNav();
+  initThemeToggle();   // 테마 토글 사용 중이면 유지
+  initRefreshButton();
+  initLogout();        // 🔥 새로 추가
+  pingApi();
+  loadDashboardData(); // 첫 로드 시 한 번
+});
+
 
 
