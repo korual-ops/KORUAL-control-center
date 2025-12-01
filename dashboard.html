@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL CONTROL CENTER – Dashboard</title>
 
-  <!-- 하이엔드 style.css 연결 -->
+  <!-- 스타일 -->
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <div class="app-shell">
-    <!-- 사이드바 -->
+    <!-- ===============================
+         사이드바
+    ================================ -->
     <aside class="sidebar">
       <div class="brand-title">KORUAL</div>
       <div class="brand-subtitle">Control Center</div>
@@ -26,62 +29,62 @@
 
       <div class="sidebar-footer">
         <div class="api-status ok">● API 연결 정상</div>
-        <div class="api-url" id="apiUrlLabel">
-          KORUAL_CONTROL_CENTER API
-        </div>
+        <div class="api-url">KORUAL AUTH / CONTROL API</div>
       </div>
     </aside>
 
-    <!-- 메인 컨텐츠 -->
+    <!-- ===============================
+         메인 컨텐츠
+    ================================ -->
     <main class="content">
       <!-- 상단바 -->
       <header class="topbar">
         <div class="topbar-title">KORUAL CONTROL CENTER</div>
+
         <div class="topbar-right">
-          <span id="themeLabel">Light</span>
+          <span id="themeLabel" style="cursor:pointer;">Light</span>
+
           <span>
-            반갑습니다!
-            <strong id="welcomeUser">KORUAL</strong>님
+            반갑습니다! <strong id="welcomeUser">KORUAL</strong>님
           </span>
+
           <span id="last-sync">마지막 동기화: -</span>
-          <button id="btnRefreshAll" class="btn small primary">전체 새로고침</button>
+
+          <button id="btnRefreshAll" class="btn small primary">새로고침</button>
         </div>
       </header>
 
-      <!-- 섹션들 -->
-
-      <!-- 1) 대시보드 -->
+      <!-- ===============================
+           1) 대시보드
+      ================================ -->
       <section id="section-dashboard" class="section active">
         <div class="section-header-row">
           <div>
             <h2>대시보드</h2>
-            <p class="section-desc">
-              코루알 전체 현황을 한 눈에 보는 관제탑입니다. 상품·주문·회원 데이터를 구글 시트에서 자동 불러옵니다.
-            </p>
+            <p class="section-desc">코루알 전체 현황을 한 눈에 보는 관제탑입니다.</p>
           </div>
         </div>
 
-        <!-- 카드형 요약 -->
+        <!-- 요약 카드 -->
         <div class="cards-grid">
           <div class="card">
             <div class="card-label">총 상품 수</div>
             <div class="card-value" id="cardTotalProducts">-</div>
-            <div class="card-hint">상품 시트 기준</div>
           </div>
+
           <div class="card">
             <div class="card-label">총 주문 수</div>
             <div class="card-value" id="cardTotalOrders">-</div>
-            <div class="card-hint">주문 시트 기준</div>
           </div>
+
           <div class="card">
             <div class="card-label">추정 매출 합계</div>
             <div class="card-value" id="cardTotalRevenue">-</div>
-            <div class="card-hint">주문 시트의 [금액] 컬럼 기준</div>
           </div>
+
           <div class="card">
             <div class="card-label">회원 수</div>
             <div class="card-value" id="cardTotalMembers">-</div>
-            <div class="card-hint">회원 시트 기준</div>
           </div>
         </div>
 
@@ -90,19 +93,21 @@
           <div class="panel-header">
             <h3>오늘 요약</h3>
           </div>
+
           <div style="margin-top:10px; line-height:1.8;">
-            오늘 주문 수: <span id="todayOrders">-</span><br />
+            오늘 주문: <span id="todayOrders">-</span><br />
             오늘 매출: <span id="todayRevenue">-</span><br />
             준비중 주문: <span id="todayPending">-</span>
           </div>
         </div>
 
-        <!-- 최근 주문 -->
+        <!-- 최근 주문 미리보기 -->
         <div class="panel">
           <div class="panel-header">
-            <h3>최근 주문 미리보기</h3>
-            <button class="btn ghost small" id="goOrders">주문 관리로 이동</button>
+            <h3>최근 주문</h3>
+            <button id="goOrders" class="btn ghost small">주문 관리로 이동</button>
           </div>
+
           <div class="table-wrapper">
             <table>
               <thead>
@@ -116,26 +121,26 @@
                   <th>상태</th>
                 </tr>
               </thead>
+
               <tbody id="recentOrdersBody">
-                <tr>
-                  <td colspan="7" class="empty-state">데이터 로딩 중…</td>
-                </tr>
+                <tr><td colspan="7" class="empty-state">데이터 로딩 중…</td></tr>
               </tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- 2) 상품 관리 -->
+      <!-- ===============================
+           2) 상품 관리
+      ================================ -->
       <section id="section-products" class="section">
         <div class="section-header-row">
           <div>
             <h2>상품 관리</h2>
-            <p class="section-desc">상품 시트와 연동된 리스트입니다.</p>
+            <p class="section-desc">상품 시트에서 불러온 상품 목록입니다.</p>
           </div>
-          <div>
-            <input id="searchProducts" class="input" placeholder="상품명 검색" />
-          </div>
+
+          <input id="searchProducts" class="input" placeholder="상품명 검색" />
         </div>
 
         <div class="table-wrapper">
@@ -149,30 +154,31 @@
                 <th>재고</th>
               </tr>
             </thead>
+
             <tbody id="productsBody">
-              <tr><td colspan="5" class="empty-state">상품 데이터 없음</td></tr>
+              <tr><td colspan="5" class="empty-state">데이터 없음</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- 3) 주문 관리 -->
+      <!-- ===============================
+           3) 주문 관리
+      ================================ -->
       <section id="section-orders" class="section">
         <div class="section-header-row">
           <div>
             <h2>주문 관리</h2>
-            <p class="section-desc">주문 시트에서 들어온 주문을 한 눈에 관리합니다.</p>
           </div>
-          <div>
-            <input id="searchOrders" class="input" placeholder="주문번호 / 이름 검색" />
-          </div>
+
+          <input id="searchOrders" class="input" placeholder="주문번호 / 고객명" />
         </div>
 
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
-                <th>주문일자</th>
+                <th>날짜</th>
                 <th>주문번호</th>
                 <th>고객명</th>
                 <th>상품명</th>
@@ -181,23 +187,24 @@
                 <th>상태</th>
               </tr>
             </thead>
+
             <tbody id="ordersBody">
-              <tr><td colspan="7" class="empty-state">주문 데이터 없음</td></tr>
+              <tr><td colspan="7" class="empty-state">데이터 없음</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- 4) 회원 관리 -->
+      <!-- ===============================
+           4) 회원 관리
+      ================================ -->
       <section id="section-members" class="section">
         <div class="section-header-row">
           <div>
             <h2>회원 관리</h2>
-            <p class="section-desc">코루알 멤버십/회원 정보를 관리합니다.</p>
           </div>
-          <div>
-            <input id="searchMembers" class="input" placeholder="이름 / 이메일 검색" />
-          </div>
+
+          <input id="searchMembers" class="input" placeholder="이름 / 이메일" />
         </div>
 
         <div class="table-wrapper">
@@ -208,23 +215,23 @@
                 <th>이름</th>
                 <th>이메일</th>
                 <th>등급</th>
-                <th>누적 매출</th>
+                <th>누적매출</th>
               </tr>
             </thead>
+
             <tbody id="membersBody">
-              <tr><td colspan="5" class="empty-state">회원 데이터 없음</td></tr>
+              <tr><td colspan="5" class="empty-state">데이터 없음</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- 5) 재고 관리 -->
+      <!-- ===============================
+           5) 재고 관리
+      ================================ -->
       <section id="section-stock" class="section">
         <div class="section-header-row">
-          <div>
-            <h2>재고 관리</h2>
-            <p class="section-desc">창고 재고와 안전재고를 확인합니다.</p>
-          </div>
+          <h2>재고 관리</h2>
         </div>
 
         <div class="table-wrapper">
@@ -238,20 +245,20 @@
                 <th>상태</th>
               </tr>
             </thead>
+
             <tbody id="stockBody">
-              <tr><td colspan="5" class="empty-state">재고 데이터 없음</td></tr>
+              <tr><td colspan="5" class="empty-state">데이터 없음</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- 6) 로그 모니터링 -->
+      <!-- ===============================
+           6) 로그 모니터링
+      ================================ -->
       <section id="section-logs" class="section">
         <div class="section-header-row">
-          <div>
-            <h2>로그 모니터링</h2>
-            <p class="section-desc">자동화 작업, API 호출 로그 등을 확인합니다.</p>
-          </div>
+          <h2>로그 모니터링</h2>
         </div>
 
         <div class="table-wrapper">
@@ -263,72 +270,20 @@
                 <th>메시지</th>
               </tr>
             </thead>
+
             <tbody id="logsBody">
-              <tr><td colspan="3" class="empty-state">로그 데이터 없음</td></tr>
+              <tr><td colspan="3" class="empty-state">데이터 없음</td></tr>
             </tbody>
           </table>
         </div>
       </section>
+
     </main>
   </div>
 
-  <!-- 데이터 로딩용 app.js (있으면) -->
+  <!-- ===============================
+       JS 연결
+  ================================ -->
   <script src="app.js"></script>
-
-  <!-- 네비 / 유저 이름 표시 스크립트 -->
-  <script>
-    // 사이드바 섹션 전환
-    function setupNav() {
-      const links = document.querySelectorAll(".nav-link");
-      links.forEach(btn => {
-        btn.addEventListener("click", () => {
-          links.forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-
-          const target = btn.dataset.section;
-          document.querySelectorAll(".section").forEach(sec => {
-            sec.classList.toggle("active", sec.id === "section-" + target);
-          });
-        });
-      });
-
-      const goOrders = document.getElementById("goOrders");
-      if (goOrders) {
-        goOrders.addEventListener("click", () => {
-          const targetBtn = document.querySelector('.nav-link[data-section="orders"]');
-          if (targetBtn) targetBtn.click();
-        });
-      }
-    }
-
-    // 로그인 유저 정보 불러오기
-    function loadKorualUser() {
-      try {
-        const raw = localStorage.getItem("korual_user");
-        if (!raw) return;
-
-        const user = JSON.parse(raw);
-        const name =
-          user.full_name && user.full_name.trim()
-            ? user.full_name.trim()
-            : (user.username || "게스트");
-
-        const span = document.getElementById("welcomeUser");
-        if (span) span.textContent = name;
-      } catch (e) {
-        console.error("korual_user 파싱 오류:", e);
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      setupNav();
-      loadKorualUser();
-
-      // app.js 안에 initDashboard()가 있다면 같이 실행
-      if (typeof window.initDashboard === "function") {
-        window.initDashboard();
-      }
-    });
-  </script>
 </body>
 </html>
