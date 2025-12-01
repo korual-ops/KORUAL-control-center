@@ -5,11 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL Control Center – Sign In</title>
   <link rel="icon" href="data:," />
-  <!-- Tailwind CSS (기본 유틸리티용) -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    :root { color-scheme: light dark; }
+    :root {
+      color-scheme: dark;
+    }
+
+    html.dark {
+      color-scheme: dark;
+    }
+
+    html:not(.dark) {
+      color-scheme: light;
+    }
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
@@ -130,11 +140,21 @@
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.85);
     }
 
-    .auth-bg {
+    /* 배경 (다크/라이트) */
+    html.dark .auth-bg {
       background:
         radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.22), transparent 60%),
         radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.28), transparent 60%),
         linear-gradient(to bottom right, #020617, #020617);
+      color: #e5e7eb;
+    }
+
+    html:not(.dark) .auth-bg {
+      background:
+        radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.10), transparent 60%),
+        radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.10), transparent 60%),
+        linear-gradient(to bottom right, #e5f0ff, #f9fafb);
+      color: #0f172a;
     }
 
     .tab-active {
@@ -159,41 +179,147 @@
       color: #f97373;
       margin-left: 0.4rem;
     }
+
+    /* 라이트 테마 오버라이드 */
+    html:not(.dark) .glass {
+      background: rgba(255,255,255,0.9);
+      border-color: rgba(148,163,184,0.45) !important;
+      box-shadow:
+        0 30px 80px rgba(15,23,42,0.18),
+        0 0 0 1px rgba(148,163,184,0.25);
+    }
+
+    html:not(.dark) #loginPanel,
+    html:not(.dark) #signupPanel {
+      background: rgba(255,255,255,0.96);
+      border-color: rgba(148,163,184,0.55);
+      color: #0f172a;
+    }
+
+    html:not(.dark) .btn-alt {
+      background:
+        radial-gradient(circle at top left, rgba(148,163,184,0.12), transparent 55%),
+        #ffffff;
+      color: #0f172a;
+      border-color: rgba(148,163,184,0.7);
+    }
+
+    html:not(.dark) .btn-alt:hover {
+      background:
+        radial-gradient(circle at top left, rgba(148,163,184,0.25), transparent 55%),
+        #f9fafb;
+    }
+
+    html:not(.dark) .input {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: rgba(148,163,184,0.7);
+    }
+
+    html:not(.dark) .input::placeholder {
+      color: #9ca3af;
+    }
+
+    html:not(.dark) .pill {
+      background: #eff6ff;
+      color: #0f172a;
+      border-color: rgba(148,163,184,0.7);
+    }
+
+    html:not(.dark) .btn {
+      box-shadow:
+        0 14px 30px rgba(59,130,246,0.35),
+        0 0 0 1px rgba(129,140,248,0.35);
+    }
+
+    /* 모바일에서 카드 여백 조정 */
+    @media (max-width: 768px) {
+      .auth-card-wrapper {
+        padding-bottom: 1.5rem;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen text-slate-50 auth-bg">
 
   <!-- Top bar -->
-  <header class="max-w-6xl mx-auto px-4 md:px-8 pt-5 pb-3 flex items-center justify-between gap-4">
+  <header class="max-w-6xl mx-auto px-4 md:px-8 pt-4 pb-3 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-2xl bg-slate-900/90 text-white grid place-content-center text-xl font-bold shadow-[0_15px_35px_rgba(15,23,42,0.9)] ring-1 ring-slate-700/80">
+      <div class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-slate-900/90 text-white grid place-content-center text-lg md:text-xl font-bold shadow-[0_15px_35px_rgba(15,23,42,0.9)] ring-1 ring-slate-700/80">
         K
       </div>
       <div>
-        <p class="text-[11px] uppercase tracking-[0.3em] text-slate-400">
+        <p class="text-[10px] md:text-[11px] uppercase tracking-[0.3em] text-slate-400">
           Korual Control Center
         </p>
-        <h1 class="text-xl md:text-2xl font-semibold leading-tight">
+        <h1 class="text-lg md:text-2xl font-semibold leading-tight">
           24h 자동화 커머스 레이더
         </h1>
       </div>
     </div>
     <div class="flex items-center gap-2">
-      <select id="langTop" class="input w-28 py-2 text-xs border-slate-700 bg-slate-900/80">
+      <select id="langTop" class="input w-24 md:w-28 py-2 text-[11px] md:text-xs border-slate-700 bg-slate-900/80">
         <option value="ko">한국어</option>
         <option value="en">English</option>
       </select>
-      <button id="toggleTheme" class="btn-alt text-lg" title="Theme">🌓</button>
+      <button id="toggleTheme" class="btn-alt text-base md:text-lg" title="Theme">🌓</button>
     </div>
   </header>
 
   <!-- Auth card -->
-  <main class="max-w-6xl mx-auto px-4 md:px-8 pb-10">
-    <section class="relative w-full grid md:grid-cols-[1.05fr,1.25fr] gap-0 rounded-3xl overflow-hidden shadow-[0_40px_120px_rgba(15,23,42,0.95)] border border-slate-800/90 glass bg-slate-900">
-      <!-- outer glow -->
+  <main class="max-w-6xl mx-auto px-4 md:px-8 auth-card-wrapper">
+    <section class="relative w-full max-w-md md:max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-[0_28px_90px_rgba(15,23,42,0.95)] border border-slate-800/90 glass bg-slate-900 md:grid md:grid-cols-[1.05fr,1.25fr]">
+      <!-- Outer glow -->
       <div class="pointer-events-none absolute inset-0 border border-sky-500/10 rounded-[1.45rem]"></div>
 
-      <!-- Left info -->
+      <!-- 모바일 전용 상단 인포 (위에) -->
+      <div class="flex md:hidden flex-col gap-5 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 p-6 pb-5 relative z-10">
+        <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-md">
+          <div class="w-9 h-9 rounded-2xl bg-white text-slate-900 grid place-content-center text-lg font-bold">K</div>
+          <div>
+            <p class="text-[10px] uppercase tracking-[0.3em] text-slate-300">Korual Control Center</p>
+            <p class="text-xs text-slate-100/90">24h 자동화 커머스 레이더</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h2 class="text-2xl font-semibold leading-snug">
+            한 화면에서 보는 <span class="text-sky-400">KORUAL</span> 관제탑
+          </h2>
+          <p class="text-xs text-slate-300/90">
+            로그인하면 실시간 주문, 회원, 자동화 상태를 백엔드
+            <span class="text-sky-300 font-medium">KORUAL_CONTROL_CENTER</span> 에서 바로 확인합니다.
+          </p>
+        </div>
+
+        <div class="grid gap-1.5 text-[11px] text-slate-300/95">
+          <div class="flex items-start gap-2">
+            <span class="mt-[1px] text-blue-400 text-lg">▌</span>
+            <span>DB 계정 저장소 기반 – KORUAL 에서 바로 계정 관리</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="mt-[1px] text-emerald-400 text-lg">▌</span>
+            <span>추후 주문, 매출, 멤버십 API 연동 시 관제탑 레벨로 확장 가능</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="mt-[1px] text-violet-400 text-lg">▌</span>
+            <span>어디서나 브라우저로 접속</span>
+          </div>
+        </div>
+
+        <div class="mt-3 space-y-1 text-[10px] text-slate-400">
+          <p class="font-medium text-slate-200">테스트용 기본 계정</p>
+          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/80 border border-slate-700/80 shadow-inner">
+            <span class="text-slate-400">ID</span>
+            <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[10px]">KORUAL</code>
+            <span class="text-slate-600">/</span>
+            <span class="text-slate-400">PW</span>
+            <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[10px]">GUEST</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- 데스크톱용 좌측 인포 -->
       <div class="hidden md:flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/95 p-8 text-slate-50 relative">
         <div class="absolute inset-x-10 top-20 h-32 bg-gradient-to-r from-sky-500/15 via-cyan-400/10 to-indigo-500/15 blur-3xl opacity-70"></div>
         <div class="relative space-y-7">
@@ -218,7 +344,7 @@
           <div class="grid gap-2 text-xs text-slate-300/95">
             <div class="flex items-start gap-2">
               <span class="mt-[1px] text-blue-400 text-lg">▌</span>
-              <span> DB 계정 저장소 기반 – KORUAL 에서 바로 계정 관리</span>
+              <span>DB 계정 저장소 기반 – KORUAL 에서 바로 계정 관리</span>
             </div>
             <div class="flex items-start gap-2">
               <span class="mt-[1px] text-emerald-400 text-lg">▌</span>
@@ -226,7 +352,7 @@
             </div>
             <div class="flex items-start gap-2">
               <span class="mt-[1px] text-violet-400 text-lg">▌</span>
-              <span> – 어디서나 브라우저로 접속</span>
+              <span>어디서나 브라우저로 접속</span>
             </div>
           </div>
         </div>
@@ -244,22 +370,22 @@
         </div>
       </div>
 
-      <!-- Right auth form -->
-      <div class="bg-slate-950/95 text-slate-50 px-6 py-7 lg:px-8 lg:py-8 relative">
+      <!-- 우측(모바일에서는 아래) 로그인/회원가입 카드 -->
+      <div class="bg-slate-950/95 text-slate-50 px-5 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8 relative">
         <!-- Loading overlay -->
         <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3">
           <div class="w-10 h-10 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin"></div>
           <p class="text-xs text-slate-300">KORUAL 계정 확인 중...</p>
         </div>
 
-        <div class="flex items-center justify-between mb-7 relative">
+        <div class="flex items-center justify-between mb-6 sm:mb-7 relative">
           <div class="space-y-1">
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400" data-i18n="sign_to_korual">
+            <p class="text-[10px] sm:text-[11px] uppercase tracking-[0.22em] text-slate-400" data-i18n="sign_to_korual">
               SIGN IN TO KORUAL
             </p>
-            <h1 class="text-xl font-semibold" data-i18n="headline">KORUAL 계정으로 접속</h1>
+            <h1 class="text-lg sm:text-xl font-semibold" data-i18n="headline">KORUAL 계정으로 접속</h1>
           </div>
-          <select id="langAuth" class="input w-28 py-2 text-xs bg-slate-950/80 border-slate-700/80">
+          <select id="langAuth" class="input w-24 sm:w-28 py-2 text-[11px] sm:text-xs bg-slate-950/80 border-slate-700/80">
             <option value="ko">한국어</option>
             <option value="en">English</option>
           </select>
@@ -275,9 +401,9 @@
           </button>
         </div>
 
-        <div class="grid gap-6 relative">
+        <div class="grid gap-5 sm:gap-6 relative">
           <!-- Login -->
-          <div id="loginPanel" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/85 px-5 py-5 shadow-[0_16px_40px_rgba(15,23,42,0.9)]">
+          <div id="loginPanel" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/85 px-4 py-4 sm:px-5 sm:py-5 shadow-[0_16px_40px_rgba(15,23,42,0.9)]">
             <div class="flex items-center justify-between gap-2">
               <h2 class="text-base font-semibold" data-i18n="login">로그인</h2>
               <span class="pill text-[11px] text-slate-200" data-i18n="login_badge">
@@ -308,20 +434,20 @@
                        class="input pl-3 border-slate-700/70 bg-slate-950/80"
                        type="password" placeholder="••••••••" autocomplete="current-password" />
               </div>
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
                   <input type="checkbox" id="rememberId" class="rounded border-slate-600 bg-slate-900" />
                   <span data-i18n="remember_id">아이디 기억하기</span>
                 </label>
-                <button id="btnLogin" class="btn min-w-[120px]" data-i18n="login_btn">로그인</button>
+                <button id="btnLogin" class="btn w-full sm:w-auto justify-center" data-i18n="login_btn">로그인</button>
               </div>
-              <p class="text-xs text-slate-400" data-i18n="login_hint">엔터키로도 로그인 가능</p>
+              <p class="text-[11px] text-slate-400" data-i18n="login_hint">엔터키로도 로그인 가능</p>
               <p id="loginMsg" class="text-xs text-rose-400 min-h-[1rem]"></p>
             </div>
           </div>
 
           <!-- Signup -->
-          <div id="signupPanel" class="hidden space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 px-5 py-5">
+          <div id="signupPanel" class="hidden space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 sm:px-5 sm:py-5">
             <div class="flex items-center justify-between gap-2">
               <h2 class="text-base font-semibold" data-i18n="signup">회원가입</h2>
               <span class="pill text-[11px] text-slate-200" data-i18n="signup_badge">
@@ -350,8 +476,8 @@
               </div>
             </div>
             <div class="flex flex-col gap-2 mt-1">
-              <div class="flex items-center gap-2">
-                <button id="btnSignup" class="btn" data-i18n="signup_btn">회원가입</button>
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                <button id="btnSignup" class="btn w-full sm:w-auto" data-i18n="signup_btn">회원가입</button>
                 <span id="signupMsg" class="text-xs text-slate-200"></span>
               </div>
               <p class="text-[11px] text-slate-400">
@@ -362,9 +488,9 @@
         </div>
 
         <!-- Bottom meta -->
-        <div class="mt-6 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+        <div class="mt-5 sm:mt-6 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-500">
           <p>© <span id="year"></span> KORUAL CONTROL CENTER · Internal Use Only</p>
-          <p>v1.0 ·KORUAL
+          <p>v1.0 ·KORUAL</p>
         </div>
       </div>
     </section>
@@ -435,17 +561,22 @@
 
     /******** Theme ********/
     function applyTheme(mode) {
-      document.documentElement.dataset.theme = mode;
-      const mql = window.matchMedia("(prefers-color-scheme: dark)");
-      document.documentElement.classList.toggle(
-        "dark",
-        mode === "dark" || (mode === "auto" && mql.matches)
-      );
+      const root = document.documentElement;
+      const final = mode === "light" ? "light" : "dark";
+
+      root.classList.toggle("dark", final === "dark");
+      localStorage.setItem("korual_theme", final);
+
+      const themeBtn = document.getElementById("toggleTheme");
+      if (themeBtn) {
+        themeBtn.textContent = final === "dark" ? "🌓" : "🌞";
+        themeBtn.title = final === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환";
+      }
     }
 
-    /******** Google Sheets Auth API & Redirect URL ********/
+    /******** Google Sheets Auth API ********/
     const GS_API        = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
-    const DASHBOARD_URL = "DASHBOARD.HTML"; // 로그인 후 이동
+    const DASHBOARD_URL = "dashboard.html";
 
     async function apiSignup(payload) {
       const res = await fetch(GS_API, {
@@ -467,28 +598,25 @@
       return data;
     }
 
-    /******** Helpers ********/
     const $ = id => document.getElementById(id);
 
     (function bootstrap() {
-      // year
       const y = $("year");
       if (y) y.textContent = new Date().getFullYear();
 
-      // theme
-      const theme = localStorage.getItem("korual_theme") || "auto";
-      applyTheme(theme);
+      // Theme
+      const savedTheme = localStorage.getItem("korual_theme") || "dark";
+      applyTheme(savedTheme);
       const themeBtn = $("toggleTheme");
       if (themeBtn) {
         themeBtn.addEventListener("click", () => {
-          const current = localStorage.getItem("korual_theme") || "auto";
-          const next = { auto: "light", light: "dark", dark: "auto" }[current] || "auto";
-          localStorage.setItem("korual_theme", next);
+          const current = localStorage.getItem("korual_theme") || "dark";
+          const next = current === "dark" ? "light" : "dark";
           applyTheme(next);
         });
       }
 
-      // language
+      // Language
       applyI18n();
       ["langTop", "langAuth"].forEach(id => {
         const sel = $(id);
@@ -508,13 +636,13 @@
         if (rememberCheckbox) rememberCheckbox.checked = true;
       }
 
-      // Remember last tab (login / signup)
-      const lastTab = localStorage.getItem("korual_auth_tab") || "login";
-
+      // Tabs
       const loginPanel   = $("loginPanel");
       const signupPanel  = $("signupPanel");
       const tabLoginBtn  = $("tabLoginBtn");
       const tabSignupBtn = $("tabSignupBtn");
+
+      const lastTab = localStorage.getItem("korual_auth_tab") || "login";
 
       function setTab(active) {
         if (active === "signup") {
@@ -537,11 +665,9 @@
 
       tabLoginBtn.addEventListener("click", () => setTab("login"));
       tabSignupBtn.addEventListener("click", () => setTab("signup"));
-
-      // 초기 탭
       setTab(lastTab);
 
-      // show/hide password + Caps Lock detection
+      // 비밀번호 보기 / Caps Lock
       const togglePwd = $("togglePwd");
       const loginPassword = $("loginPassword");
       const capsIndicator = $("capsIndicator");
@@ -568,9 +694,8 @@
 
       const overlay = $("loadingOverlay");
 
-      // 간단한 이메일 포맷 체크
       function isValidEmail(email) {
-        if (!email) return true; // 이메일은 필수는 아니라고 가정
+        if (!email) return true;
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       }
 
@@ -581,7 +706,7 @@
         });
       }
 
-      /***** Signup *****/
+      // Signup
       $("btnSignup").addEventListener("click", async () => {
         clearInputErrors();
         const payload = {
@@ -613,7 +738,6 @@
         try {
           await apiSignup(payload);
           $("signupMsg").textContent = I18N[LANG].signup_done;
-          // 회원가입 후 자동으로 로그인 탭으로 전환
           setTab("login");
           $("loginUsername").value = payload.username;
         } catch (e) {
@@ -621,7 +745,7 @@
         }
       });
 
-      /***** Login *****/
+      // Login
       async function handleLogin() {
         clearInputErrors();
         const username = $("loginUsername").value.trim();
@@ -639,14 +763,13 @@
         $("btnLogin").textContent = "Loading...";
         if (overlay) overlay.classList.remove("hidden");
 
-        // remember ID
         const remember = $("rememberId")?.checked;
         if (remember) localStorage.setItem("korual_login_id", username);
         else localStorage.removeItem("korual_login_id");
 
         try {
           await apiLogin(username, password);
-          window.location.href = "dashboard.html";
+          window.location.href = DASHBOARD_URL;
         } catch (e) {
           $("loginMsg").textContent = e.message || I18N[LANG].login_failed;
         } finally {
@@ -668,7 +791,3 @@
   </script>
 </body>
 </html>
-
-
-
-
