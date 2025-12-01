@@ -33,38 +33,49 @@
       </div>
     </aside>
 
+    <!-- 모바일일 때 사이드바 뒤 어두운 배경 -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
     <!-- ===============================
          메인 컨텐츠
     ================================ -->
     <main class="content">
       <!-- 상단바 -->
-    <header class="topbar">
-  <div class="topbar-left">
-    <div class="topbar-title">KORUAL CONTROL CENTER</div>
+      <header class="topbar">
+        <div class="topbar-left">
+          <!-- 모바일 햄버거 버튼 -->
+          <button id="menuToggle" class="mobile-menu-btn" type="button" aria-label="메뉴 열기">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
 
-    <div class="topbar-meta">
-      반갑습니다, <span id="welcomeUser">KORUAL</span>님
-      <span class="last-sync" id="last-sync">마지막 동기화: -</span>
-    </div>
-  </div>
+          <div class="topbar-text">
+            <div class="topbar-title">KORUAL CONTROL CENTER</div>
 
-  <div class="topbar-right">
-    <!-- 테마 토글 -->
-    <button id="themeToggle" class="theme-toggle" type="button">
-      <span class="theme-toggle-label" data-light="Light" data-dark="Dark">Light</span>
-      <span class="theme-toggle-track">
-        <span class="theme-toggle-thumb"></span>
-      </span>
-    </button>
+            <div class="topbar-meta">
+              반갑습니다, <span id="welcomeUser">KORUAL</span>님
+              <span class="last-sync" id="last-sync">마지막 동기화: -</span>
+            </div>
+          </div>
+        </div>
 
-    <!-- 새로고침 -->
-    <button id="btnRefreshAll" class="primary-btn">새로고침</button>
+        <div class="topbar-right">
+          <!-- 테마 토글 -->
+          <button id="themeToggle" class="theme-toggle" type="button">
+            <span class="theme-toggle-label" data-light="Light" data-dark="Dark">Light</span>
+            <span class="theme-toggle-track">
+              <span class="theme-toggle-thumb"></span>
+            </span>
+          </button>
 
-    <!-- 로그아웃 -->
-    <button id="btnLogout" class="ghost-btn logout-btn">로그아웃</button>
-  </div>
-</header>
+          <!-- 새로고침 -->
+          <button id="btnRefreshAll" class="primary-btn">새로고침</button>
 
+          <!-- 로그아웃 -->
+          <button id="btnLogout" class="ghost-btn logout-btn">로그아웃</button>
+        </div>
+      </header>
 
       <!-- ===============================
            1) 대시보드
@@ -311,12 +322,10 @@
         </div>
       </section>
 
-    </main>
+  </main>
   </div>
 
   <!-- JS 연결 -->
   <script src="app.js"></script>
 </body>
 </html>
-
-
