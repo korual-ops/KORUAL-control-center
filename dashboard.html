@@ -38,47 +38,34 @@
     ================================ -->
     <main class="content">
       <!-- 상단바 -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <div class="topbar-greeting">
-            <span class="topbar-badge">KORUAL CONTROL CENTER</span>
-            <span class="topbar-text">
-              <span id="themeLabel">Light</span>
-              반갑습니다, <span id="welcomeUser">KORUAL</span>님
-            </span>
-          </div>
-          <div class="topbar-subtext" id="last-sync">
-            마지막 동기화: -
-          </div>
-        </div>
+    <header class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-title">KORUAL CONTROL CENTER</div>
 
-        <div class="topbar-right">
-          <!-- 라이트 / 다크 모드 토글 버튼 -->
-          <button
-            id="themeToggle"
-            class="theme-toggle"
-            type="button"
-            aria-label="테마 전환"
-          >
-            <span class="theme-toggle-label" data-light="Light" data-dark="Dark">
-              Light
-            </span>
-            <span class="theme-toggle-track">
-              <span class="theme-toggle-thumb"></span>
-            </span>
-          </button>
+    <div class="topbar-meta">
+      <span id="themeLabel" class="theme-text">Light</span>
+      반갑습니다, <span id="welcomeUser">KORUAL</span>님
+      <span class="last-sync" id="last-sync">마지막 동기화: -</span>
+    </div>
+  </div>
 
-          <!-- 전체 새로고침 버튼 -->
-          <button id="btnRefreshAll" class="primary-btn" type="button">
-            새로고침
-          </button>
+  <div class="topbar-right">
+    <!-- 테마 토글 -->
+    <button id="themeToggle" class="theme-toggle" type="button">
+      <span class="theme-toggle-label" data-light="Light" data-dark="Dark">Light</span>
+      <span class="theme-toggle-track">
+        <span class="theme-toggle-thumb"></span>
+      </span>
+    </button>
 
-          <!-- 로그아웃 버튼 -->
-          <button id="btnLogout" class="ghost-btn logout-btn" type="button">
-            로그아웃
-          </button>
-        </div>
-      </header>
+    <!-- 새로고침 -->
+    <button id="btnRefreshAll" class="primary-btn">새로고침</button>
+
+    <!-- 로그아웃 -->
+    <button id="btnLogout" class="ghost-btn logout-btn">로그아웃</button>
+  </div>
+</header>
+
 
       <!-- ===============================
            1) 대시보드
@@ -332,3 +319,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
