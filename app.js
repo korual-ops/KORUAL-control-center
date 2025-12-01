@@ -1,77 +1,24 @@
 /******************************************************
- * KORUAL CONTROL CENTER – app.js
+ * KORUAL CONTROL CENTER – app.js (정리 버전)
+ * - 로그인 여부 체크 (dashboard 보호)
  * - 로그인 유저 이름 표시
- * - 사이드바 네비게이션
+ * - 사이드바 네비게이션 + 모바일 메뉴
  * - 라이트 / 다크 테마 토글
- * - 로그아웃 (index.html로 이동)
- * - API 상태 체크 & 대시보드 데이터 로딩
+ * - 로그아웃
+ * - 대시보드 데이터 로딩
  ******************************************************/
-// ===== 모바일 사이드바 토글 =====
-function initMobileMenu() {
-  const sidebar  = document.querySelector(".sidebar");
-  const backdrop = document.getElementById("sidebarBackdrop");
-  const toggle   = document.getElementById("menuToggle");
-  const navLinks = document.querySelectorAll(".nav-link");
 
-  if (!sidebar || !backdrop || !toggle) return;
-
-  const open = () => {
-    sidebar.classList.add("open");
-    backdrop.classList.add("visible");
-  };
-
-  const close = () => {
-    sidebar.classList.remove("open");
-    backdrop.classList.remove("visible");
-  };
-
-  toggle.addEventListener("click", () => {
-    if (sidebar.classList.contains("open")) close();
-    else open();
-  });
-
-  backdrop.addEventListener("click", close);
-
-  navLinks.forEach((btn) => {
-    btn.addEventListener("click", close);
-  });
-}
-// ===== 로그인 여부 확인 (대시보드 보호) =====
-function ensureLoggedIn() {
-  try {
-    const raw = localStorage.getItem("korual_user");
-    if (!raw) {
-      // 저장된 정보 없으면 로그인 페이지로
-      window.location.href = "index.html";
-      return false;
-    }
-
-    const user = JSON.parse(raw);
-    if (!user || !user.username) {
-      window.location.href = "index.html";
-      return false;
-    }
-
-    return true;
-  } catch (e) {
-    console.error("login 상태 확인 오류:", e);
-    window.location.href = "index.html";
-    return false;
-  }
-}
-
-// ========= 공통 유틸 =========
+// ===== 공통 유틸 =====
 const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-// 실제 구글 Apps Script / Control Center API 주소로 교체해 사용
-const API_BASE = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
+// 실제 구글 Apps Script / Control Center API 주소
+const API_BASE =
+  "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
-// GET 호출 공통 함수
 async function apiGet(target, extraParams = {}) {
   const url = new URL(API_BASE);
   url.searchParams.set("target", target);
-
   Object.entries(extraParams).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== "") {
       url.searchParams.set(k, v);
@@ -83,7 +30,6 @@ async function apiGet(target, extraParams = {}) {
   return res.json();
 }
 
-// 숫자/통화 포맷
 function fmtNumber(v) {
   if (v === null || v === undefined || v === "" || isNaN(v)) return "-";
   return Number(v).toLocaleString("ko-KR");
@@ -94,36 +40,51 @@ function fmtCurrency(v) {
   return Number(v).toLocaleString("ko-KR") + "원";
 }
 
-// ========= 1. 로그인 유저 이름 표시 =========
-function loadKorualUser() {
+// ===== 0. 로그인 여부 확인 (대시보드 보호) =====
+function ensureLoggedIn() {
   try {
     const raw = localStorage.getItem("korual_user");
-    const el = $("welcomeUser");
-    if (!el) return;
-
     if (!raw) {
-      el.textContent = "KORUAL";
-      return;
+      window.location.replace("index.html");
+      return false;
     }
-
     const user = JSON.parse(raw);
-    const name =
-      (user.full_name && String(user.full_name).trim()) ||
-      (user.username && String(user.username).trim()) ||
-      "KORUAL";
-
-    el.textContent = name;
+    if (!user || !user.username) {
+      window.location.replace("index.html");
+      return false;
+    }
+    return true;
   } catch (e) {
-    console.error("korual_user 파싱 오류:", e);
-    const el = $("welcomeUser");
-    if (el) el.textContent = "KORUAL";
+    console.error("로그인 상태 확인 오류:", e);
+    window.location.replace("index.html");
+    return false;
   }
 }
 
-// ========= 2. 사이드바 네비게이션 =========
+// ===== 1. 로그인 유저 이름 표시 =====
+function loadKorualUser() {
+  try {
+    const raw = localStorage.getItem("korual_user");
+    if (!raw) return;
+
+    const user = JSON.parse(raw);
+    const name =
+      user.full_name && String(user.full_name).trim()
+        ? String(user.full_name).trim()
+        : (user.username || "게스트");
+
+    const span = $("welcomeUser");
+    if (span) span.textContent = name;
+  } catch (e) {
+    console.error("korual_user 파싱 오류:", e);
+  }
+}
+
+// ===== 2. 사이드바 네비게이션 =====
 function initSidebarNav() {
   const links = $$(".nav-link");
   const sections = $$(".section");
+
   if (!links.length || !sections.length) return;
 
   function activate(sectionKey) {
@@ -144,7 +105,7 @@ function initSidebarNav() {
     });
   });
 
-  // "주문 관리로 이동" 버튼 → 주문 관리 탭 활성화
+  // "주문 관리로 이동" 버튼
   const goOrders = $("goOrders");
   if (goOrders) {
     goOrders.addEventListener("click", () => {
@@ -153,43 +114,29 @@ function initSidebarNav() {
     });
   }
 
-  // 첫 로드 기본: 대시보드
+  // 첫 로드 시 기본: 대시보드
   activate("dashboard");
 }
 
-// ========= 3. 테마 토글 (Light / Dark) =========
+// ===== 3. 테마 토글 (Light / Dark) =====
 function applyTheme(theme) {
   const body = document.body;
   if (!body) return;
 
-  const isDark = theme === "dark";
-  body.classList.toggle("theme-dark", isDark);
+  // theme-dark 클래스로 제어 (style.css 기준)
+  const mode = theme === "dark" ? "dark" : "light";
+  body.classList.toggle("theme-dark", mode === "dark");
 
-  // 상단 작은 텍스트 (Light / Dark)
-  const themeText = $("themeLabel");
-  if (themeText) {
-    themeText.textContent = isDark ? "Dark" : "Light";
+  // 버튼 라벨 업데이트
+  const label = document.querySelector("#themeToggle .theme-toggle-label");
+  if (label) {
+    label.textContent =
+      mode === "dark"
+        ? label.dataset.dark || "Dark"
+        : label.dataset.light || "Light";
   }
 
-  // 토글 버튼 안의 라벨
-  const toggleBtn = $("themeToggle");
-  if (toggleBtn) {
-    const labelEl = toggleBtn.querySelector(".theme-toggle-label");
-    if (labelEl) {
-      labelEl.textContent = isDark
-        ? (labelEl.dataset.dark || "Dark")
-        : (labelEl.dataset.light || "Light");
-    }
-
-    const track = toggleBtn.querySelector(".theme-toggle-track");
-    const thumb = toggleBtn.querySelector(".theme-toggle-thumb");
-    if (track && thumb) {
-      // body.theme-dark 클래스 기반으로 CSS에서 위치 제어하므로
-      // 여기서 별도 계산할 필요는 없음
-    }
-  }
-
-  localStorage.setItem("korual-theme", isDark ? "dark" : "light");
+  localStorage.setItem("korual-theme", mode);
 }
 
 function initThemeToggle() {
@@ -206,7 +153,37 @@ function initThemeToggle() {
   });
 }
 
-// ========= 4. API 상태 표시 =========
+// ===== 4. 모바일 사이드바 토글 =====
+function initMobileMenu() {
+  const sidebar  = document.querySelector(".sidebar");
+  const backdrop = $("sidebarBackdrop");
+  const toggle   = $("menuToggle");
+  const navLinks = $$(".nav-link");
+
+  if (!sidebar || !backdrop || !toggle) return;
+
+  const open = () => {
+    sidebar.classList.add("open");
+    backdrop.classList.add("visible");
+  };
+
+  const close = () => {
+    sidebar.classList.remove("open");
+    backdrop.classList.remove("visible");
+  };
+
+  toggle.addEventListener("click", () => {
+    if (sidebar.classList.contains("open")) close();
+    else open();
+  });
+
+  backdrop.addEventListener("click", close);
+  navLinks.forEach((btn) => {
+    btn.addEventListener("click", close);
+  });
+}
+
+// ===== 5. API 상태 표시 =====
 function setApiStatus(ok, msg) {
   const el = document.querySelector(".api-status");
   if (!el) return;
@@ -231,7 +208,7 @@ async function pingApi() {
   }
 }
 
-// ========= 5. 대시보드 데이터 로딩 =========
+// ===== 6. 대시보드 데이터 로딩 =====
 function setDashboardLoading(loading) {
   const tbody = $("recentOrdersBody");
   if (!tbody) return;
@@ -245,7 +222,6 @@ function setDashboardLoading(loading) {
 function updateDashboardCards(payload) {
   if (!payload || typeof payload !== "object") return;
 
-  // API 키 매핑 (이름 바뀌어도 대응 가능)
   const totalProducts = payload.totalProducts ?? payload.total_items;
   const totalOrders   = payload.totalOrders   ?? payload.total_orders;
   const totalRevenue  = payload.totalRevenue  ?? payload.total_amount;
@@ -270,7 +246,7 @@ function updateDashboardCards(payload) {
     if (el) el.textContent = value;
   });
 
-  // 마지막 동기화 시간 표시
+  // 마지막 동기화 시간
   const lastSync = $("last-sync");
   if (lastSync) {
     const now = new Date();
@@ -337,7 +313,6 @@ function updateRecentOrdersTable(list) {
 async function loadDashboardData() {
   setDashboardLoading(true);
   try {
-    // Apps Script 의 doGet(e)에서 target=dashboard 처리
     const data = await apiGet("dashboard");
 
     updateDashboardCards(data || {});
@@ -346,7 +321,6 @@ async function loadDashboardData() {
   } catch (e) {
     console.error("대시보드 데이터 로딩 실패:", e);
     setApiStatus(false, "대시보드 로딩 실패");
-
     const tbody = $("recentOrdersBody");
     if (tbody) {
       tbody.innerHTML =
@@ -355,57 +329,48 @@ async function loadDashboardData() {
   }
 }
 
-// 외부에서 다시 호출할 수 있게 export 느낌
-window.initDashboard = function () {
-  loadDashboardData();
-};
-
-// ========= 6. 전체 새로고침 버튼 =========
+// ===== 7. 새로고침 버튼 =====
 function initRefreshButton() {
   const btn = $("btnRefreshAll");
   if (!btn) return;
-
   btn.addEventListener("click", () => {
     loadDashboardData();
   });
 }
 
-// ========= 7. 로그아웃 =========
-function initLogout() {
+// ===== 8. 로그아웃 버튼 =====
+function initLogoutButton() {
   const btn = $("btnLogout");
   if (!btn) return;
 
   btn.addEventListener("click", () => {
-    const ok = confirm("KORUAL CONTROL CENTER에서 로그아웃하시겠습니까?");
-    if (!ok) return;
-
     try {
-      // 로그인/테마 정보 정리
+      // 세션/관련 정보 제거
       localStorage.removeItem("korual_user");
-      localStorage.removeItem("korual-theme");
-      localStorage.removeItem("korual_theme");
-      // 필요하면 다른 키도 추가 삭제 가능
-    } catch (e) {
-      console.error("로그아웃 정리 중 오류:", e);
-    }
+      // 아이디 기억 옵션은 유지하고 싶으면 아래 줄은 지워도 됨
+      // localStorage.removeItem("korual_login_id");
 
-    // 로그인 페이지로 이동 (필요에 따라 경로 수정)
-    window.location.href = "index.html";
+      // index.html로 이동
+      window.location.replace("index.html");
+    } catch (e) {
+      console.error("로그아웃 중 오류:", e);
+      window.location.replace("index.html");
+    }
   });
 }
 
-// ========= 8. 초기화 =========
+// ===== 9. 초기화 =====
 document.addEventListener("DOMContentLoaded", () => {
   // 1) 비로그인 접근 차단
   if (!ensureLoggedIn()) return;
 
-  // 2) 로그인된 경우에만 나머지 초기화
+  // 2) 로그인 되어 있으면 나머지 초기화
   loadKorualUser();
   initSidebarNav();
   initThemeToggle();
-  initRefreshButton();
   initMobileMenu();
+  initRefreshButton();
+  initLogoutButton();
   pingApi();
-  loadDashboardData(); // 첫 로드 시 한 번
+  loadDashboardData();
 });
-
