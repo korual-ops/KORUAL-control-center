@@ -36,6 +36,29 @@ function initMobileMenu() {
     btn.addEventListener("click", close);
   });
 }
+// ===== 로그인 여부 확인 (대시보드 보호) =====
+function ensureLoggedIn() {
+  try {
+    const raw = localStorage.getItem("korual_user");
+    if (!raw) {
+      // 저장된 정보 없으면 로그인 페이지로
+      window.location.href = "index.html";
+      return false;
+    }
+
+    const user = JSON.parse(raw);
+    if (!user || !user.username) {
+      window.location.href = "index.html";
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    console.error("login 상태 확인 오류:", e);
+    window.location.href = "index.html";
+    return false;
+  }
+}
 
 // ========= 공통 유틸 =========
 const $  = (id)  => document.getElementById(id);
@@ -373,13 +396,16 @@ function initLogout() {
 
 // ========= 8. 초기화 =========
 document.addEventListener("DOMContentLoaded", () => {
+  // 1) 비로그인 접근 차단
+  if (!ensureLoggedIn()) return;
+
+  // 2) 로그인된 경우에만 나머지 초기화
   loadKorualUser();
   initSidebarNav();
   initThemeToggle();
   initRefreshButton();
-  initMobileMenu(); 
-  initLogout();
+  initMobileMenu();
   pingApi();
-  loadDashboardData();
+  loadDashboardData(); // 첫 로드 시 한 번
 });
 
