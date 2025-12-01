@@ -6,7 +6,7 @@
  * - 라이트 / 다크 테마 토글
  * - 로그아웃
  * - 대시보드 데이터 로딩
- * - 회원 관리 + 실시간 검색
+ * - 회원 관리 + 실시간 검색 (전 컬럼)
  ******************************************************/
 
 /* ========== 공통 유틸 ========== */
@@ -22,6 +22,7 @@ let membersCache = [];
 const API_BASE =
   "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
+// GET 전용 API 헬퍼
 async function apiGet(target, extraParams = {}) {
   const url = new URL(API_BASE);
   url.searchParams.set("target", target);
@@ -36,11 +37,13 @@ async function apiGet(target, extraParams = {}) {
   return res.json();
 }
 
+// 숫자 포맷
 function fmtNumber(v) {
   if (v === null || v === undefined || v === "" || isNaN(v)) return "-";
   return Number(v).toLocaleString("ko-KR");
 }
 
+// 금액 포맷
 function fmtCurrency(v) {
   if (v === null || v === undefined || v === "" || isNaN(v)) return "-";
   return Number(v).toLocaleString("ko-KR") + "원";
@@ -121,7 +124,7 @@ function initSidebarNav() {
         case "members":
           loadMembers();
           break;
-        // 이후 products / orders / stock / logs 확장 가능
+        // 추후 products / orders / stock / logs 도 여기에서 확장 가능
       }
     });
   });
@@ -169,7 +172,7 @@ function initThemeToggle() {
 
   toggleBtn.addEventListener("click", () => {
     const current = localStorage.getItem("korual-theme") || "light";
-    const next = current === "light" ? "dark" : "light";
+    const next    = current === "light" ? "dark" : "light";
     applyTheme(next);
   });
 }
@@ -213,7 +216,8 @@ function setApiStatus(ok, msg) {
 
   el.classList.toggle("ok", ok);
   el.classList.toggle("error", !ok);
-  el.textContent = (ok ? "● " : "● ") + (msg || (ok ? "API 연결 정상" : "API 오류"));
+  el.textContent =
+    (ok ? "● " : "● ") + (msg || (ok ? "API 연결 정상" : "API 오류"));
 }
 
 async function pingApi() {
@@ -340,7 +344,9 @@ async function loadDashboardData() {
     const data = await apiGet("dashboard");
 
     updateDashboardCards(data || {});
-    updateRecentOrdersTable(data?.recentOrders || data?.latestOrders || []);
+    updateRecentOrdersTable(
+      data?.recentOrders || data?.latestOrders || []
+    );
     setApiStatus(true, "API 연결 정상");
   } catch (e) {
     console.error("대시보드 데이터 로딩 실패:", e);
@@ -452,7 +458,7 @@ function renderMembersTable(list) {
   });
 }
 
-// 검색 인풋과 연동
+// 검색 인풋과 연동 (전 컬럼 검색)
 function initMemberSearch() {
   const input = $("searchMembers");
   if (!input) return;
@@ -466,27 +472,7 @@ function initMemberSearch() {
     }
 
     const filtered = membersCache.filter((row) => {
-      const fields = getMemberSearchFields(row);   // ← 여기만 공통 함수 사용
-      return fields.some((v) =>
-        String(v ?? "").toLowerCase().includes(kw)
-      );
-    });
-
-    renderMembersTable(filtered);
-  });
-}
-
-
-    const filtered = membersCache.filter((row) => {
-      const fields = [
-        row["회원번호"],
-        row["이름"],
-        row["전화번호"],
-        row["이메일"],
-        row["채널"],
-        row["등급"],
-        row["메모"],
-      ];
+      const fields = getMemberSearchFields(row);
       return fields.some((v) =>
         String(v ?? "").toLowerCase().includes(kw)
       );
@@ -513,47 +499,15 @@ async function loadMembers() {
       return;
     }
 
+    // 캐시에 저장
     membersCache = data.rows;
 
-    const input = $("searchMembers");
+    const input   = $("searchMembers");
     const keyword = input ? input.value.trim().toLowerCase() : "";
 
     if (keyword) {
       const filtered = membersCache.filter((row) => {
-        const fields = getMemberSearchFields(row);   // ← 여기
-        return fields.some((v) =>
-          String(v ?? "").toLowerCase().includes(keyword)
-        );
-      });
-      renderMembersTable(filtered);
-    } else {
-      renderMembersTable(membersCache);
-    }
-  } catch (e) {
-    console.error("회원 데이터 로딩 실패:", e);
-    tbody.innerHTML =
-      '<tr><td colspan="11" class="empty-state">회원 데이터를 불러오지 못했습니다.</td></tr>';
-  }
-}
-
-
-    // 받아온 데이터 캐시에 저장
-    membersCache = data.rows;
-
-    const input = $("searchMembers");
-    const keyword = input ? input.value.trim().toLowerCase() : "";
-
-    if (keyword) {
-      const filtered = membersCache.filter((row) => {
-        const fields = [
-          row["회원번호"],
-          row["이름"],
-          row["전화번호"],
-          row["이메일"],
-          row["채널"],
-          row["등급"],
-          row["메모"],
-        ];
+        const fields = getMemberSearchFields(row);
         return fields.some((v) =>
           String(v ?? "").toLowerCase().includes(keyword)
         );
@@ -582,8 +536,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
   initRefreshButton();
   initLogoutButton();
-  initMemberSearch();    // 회원 검색 연결
+  initMemberSearch();   // 회원 검색 연결
   pingApi();
-  loadDashboardData();   // 첫 화면: 대시보드
+  loadDashboardData();  // 첫 화면: 대시보드
 });
-
