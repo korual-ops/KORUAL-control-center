@@ -28,7 +28,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="api-status ok">● API 연결 정상</div>
+        <div class="api-status ok">API 연결 정상</div>
         <div class="api-url">KORUAL AUTH / CONTROL API</div>
       </div>
     </aside>
@@ -39,52 +39,45 @@
     <main class="content">
       <!-- 상단바 -->
       <header class="topbar">
-  <body>
-  <div class="app-shell">
-    <header class="topbar">
-  <div class="topbar-left">
-    <span class="topbar-greeting">
-      <span id="themeLabel">Light</span>
-      반갑습니다! <span id="welcomeUser">KORUAL</span>님
-    </span>
-  </div>
+        <div class="topbar-left">
+          <div class="topbar-greeting">
+            <span class="topbar-badge">KORUAL CONTROL CENTER</span>
+            <span class="topbar-text">
+              반갑습니다, <span id="welcomeUser">KORUAL</span>님
+            </span>
+          </div>
+          <div class="topbar-subtext" id="last-sync">
+            마지막 동기화: - 
+          </div>
+        </div>
 
-  <div class="topbar-right">
-    <!-- 이미 있는 새로고침 버튼 -->
-    <button id="btnRefreshAll" class="primary-btn">새로고침</button>
+        <div class="topbar-right">
+          <!-- 테마 토글 -->
+          <button
+            id="themeToggle"
+            class="theme-toggle"
+            type="button"
+            aria-label="테마 전환"
+          >
+            <span class="theme-toggle-label" data-light="Light" data-dark="Dark">
+              Light
+            </span>
+            <span class="theme-toggle-track">
+              <span class="theme-toggle-thumb"></span>
+            </span>
+          </button>
 
-    <!-- 🔥 하이엔드 로그아웃 버튼 -->
-    <button id="btnLogout" class="ghost-btn logout-btn" type="button">
-      로그아웃
-    </button>
-  </div>
-</header>
+          <!-- 전체 새로고침 -->
+          <button id="btnRefreshAll" class="primary-btn" type="button">
+            새로고침
+          </button>
 
-          반갑습니다! KORUAL님
-        </span>
-      </div>
-    <div class="topbar-right">
-        <!-- 🔽 라이트 / 다크 모드 토글 버튼 -->
-        <button
-          id="themeToggle"
-          class="theme-toggle"
-          type="button"
-          aria-label="테마 전환"
-        >
-          <span class="theme-toggle-label" data-light="Light" data-dark="Dark">
-            Light
-          </span>
-          <span class="theme-toggle-track">
-            <span class="theme-toggle-thumb"></span>
-          </span>
-        </button>
-
-        <!-- 기존 새로고침 버튼은 그대로 두기 -->
-        <button id="syncButton" class="primary-btn">새로고침</button>
-      </div>
-    </header>
-    <!-- ... 나머지 기존 콘텐츠 ... -->
-
+          <!-- 로그아웃 -->
+          <button id="btnLogout" class="ghost-btn logout-btn" type="button">
+            로그아웃
+          </button>
+        </div>
+      </header>
 
       <!-- ===============================
            1) 대시보드
@@ -93,7 +86,14 @@
         <div class="section-header-row">
           <div>
             <h2>대시보드</h2>
-            <p class="section-desc">코루알 전체 현황을 한 눈에 보는 관제탑입니다.</p>
+            <p class="section-desc">코루알 전체 현황을 한눈에 보는 관제탑입니다.</p>
+          </div>
+
+          <!-- 기간 필터 (추후 기능 연동용) -->
+          <div class="chips">
+            <button class="chip chip-active" data-range="today">오늘</button>
+            <button class="chip" data-range="7d">7일</button>
+            <button class="chip" data-range="30d">30일</button>
           </div>
         </div>
 
@@ -126,10 +126,21 @@
             <h3>오늘 요약</h3>
           </div>
 
-          <div style="margin-top:10px; line-height:1.8;">
-            오늘 주문: <span id="todayOrders">-</span><br />
-            오늘 매출: <span id="todayRevenue">-</span><br />
-            준비중 주문: <span id="todayPending">-</span>
+          <div class="panel-body">
+            <div class="today-metrics">
+              <div class="today-metric">
+                <span class="today-label">오늘 주문</span>
+                <span class="today-value" id="todayOrders">-</span>
+              </div>
+              <div class="today-metric">
+                <span class="today-label">오늘 매출</span>
+                <span class="today-value" id="todayRevenue">-</span>
+              </div>
+              <div class="today-metric">
+                <span class="today-label">준비중 주문</span>
+                <span class="today-value" id="todayPending">-</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -172,7 +183,10 @@
             <p class="section-desc">상품 시트에서 불러온 상품 목록입니다.</p>
           </div>
 
-          <input id="searchProducts" class="input" placeholder="상품명 검색" />
+          <div class="section-actions">
+            <input id="searchProducts" class="input" placeholder="상품명 검색" />
+            <button class="btn subtle" type="button">CSV 내보내기</button>
+          </div>
         </div>
 
         <div class="table-wrapper">
@@ -203,7 +217,15 @@
             <h2>주문 관리</h2>
           </div>
 
-          <input id="searchOrders" class="input" placeholder="주문번호 / 고객명" />
+          <div class="section-actions">
+            <input id="searchOrders" class="input" placeholder="주문번호 / 고객명" />
+            <select id="filterOrderStatus" class="input select">
+              <option value="">전체 상태</option>
+              <option value="pending">준비중</option>
+              <option value="shipping">배송중</option>
+              <option value="completed">배송완료</option>
+            </select>
+          </div>
         </div>
 
         <div class="table-wrapper">
@@ -236,7 +258,16 @@
             <h2>회원 관리</h2>
           </div>
 
-          <input id="searchMembers" class="input" placeholder="이름 / 이메일" />
+          <div class="section-actions">
+            <input id="searchMembers" class="input" placeholder="이름 / 이메일" />
+            <select id="filterMemberGrade" class="input select">
+              <option value="">전체 등급</option>
+              <option value="BRZ">BRZ</option>
+              <option value="SLV">SLV</option>
+              <option value="GLD">GLD</option>
+              <option value="BLK">BLK</option>
+            </select>
+          </div>
         </div>
 
         <div class="table-wrapper">
@@ -263,7 +294,9 @@
       ================================ -->
       <section id="section-stock" class="section">
         <div class="section-header-row">
-          <h2>재고 관리</h2>
+          <div>
+            <h2>재고 관리</h2>
+          </div>
         </div>
 
         <div class="table-wrapper">
@@ -290,7 +323,18 @@
       ================================ -->
       <section id="section-logs" class="section">
         <div class="section-header-row">
-          <h2>로그 모니터링</h2>
+          <div>
+            <h2>로그 모니터링</h2>
+          </div>
+
+          <div class="section-actions">
+            <select id="filterLogLevel" class="input select">
+              <option value="">전체 레벨</option>
+              <option value="info">INFO</option>
+              <option value="warn">WARN</option>
+              <option value="error">ERROR</option>
+            </select>
+          </div>
         </div>
 
         <div class="table-wrapper">
@@ -313,11 +357,7 @@
     </main>
   </div>
 
-  <!-- ===============================
-       JS 연결
-  ================================ -->
+  <!-- JS 연결 -->
   <script src="app.js"></script>
 </body>
 </html>
-
-
