@@ -6,6 +6,36 @@
  * - 로그아웃 (index.html로 이동)
  * - API 상태 체크 & 대시보드 데이터 로딩
  ******************************************************/
+// ===== 모바일 사이드바 토글 =====
+function initMobileMenu() {
+  const sidebar  = document.querySelector(".sidebar");
+  const backdrop = document.getElementById("sidebarBackdrop");
+  const toggle   = document.getElementById("menuToggle");
+  const navLinks = document.querySelectorAll(".nav-link");
+
+  if (!sidebar || !backdrop || !toggle) return;
+
+  const open = () => {
+    sidebar.classList.add("open");
+    backdrop.classList.add("visible");
+  };
+
+  const close = () => {
+    sidebar.classList.remove("open");
+    backdrop.classList.remove("visible");
+  };
+
+  toggle.addEventListener("click", () => {
+    if (sidebar.classList.contains("open")) close();
+    else open();
+  });
+
+  backdrop.addEventListener("click", close);
+
+  navLinks.forEach((btn) => {
+    btn.addEventListener("click", close);
+  });
+}
 
 // ========= 공통 유틸 =========
 const $  = (id)  => document.getElementById(id);
@@ -347,7 +377,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initSidebarNav();
   initThemeToggle();
   initRefreshButton();
+  initMobileMenu(); 
   initLogout();
   pingApi();
   loadDashboardData();
 });
+
