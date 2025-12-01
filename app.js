@@ -382,6 +382,23 @@ function initLogoutButton() {
 
 /* ========== 9. 회원 관리 – 렌더링 + 검색 + 로딩 ========== */
 
+// 한 회원(row)에서 검색에 사용할 필드들만 뽑는 헬퍼
+function getMemberSearchFields(row) {
+  return [
+    row["회원번호"],
+    row["이름"],
+    row["전화번호"],
+    row["이메일"],
+    row["가입일"],
+    row["채널"],
+    row["등급"],
+    row["누적매출"],
+    row["포인트"],
+    row["최근주문일"],
+    row["메모"],
+  ];
+}
+
 // 화면에 회원 목록 렌더링
 function renderMembersTable(list) {
   const tbody = $("membersBody");
@@ -449,6 +466,18 @@ function initMemberSearch() {
     }
 
     const filtered = membersCache.filter((row) => {
+      const fields = getMemberSearchFields(row);   // ← 여기만 공통 함수 사용
+      return fields.some((v) =>
+        String(v ?? "").toLowerCase().includes(kw)
+      );
+    });
+
+    renderMembersTable(filtered);
+  });
+}
+
+
+    const filtered = membersCache.filter((row) => {
       const fields = [
         row["회원번호"],
         row["이름"],
@@ -483,6 +512,30 @@ async function loadMembers() {
         '<tr><td colspan="11" class="empty-state">회원 데이터를 불러오지 못했습니다.</td></tr>';
       return;
     }
+
+    membersCache = data.rows;
+
+    const input = $("searchMembers");
+    const keyword = input ? input.value.trim().toLowerCase() : "";
+
+    if (keyword) {
+      const filtered = membersCache.filter((row) => {
+        const fields = getMemberSearchFields(row);   // ← 여기
+        return fields.some((v) =>
+          String(v ?? "").toLowerCase().includes(keyword)
+        );
+      });
+      renderMembersTable(filtered);
+    } else {
+      renderMembersTable(membersCache);
+    }
+  } catch (e) {
+    console.error("회원 데이터 로딩 실패:", e);
+    tbody.innerHTML =
+      '<tr><td colspan="11" class="empty-state">회원 데이터를 불러오지 못했습니다.</td></tr>';
+  }
+}
+
 
     // 받아온 데이터 캐시에 저장
     membersCache = data.rows;
@@ -533,3 +586,4 @@ document.addEventListener("DOMContentLoaded", () => {
   pingApi();
   loadDashboardData();   // 첫 화면: 대시보드
 });
+
