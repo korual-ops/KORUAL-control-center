@@ -8,6 +8,12 @@
  * - 대시보드 데이터 로딩
  ******************************************************/
 
+const $  = (id)  => document.getElementById(id);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+// 회원 데이터 캐시
+let membersCache = [];
+
 // ===== 공통 유틸 =====
 const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -110,6 +116,94 @@ function initSidebarNav() {
       } else if (key === "members") {
         loadMembers();
       }
+
+      // 검색 인풋과 연동
+function initMemberSearch() {
+  const input = $("searchMembers");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    const kw = input.value.trim().toLowerCase();
+
+    if (!kw) {
+      // 검색어 없으면 전체 표시
+      renderMembersTable(membersCache);
+      return;
+    }
+
+    const filtered = membersCache.filter((row) => {
+      const fields = [
+        row["회원번호"],
+        row["이름"],
+        row["전화번호"],
+        row["이메일"],
+        row["채널"],
+        row["등급"],
+        row["메모"],
+      ];
+      return fields.some((v) =>
+        String(v ?? "").toLowerCase().includes(kw)
+      );
+    });
+
+    renderMembersTable(filtered);
+  });
+}
+
+      
+      // 화면에 회원 목록 렌더링
+function renderMembersTable(list) {
+  const tbody = $("membersBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(list) || list.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="11" class="empty-state">회원 데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  list.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    const memberNo   = row["회원번호"]   ?? "-";
+    const name       = row["이름"]       ?? "-";
+    const phone      = row["전화번호"]   ?? "-";
+    const email      = row["이메일"]     ?? "-";
+    const joinedAt   = row["가입일"]     ?? "-";
+    const channel    = row["채널"]       ?? "-";
+    const grade      = row["등급"]       ?? "-";
+    const totalSales = row["누적매출"]   ?? 0;
+    const point      = row["포인트"]     ?? 0;
+    const lastOrder  = row["최근주문일"] ?? "-";
+    const memo       = row["메모"]       ?? "";
+
+    const cells = [
+      memberNo,
+      name,
+      phone,
+      email,
+      joinedAt,
+      channel,
+      grade,
+      fmtCurrency(totalSales),
+      fmtNumber(point),
+      lastOrder,
+      memo,
+    ];
+
+    cells.forEach((v) => {
+      const td = document.createElement("td");
+      td.textContent =
+        v === undefined || v === null || v === "" ? "-" : v;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
       // 나중에 products / orders / stock / logs 도 여기서 연결하면 됨
     });
   });
@@ -368,63 +462,50 @@ function initLogoutButton() {
     }
   });
 }
-// ===== 10. 회원 관리 데이터 로딩 =====
+// ===== 회원 관리 데이터 로딩 =====
 async function loadMembers() {
   const tbody = $("membersBody");
   if (!tbody) return;
 
-  // 헤더 개수에 맞게 colspan (회원번호~메모 = 11개)
   tbody.innerHTML =
     '<tr><td colspan="11" class="empty-state">회원 데이터 로딩 중…</td></tr>';
 
   try {
     const data = await apiGet("members");
 
-    if (!data || data.ok === false || !Array.isArray(data.rows) || data.rows.length === 0) {
+    if (!data || data.ok === false || !Array.isArray(data.rows)) {
       tbody.innerHTML =
-        '<tr><td colspan="11" class="empty-state">회원 데이터가 없습니다.</td></tr>';
+        '<tr><td colspan="11" class="empty-state">회원 데이터를 불러오지 못했습니다.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = "";
+    // 받아온 데이터 캐시에 저장
+    membersCache = data.rows;
 
-    data.rows.forEach((row) => {
-      const tr = document.createElement("tr");
+    const input = $("searchMembers");
+    const keyword = input ? input.value.trim().toLowerCase() : "";
 
-      const memberNo   = row["회원번호"]   || "-";
-      const name       = row["이름"]       || "-";
-      const phone      = row["전화번호"]   || "-";
-      const email      = row["이메일"]     || "-";
-      const joinedAt   = row["가입일"]     || "-";
-      const channel    = row["채널"]       || "-";
-      const grade      = row["등급"]       || "-";
-      const totalSales = row["누적매출"]   || 0;
-      const point      = row["포인트"]     || 0;
-      const lastOrder  = row["최근주문일"] || "-";
-      const memo       = row["메모"]       || "";
-
-      const cells = [
-        memberNo,
-        name,
-        phone,
-        email,
-        joinedAt,
-        channel,
-        grade,
-        fmtCurrency(totalSales),
-        fmtNumber(point),
-        lastOrder,
-        memo,
-      ];
-
-      cells.forEach((v) => {
-        const td = document.createElement("td");
-        td.textContent = v === undefined || v === null || v === "" ? "-" : v;
-        tr.appendChild(td);
+    // 검색어가 이미 들어가 있으면 필터 후 렌더링
+    if (keyword) {
+      const filtered = membersCache.filter((row) => {
+        const fields = [
+          row["회원번호"],
+          row["이름"],
+          row["전화번호"],
+          row["이메일"],
+          row["채널"],
+          row["등급"],
+          row["메모"],
+        ];
+        return fields.some((v) =>
+          String(v ?? "").toLowerCase().includes(keyword)
+        );
       });
-
-      tbody.appendChild(tr);
-    });
+      renderMembersTable(filtered);
+    } else {
+      // 검색어 없으면 전체 렌더링
+      renderMembersTable(membersCache);
+    }
   } catch (e) {
     console.error("회원 데이터 로딩 실패:", e);
     tbody.innerHTML =
@@ -445,7 +526,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
   initRefreshButton();
   initLogoutButton();
+  initMemberSearch();
   pingApi();
   loadDashboardData();
 });
+
 
