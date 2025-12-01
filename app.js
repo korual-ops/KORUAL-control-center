@@ -3,19 +3,22 @@
  * - 로그인 유저 이름 표시
  * - 사이드바 네비게이션
  * - 라이트 / 다크 테마 토글
- * - 대시보드 데이터 로딩 (예시)
+ * - 로그아웃 (index.html로 이동)
+ * - API 상태 체크 & 대시보드 데이터 로딩
  ******************************************************/
 
-// ===== 공통 유틸 =====
+// ========= 공통 유틸 =========
 const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-// 실제 구글 Apps Script / Control Center API 주소로 바꿔 써줘
-const API_BASE ="https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec"; // 예시
+// 실제 구글 Apps Script / Control Center API 주소로 교체해 사용
+const API_BASE = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
+// GET 호출 공통 함수
 async function apiGet(target, extraParams = {}) {
   const url = new URL(API_BASE);
   url.searchParams.set("target", target);
+
   Object.entries(extraParams).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== "") {
       url.searchParams.set(k, v);
@@ -27,6 +30,7 @@ async function apiGet(target, extraParams = {}) {
   return res.json();
 }
 
+// 숫자/통화 포맷
 function fmtNumber(v) {
   if (v === null || v === undefined || v === "" || isNaN(v)) return "-";
   return Number(v).toLocaleString("ko-KR");
@@ -37,30 +41,36 @@ function fmtCurrency(v) {
   return Number(v).toLocaleString("ko-KR") + "원";
 }
 
-// ===== 1. 로그인 유저 이름 표시 =====
+// ========= 1. 로그인 유저 이름 표시 =========
 function loadKorualUser() {
   try {
     const raw = localStorage.getItem("korual_user");
-    if (!raw) return;
+    const el = $("welcomeUser");
+    if (!el) return;
+
+    if (!raw) {
+      el.textContent = "KORUAL";
+      return;
+    }
 
     const user = JSON.parse(raw);
     const name =
-      user.full_name && String(user.full_name).trim()
-        ? String(user.full_name).trim()
-        : (user.username || "게스트");
+      (user.full_name && String(user.full_name).trim()) ||
+      (user.username && String(user.username).trim()) ||
+      "KORUAL";
 
-    const span = $("welcomeUser");
-    if (span) span.textContent = name;
+    el.textContent = name;
   } catch (e) {
     console.error("korual_user 파싱 오류:", e);
+    const el = $("welcomeUser");
+    if (el) el.textContent = "KORUAL";
   }
 }
 
-// ===== 2. 사이드바 네비게이션 =====
+// ========= 2. 사이드바 네비게이션 =========
 function initSidebarNav() {
   const links = $$(".nav-link");
   const sections = $$(".section");
-
   if (!links.length || !sections.length) return;
 
   function activate(sectionKey) {
@@ -81,7 +91,7 @@ function initSidebarNav() {
     });
   });
 
-  // "주문 관리로 이동" 버튼
+  // "주문 관리로 이동" 버튼 → 주문 관리 탭 활성화
   const goOrders = $("goOrders");
   if (goOrders) {
     goOrders.addEventListener("click", () => {
@@ -90,83 +100,60 @@ function initSidebarNav() {
     });
   }
 
-  // 첫 로드 시 기본: 대시보드
+  // 첫 로드 기본: 대시보드
   activate("dashboard");
 }
 
-// ===== 3. 테마 토글 (Light / Dark) =====
+// ========= 3. 테마 토글 (Light / Dark) =========
 function applyTheme(theme) {
   const body = document.body;
   if (!body) return;
 
-  // body에 dark-mode 클래스로 제어 (style.css 이미 다크모드 스타일 있음)
-  body.classList.toggle("dark-mode", theme === "dark");
+  const isDark = theme === "dark";
+  body.classList.toggle("theme-dark", isDark);
 
-  // 상단 Light / Dark 텍스트
-  const label = $("themeLabel");
-  if (label) {
-    label.textContent = theme === "dark" ? "Dark" : "Light";
+  // 상단 작은 텍스트 (Light / Dark)
+  const themeText = $("themeLabel");
+  if (themeText) {
+    themeText.textContent = isDark ? "Dark" : "Light";
   }
 
-  localStorage.setItem("korual_theme", theme);
+  // 토글 버튼 안의 라벨
+  const toggleBtn = $("themeToggle");
+  if (toggleBtn) {
+    const labelEl = toggleBtn.querySelector(".theme-toggle-label");
+    if (labelEl) {
+      labelEl.textContent = isDark
+        ? (labelEl.dataset.dark || "Dark")
+        : (labelEl.dataset.light || "Light");
+    }
+
+    const track = toggleBtn.querySelector(".theme-toggle-track");
+    const thumb = toggleBtn.querySelector(".theme-toggle-thumb");
+    if (track && thumb) {
+      // body.theme-dark 클래스 기반으로 CSS에서 위치 제어하므로
+      // 여기서 별도 계산할 필요는 없음
+    }
+  }
+
+  localStorage.setItem("korual-theme", isDark ? "dark" : "light");
 }
 
 function initThemeToggle() {
-  const saved = localStorage.getItem("korual_theme") || "light";
+  const saved = localStorage.getItem("korual-theme") || "light";
   applyTheme(saved);
 
-  const btnRefreshTheme = $("themeLabel"); // 클릭해도 바뀌도록 옵션
-  const topbarThemeBtn = null;            // 필요하면 따로 버튼 만들었을 때 사용
+  const toggleBtn = $("themeToggle");
+  if (!toggleBtn) return;
 
-  const toggle = () => {
-    const current = localStorage.getItem("korual_theme") || "light";
+  toggleBtn.addEventListener("click", () => {
+    const current = localStorage.getItem("korual-theme") || "light";
     const next = current === "light" ? "dark" : "light";
     applyTheme(next);
-  };
-
-  // Light / Dark 텍스트를 클릭하면 토글되게
-  if (btnRefreshTheme) {
-    btnRefreshTheme.style.cursor = "pointer";
-    btnRefreshTheme.addEventListener("click", toggle);
-  }
-  if (topbarThemeBtn) {
-    topbarThemeBtn.addEventListener("click", toggle);
-  }
-}
-// ========== LIGHT / DARK THEME TOGGLE ==========
-
-(function setupThemeToggle() {
-  const body = document.body;
-  const toggleBtn = document.getElementById("themeToggle");
-  const labelEl = toggleBtn?.querySelector(".theme-toggle-label");
-
-  if (!toggleBtn || !labelEl) return;
-
-  // 1) 저장된 테마 불러오기
-  const savedTheme = localStorage.getItem("korual-theme");
-  if (savedTheme === "dark") {
-    body.classList.add("theme-dark");
-    labelEl.textContent = labelEl.dataset.dark || "Dark";
-  } else {
-    body.classList.remove("theme-dark");
-    labelEl.textContent = labelEl.dataset.light || "Light";
-  }
-
-  // 2) 클릭 시 테마 전환
-  toggleBtn.addEventListener("click", () => {
-    const isDark = body.classList.toggle("theme-dark");
-    if (isDark) {
-      labelEl.textContent = labelEl.dataset.dark || "Dark";
-      localStorage.setItem("korual-theme", "dark");
-    } else {
-      labelEl.textContent = labelEl.dataset.light || "Light";
-      localStorage.setItem("korual-theme", "light");
-    }
   });
-})();
+}
 
-
-// ===== 4. API 상태 표시 =====
+// ========= 4. API 상태 표시 =========
 function setApiStatus(ok, msg) {
   const el = document.querySelector(".api-status");
   if (!el) return;
@@ -191,7 +178,7 @@ async function pingApi() {
   }
 }
 
-// ===== 5. 대시보드 데이터 로딩 =====
+// ========= 5. 대시보드 데이터 로딩 =========
 function setDashboardLoading(loading) {
   const tbody = $("recentOrdersBody");
   if (!tbody) return;
@@ -205,7 +192,7 @@ function setDashboardLoading(loading) {
 function updateDashboardCards(payload) {
   if (!payload || typeof payload !== "object") return;
 
-  // API 구조에 맞게 키만 한 번 맞춰주면 됨
+  // API 키 매핑 (이름 바뀌어도 대응 가능)
   const totalProducts = payload.totalProducts ?? payload.total_items;
   const totalOrders   = payload.totalOrders   ?? payload.total_orders;
   const totalRevenue  = payload.totalRevenue  ?? payload.total_amount;
@@ -230,7 +217,7 @@ function updateDashboardCards(payload) {
     if (el) el.textContent = value;
   });
 
-  // 마지막 동기화 시간
+  // 마지막 동기화 시간 표시
   const lastSync = $("last-sync");
   if (lastSync) {
     const now = new Date();
@@ -297,7 +284,7 @@ function updateRecentOrdersTable(list) {
 async function loadDashboardData() {
   setDashboardLoading(true);
   try {
-    // Apps Script 의 doGet(e) 에서 target=dashboard 처리하도록 구현해두면 됨
+    // Apps Script 의 doGet(e)에서 target=dashboard 처리
     const data = await apiGet("dashboard");
 
     updateDashboardCards(data || {});
@@ -306,6 +293,7 @@ async function loadDashboardData() {
   } catch (e) {
     console.error("대시보드 데이터 로딩 실패:", e);
     setApiStatus(false, "대시보드 로딩 실패");
+
     const tbody = $("recentOrdersBody");
     if (tbody) {
       tbody.innerHTML =
@@ -314,31 +302,22 @@ async function loadDashboardData() {
   }
 }
 
-// 외부에서 다시 호출할 수 있게 export 느낌으로
+// 외부에서 다시 호출할 수 있게 export 느낌
 window.initDashboard = function () {
   loadDashboardData();
 };
 
-// ===== 6. 전체 새로고침 버튼 =====
+// ========= 6. 전체 새로고침 버튼 =========
 function initRefreshButton() {
   const btn = $("btnRefreshAll");
   if (!btn) return;
+
   btn.addEventListener("click", () => {
     loadDashboardData();
   });
 }
 
-// ===== 7. 초기화 =====
-document.addEventListener("DOMContentLoaded", () => {
-  loadKorualUser();
-  initSidebarNav();
-  initThemeToggle();
-  initRefreshButton();
-  pingApi();
-  loadDashboardData(); // 첫 로드 시 한 번
-});
-
-// ===== 8. 로그아웃 기능 =====
+// ========= 7. 로그아웃 =========
 function initLogout() {
   const btn = $("btnLogout");
   if (!btn) return;
@@ -348,30 +327,27 @@ function initLogout() {
     if (!ok) return;
 
     try {
-      // 로그인 정보 / 테마 / 토큰 등 정리
+      // 로그인/테마 정보 정리
       localStorage.removeItem("korual_user");
-      localStorage.removeItem("korual_theme");
       localStorage.removeItem("korual-theme");
-      // 필요하면 다른 KORUAL 관련 키도 여기서 같이 제거 가능
-      // localStorage.clear();  // 아예 전체 날리고 싶으면 이걸로 교체
+      localStorage.removeItem("korual_theme");
+      // 필요하면 다른 키도 추가 삭제 가능
     } catch (e) {
       console.error("로그아웃 정리 중 오류:", e);
     }
 
-    // 로그인 페이지로 이동
+    // 로그인 페이지로 이동 (필요에 따라 경로 수정)
     window.location.href = "index.html";
   });
 }
-// ===== 7. 초기화 =====
+
+// ========= 8. 초기화 =========
 document.addEventListener("DOMContentLoaded", () => {
   loadKorualUser();
   initSidebarNav();
-  initThemeToggle();   // 테마 토글 사용 중이면 유지
+  initThemeToggle();
   initRefreshButton();
-  initLogout();        // 🔥 새로 추가
+  initLogout();
   pingApi();
-  loadDashboardData(); // 첫 로드 시 한 번
+  loadDashboardData();
 });
-
-
-
