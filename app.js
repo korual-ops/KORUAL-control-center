@@ -17,7 +17,7 @@ let stockCache    = [];
 let logsCache     = [];
 
 /* ========== API 주소 ========== */
-const API_BASE = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";   // ★ API 주소만 여기 입력하면 됨
+const API_BASE = "YOUR_API_URL_HERE";   // ★ API 주소만 여기 입력하면 됨
 
 /* GET API */
 async function apiGet(target, extraParams = {}) {
