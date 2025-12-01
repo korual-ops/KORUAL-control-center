@@ -1,12 +1,11 @@
 /******************************************************
- * KORUAL CONTROL CENTER – app.js (하이엔드 정리 버전)
- * - 로그인 여부 체크 (dashboard 보호)
- * - 로그인 유저 이름 표시
- * - 사이드바 네비게이션 + 모바일 메뉴
- * - 라이트 / 다크 테마 토글
+ * KORUAL CONTROL CENTER – app.js (풀 하이엔드 버전)
+ * - 로그인 보호
+ * - 사용자 표시
+ * - 사이드바 네비 + 모바일 메뉴
+ * - 라이트 / 다크 테마
  * - 로그아웃
- * - 대시보드 데이터 로딩
- * - 회원 관리 + 실시간 검색 (전 컬럼)
+ * - 대시보드 / 회원 / 주문 / 상품 / 재고 관리 + 실시간 검색
  ******************************************************/
 
 /* ========== 공통 유틸 ========== */
@@ -15,8 +14,11 @@
 const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-// 회원 데이터 캐시
-let membersCache = [];
+// 데이터 캐시
+let membersCache  = [];
+let ordersCache   = [];
+let productsCache = [];
+let stockCache    = [];
 
 // 실제 구글 Apps Script / Control Center API 주소
 const API_BASE =
@@ -124,7 +126,20 @@ function initSidebarNav() {
         case "members":
           loadMembers();
           break;
-        // 추후 products / orders / stock / logs 도 여기에서 확장 가능
+        case "orders":
+          loadOrders();
+          break;
+        case "products":
+          loadProducts();
+          break;
+        case "stock":
+          loadStock();
+          break;
+          case "logs":
+          loadLogs();
+          break;
+
+        // logs 등은 추후 확장
       }
     });
   });
@@ -151,7 +166,6 @@ function applyTheme(theme) {
   const mode = theme === "dark" ? "dark" : "light";
   body.classList.toggle("theme-dark", mode === "dark");
 
-  // 버튼 라벨 업데이트
   const label = document.querySelector("#themeToggle .theme-toggle-label");
   if (label) {
     label.textContent =
@@ -216,8 +230,7 @@ function setApiStatus(ok, msg) {
 
   el.classList.toggle("ok", ok);
   el.classList.toggle("error", !ok);
-  el.textContent =
-    (ok ? "● " : "● ") + (msg || (ok ? "API 연결 정상" : "API 오류"));
+  el.textContent = msg || (ok ? "API 연결 정상" : "API 오류");
 }
 
 async function pingApi() {
@@ -274,7 +287,6 @@ function updateDashboardCards(payload) {
     if (el) el.textContent = value;
   });
 
-  // 마지막 동기화 시간
   const lastSync = $("last-sync");
   if (lastSync) {
     const now = new Date();
@@ -388,7 +400,6 @@ function initLogoutButton() {
 
 /* ========== 9. 회원 관리 – 렌더링 + 검색 + 로딩 ========== */
 
-// 한 회원(row)에서 검색에 사용할 필드들만 뽑는 헬퍼
 function getMemberSearchFields(row) {
   return [
     row["회원번호"],
@@ -405,7 +416,6 @@ function getMemberSearchFields(row) {
   ];
 }
 
-// 화면에 회원 목록 렌더링
 function renderMembersTable(list) {
   const tbody = $("membersBody");
   if (!tbody) return;
@@ -458,7 +468,6 @@ function renderMembersTable(list) {
   });
 }
 
-// 검색 인풋과 연동 (전 컬럼 검색)
 function initMemberSearch() {
   const input = $("searchMembers");
   if (!input) return;
@@ -482,7 +491,6 @@ function initMemberSearch() {
   });
 }
 
-// 회원 데이터 로딩
 async function loadMembers() {
   const tbody = $("membersBody");
   if (!tbody) return;
@@ -499,7 +507,6 @@ async function loadMembers() {
       return;
     }
 
-    // 캐시에 저장
     membersCache = data.rows;
 
     const input   = $("searchMembers");
@@ -523,20 +530,486 @@ async function loadMembers() {
   }
 }
 
-/* ========== 10. 초기화 ========== */
+/* ========== 10. 주문 관리 – 렌더링 + 검색 + 로딩 ========== */
+
+function getOrderSearchFields(row) {
+  return [
+    row["날짜"] || row["주문일자"],
+    row["주문번호"],
+    row["고객명"],
+    row["상품명"],
+    row["채널"],
+    row["상태"],
+    row["금액"],
+    row["수량"],
+  ];
+}
+
+function renderOrdersTable(list) {
+  const tbody = $("ordersBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(list) || list.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="7" class="empty-state">주문 데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  list.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    const date   = row["날짜"]     ?? row["주문일자"] ?? "-";
+    const no     = row["주문번호"] ?? "-";
+    const name   = row["고객명"]   ?? "-";
+    const item   = row["상품명"]   ?? "-";
+    const qty    = row["수량"]     ?? "-";
+    const amount = row["금액"]     ?? 0;
+    const status = row["상태"]     ?? "-";
+
+    const cells = [
+      date,
+      no,
+      name,
+      item,
+      qty,
+      fmtCurrency(amount),
+      status,
+    ];
+
+    cells.forEach((v) => {
+      const td = document.createElement("td");
+      td.textContent =
+        v === undefined || v === null || v === "" ? "-" : v;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+function initOrdersSearch() {
+  const input = $("searchOrders");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    const kw = input.value.trim().toLowerCase();
+
+    if (!kw) {
+      renderOrdersTable(ordersCache);
+      return;
+    }
+
+    const filtered = ordersCache.filter((row) => {
+      const fields = getOrderSearchFields(row);
+      return fields.some((v) =>
+        String(v ?? "").toLowerCase().includes(kw)
+      );
+    });
+
+    renderOrdersTable(filtered);
+  });
+}
+
+async function loadOrders() {
+  const tbody = $("ordersBody");
+  if (!tbody) return;
+
+  tbody.innerHTML =
+    '<tr><td colspan="7" class="empty-state">주문 데이터 로딩 중…</td></tr>';
+
+  try {
+    const data = await apiGet("orders");
+
+    if (!data || data.ok === false || !Array.isArray(data.rows)) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" class="empty-state">주문 데이터를 불러오지 못했습니다.</td></tr>';
+      return;
+    }
+
+    ordersCache = data.rows;
+
+    const input   = $("searchOrders");
+    const keyword = input ? input.value.trim().toLowerCase() : "";
+
+    if (keyword) {
+      const filtered = ordersCache.filter((row) => {
+        const fields = getOrderSearchFields(row);
+        return fields.some((v) =>
+          String(v ?? "").toLowerCase().includes(keyword)
+        );
+      });
+      renderOrdersTable(filtered);
+    } else {
+      renderOrdersTable(ordersCache);
+    }
+  } catch (e) {
+    console.error("주문 데이터 로딩 실패:", e);
+    tbody.innerHTML =
+      '<tr><td colspan="7" class="empty-state">주문 데이터를 불러오지 못했습니다.</td></tr>';
+  }
+}
+
+/* ========== 11. 상품 관리 – 렌더링 + 검색 + 로딩 ========== */
+
+function getProductSearchFields(row) {
+  return [
+    row["상품코드"],
+    row["상품명"],
+    row["옵션"],
+    row["판매가"],
+    row["재고"],
+    row["채널"],
+    row["카테고리"],
+    row["브랜드"],
+  ];
+}
+
+function renderProductsTable(list) {
+  const tbody = $("productsBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(list) || list.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" class="empty-state">상품 데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  list.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    const code   = row["상품코드"] ?? "-";
+    const name   = row["상품명"]   ?? "-";
+    const option = row["옵션"]     ?? "-";
+    const price  = row["판매가"]   ?? 0;
+    const stock  = row["재고"]     ?? "-";
+
+    const cells = [
+      code,
+      name,
+      option,
+      fmtCurrency(price),
+      fmtNumber(stock),
+    ];
+
+    cells.forEach((v) => {
+      const td = document.createElement("td");
+      td.textContent =
+        v === undefined || v === null || v === "" ? "-" : v;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+function initProductsSearch() {
+  const input = $("searchProducts");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    const kw = input.value.trim().toLowerCase();
+
+    if (!kw) {
+      renderProductsTable(productsCache);
+      return;
+    }
+
+    const filtered = productsCache.filter((row) => {
+      const fields = getProductSearchFields(row);
+      return fields.some((v) =>
+        String(v ?? "").toLowerCase().includes(kw)
+      );
+    });
+
+    renderProductsTable(filtered);
+  });
+}
+
+async function loadProducts() {
+  const tbody = $("productsBody");
+  if (!tbody) return;
+
+  tbody.innerHTML =
+    '<tr><td colspan="5" class="empty-state">상품 데이터 로딩 중…</td></tr>';
+
+  try {
+    const data = await apiGet("products");
+
+    if (!data || data.ok === false || !Array.isArray(data.rows)) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" class="empty-state">상품 데이터를 불러오지 못했습니다.</td></tr>';
+      return;
+    }
+
+    productsCache = data.rows;
+
+    const input   = $("searchProducts");
+    const keyword = input ? input.value.trim().toLowerCase() : "";
+
+    if (keyword) {
+      const filtered = productsCache.filter((row) => {
+        const fields = getProductSearchFields(row);
+        return fields.some((v) =>
+          String(v ?? "").toLowerCase().includes(keyword)
+        );
+      });
+      renderProductsTable(filtered);
+    } else {
+      renderProductsTable(productsCache);
+    }
+  } catch (e) {
+    console.error("상품 데이터 로딩 실패:", e);
+    tbody.innerHTML =
+      '<tr><td colspan="5" class="empty-state">상품 데이터를 불러오지 못했습니다.</td></tr>';
+  }
+}
+
+/* ========== 12. 재고 관리 – 렌더링 + 검색 + 로딩 ========== */
+
+// 재고 검색에 사용할 필드
+function getStockSearchFields(row) {
+  return [
+    row["상품코드"],
+    row["상품명"],
+    row["현재 재고"],
+    row["안전 재고"],
+    row["상태"],
+    row["창고"],
+    row["채널"],
+  ];
+}
+
+// 재고 테이블 렌더링
+function renderStockTable(list) {
+  const tbody = $("stockBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(list) || list.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="5" class="empty-state">재고 데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  list.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    const code      = row["상품코드"]   ?? "-";
+    const name      = row["상품명"]     ?? "-";
+    const qty       = row["현재 재고"] ?? row["재고"] ?? 0;
+    const safeQty   = row["안전 재고"] ?? 0;
+    const status    = row["상태"]       ?? "-";
+
+    const cells = [
+      code,
+      name,
+      fmtNumber(qty),
+      fmtNumber(safeQty),
+      status,
+    ];
+
+    cells.forEach((v) => {
+      const td = document.createElement("td");
+      td.textContent =
+        v === undefined || v === null || v === "" ? "-" : v;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+// 재고 검색 인풋 (있으면 사용, 없으면 패스)
+function initStockSearch() {
+  const input = $("searchStock");
+  if (!input) return; // HTML에 없으면 그냥 무시
+
+  input.addEventListener("input", () => {
+    const kw = input.value.trim().toLowerCase();
+
+    if (!kw) {
+      renderStockTable(stockCache);
+      return;
+    }
+
+    const filtered = stockCache.filter((row) => {
+      const fields = getStockSearchFields(row);
+      return fields.some((v) =>
+        String(v ?? "").toLowerCase().includes(kw)
+      );
+    });
+
+    renderStockTable(filtered);
+  });
+}
+
+// 재고 데이터 로딩
+async function loadStock() {
+  const tbody = $("stockBody");
+  if (!tbody) return;
+
+  tbody.innerHTML =
+    '<tr><td colspan="5" class="empty-state">재고 데이터 로딩 중…</td></tr>';
+
+  try {
+    const data = await apiGet("stock");
+
+    if (!data || data.ok === false || !Array.isArray(data.rows)) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" class="empty-state">재고 데이터를 불러오지 못했습니다.</td></tr>';
+      return;
+    }
+
+    stockCache = data.rows;
+
+    const input   = $("searchStock");
+    const keyword = input ? input.value.trim().toLowerCase() : "";
+
+    if (keyword) {
+      const filtered = stockCache.filter((row) => {
+        const fields = getStockSearchFields(row);
+        return fields.some((v) =>
+          String(v ?? "").toLowerCase().includes(keyword)
+        );
+      });
+      renderStockTable(filtered);
+    } else {
+      renderStockTable(stockCache);
+    }
+  } catch (e) {
+    console.error("재고 데이터 로딩 실패:", e);
+    tbody.innerHTML =
+      '<tr><td colspan="5" class="empty-state">재고 데이터를 불러오지 못했습니다.</td></tr>';
+  }
+}
+
+/* ========== 13. 초기화 ========== */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // 1) 비로그인 접근 차단
   if (!ensureLoggedIn()) return;
 
-  // 2) 로그인 되어 있으면 나머지 초기화
   loadKorualUser();
   initSidebarNav();
   initThemeToggle();
   initMobileMenu();
   initRefreshButton();
   initLogoutButton();
-  initMemberSearch();   // 회원 검색 연결
+
+  // 검색 인풋 초기화
+  initMemberSearch();
+  initOrdersSearch();
+  initProductsSearch();
+  initStockSearch();
+  initLogsSearch();
+
+
   pingApi();
-  loadDashboardData();  // 첫 화면: 대시보드
+  loadDashboardData(); // 첫 화면: 대시보드
 });
+/* ========== 14. 로그 모니터링 – 렌더링 + 검색 + 로딩 ========== */
+
+// 검색에 사용하는 필드
+function getLogSearchFields(row) {
+  return [
+    row["시간"],
+    row["타입"],
+    row["메시지"]
+  ];
+}
+
+// 로그 렌더링
+function renderLogsTable(list) {
+  const tbody = $("logsBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(list) || list.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="3" class="empty-state">로그 데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  list.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    const time    = row["시간"]   ?? "-";
+    const type    = row["타입"]   ?? "-";
+    const message = row["메시지"] ?? "-";
+
+    const cells = [time, type, message];
+
+    cells.forEach((v) => {
+      const td = document.createElement("td");
+      td.textContent = v === undefined || v === null || v === "" ? "-" : v;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+// 로그 검색
+function initLogsSearch() {
+  const input = $("searchLogs");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    const kw = input.value.trim().toLowerCase();
+
+    if (!kw) {
+      renderLogsTable(logsCache);
+      return;
+    }
+
+    const filtered = logsCache.filter((row) => {
+      const fields = getLogSearchFields(row);
+      return fields.some((v) => String(v ?? "").toLowerCase().includes(kw));
+    });
+
+    renderLogsTable(filtered);
+  });
+}
+
+// 로그 데이터 로딩
+async function loadLogs() {
+  const tbody = $("logsBody");
+  if (!tbody) return;
+
+  tbody.innerHTML =
+    '<tr><td colspan="3" class="empty-state">로그 데이터 로딩 중…</td></tr>';
+
+  try {
+    const data = await apiGet("logs");
+
+    if (!data || data.ok === false || !Array.isArray(data.rows)) {
+      tbody.innerHTML =
+        '<tr><td colspan="3" class="empty-state">로그 데이터를 불러오지 못했습니다.</td></tr>';
+      return;
+    }
+
+    logsCache = data.rows;
+
+    const input   = $("searchLogs");
+    const keyword = input ? input.value.trim().toLowerCase() : "";
+
+    if (keyword) {
+      const filtered = logsCache.filter((row) => {
+        const fields = getLogSearchFields(row);
+        return fields.some((v) => String(v ?? "").toLowerCase().includes(keyword));
+      });
+      renderLogsTable(filtered);
+    } else {
+      renderLogsTable(logsCache);
+    }
+  } catch (e) {
+    console.error("로그 데이터 로딩 실패:", e);
+    tbody.innerHTML =
+      '<tr><td colspan="3" class="empty-state">로그 데이터를 불러오지 못했습니다.</td></tr>';
+  }
+}
