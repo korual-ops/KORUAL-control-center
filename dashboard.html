@@ -254,35 +254,46 @@
       <!-- ===============================
            4) 회원 관리
       ================================ -->
-      <section id="section-members" class="section">
-        <div class="section-header-row">
-          <div>
-            <h2>회원 관리</h2>
-          </div>
+      <!-- ===============================
+     4) 회원 관리
+================================ -->
+<section id="section-members" class="section">
+  <div class="section-header-row">
+    <div>
+      <h2>회원 관리</h2>
+      <p class="section-desc">KORUAL 멤버십 / 고객 리스트입니다.</p>
+    </div>
 
-          <div class="section-actions">
-            <input id="searchMembers" class="input" placeholder="이름 / 이메일" />
-          </div>
-        </div>
+    <div class="section-actions">
+      <input id="searchMembers" class="input" placeholder="이름 / 이메일" />
+    </div>
+  </div>
 
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>회원번호</th>
-                <th>이름</th>
-                <th>이메일</th>
-                <th>등급</th>
-                <th>누적매출</th>
-              </tr>
-            </thead>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>회원번호</th>
+          <th>이름</th>
+          <th>전화번호</th>
+          <th>이메일</th>
+          <th>가입일</th>
+          <th>채널</th>
+          <th>등급</th>
+          <th>누적매출</th>
+          <th>포인트</th>
+          <th>최근주문일</th>
+          <th>메모</th>
+        </tr>
+      </thead>
 
-            <tbody id="membersBody">
-              <tr><td colspan="5" class="empty-state">데이터 없음</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <tbody id="membersBody">
+        <tr><td colspan="11" class="empty-state">데이터 없음</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
 
       <!-- ===============================
            5) 재고 관리
@@ -347,4 +358,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
 
