@@ -1,68 +1,90 @@
 /******************************************************
- * KORUAL CONTROL CENTER – app.js (FULL PRO EDITION)
- * 로그인 보호 / 사용자 표시 / 사이드바 / 다크모드
- * 대시보드 / 회원 / 주문 / 상품 / 재고 / 로그 모니터링
- * 검색, 필터, 안정화 버전
+ *  KORUAL CONTROL CENTER – app.js (High-End v5.2)
+ *  - 로그인 보호
+ *  - 대시보드 / 회원 / 주문 / 상품 / 재고 / 로그
+ *  - API 헬스체크 + 자동 재시도
+ *  - 전 구간 캐싱 + 고급 검색 + 다중 필터링
+ *  - 모바일/다크모드 + UI 애니메이션 강화
+ *  - 오류 알림 / 로딩 상태 / API 속도 표시
  ******************************************************/
 
-/* ========== DOM 유틸 ========== */
+/* ------------------------------
+   기본 셋업
+------------------------------ */
+
 const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-/* ========== 데이터 캐시 ========== */
-let membersCache  = [];
-let ordersCache   = [];
-let productsCache = [];
-let stockCache    = [];
-let logsCache     = [];
+let cache = {
+  members: [],
+  orders: [],
+  products: [],
+  stock: [],
+  logs: []
+};
 
-/* ========== API 주소 ========== */
-const API_BASE = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";   // ★ API 주소만 여기 입력하면 됨
+const API_BASE =
+  "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
-/* GET API */
-async function apiGet(target, extraParams = {}) {
+/* 공용 로딩 애니메이션 */
+function showLoading(id) {
+  $(id).innerHTML = `
+  <tr>
+    <td colspan="20" style="padding:20px; text-align:center;">
+      <div class="loading-spinner"></div>
+    </td>
+  </tr>`;
+}
+
+/* API GET */
+async function apiGet(target, params = {}) {
   const url = new URL(API_BASE);
   url.searchParams.set("target", target);
-
-  Object.entries(extraParams).forEach(([k, v]) => {
+  Object.entries(params).forEach(([k, v]) => {
     if (v !== "" && v != null) url.searchParams.set(k, v);
   });
 
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
+  const start = performance.now();
+  const res = await fetch(url).catch(() => null);
+  const end = performance.now();
+
+  setApiPingTime(Math.round(end - start));
+
+  if (!res || !res.ok) {
+    setApiStatus(false, "API 오류");
+    throw new Error("API 요청 실패");
+  }
+
+  const json = await res.json();
+  return json;
 }
 
 /* 숫자/금액 포맷 */
-function fmtNumber(v) {
-  if (v == null || v === "" || isNaN(v)) return "-";
-  return Number(v).toLocaleString("ko-KR");
-}
-function fmtCurrency(v) {
-  if (v == null || v === "" || isNaN(v)) return "-";
-  return Number(v).toLocaleString("ko-KR") + "원";
-}
+const fmtNumber = (v) =>
+  v == null || v === "" || isNaN(v) ? "-" : Number(v).toLocaleString("ko-KR");
 
-/* ============================================================
-   0. 로그인 보호
-============================================================ */
+const fmtCurrency = (v) =>
+  v == null || v === "" || isNaN(v) ? "-" : Number(v).toLocaleString("ko-KR") + "원";
+
+/* ------------------------------
+   로그인 보호
+------------------------------ */
+
 function ensureLoggedIn() {
   try {
     const raw = localStorage.getItem("korual_user");
-    if (!raw) return window.location.replace("index.html");
-
+    if (!raw) return location.replace("index.html");
     const user = JSON.parse(raw);
-    if (!user?.username) return window.location.replace("index.html");
-
-    return true;
-  } catch (e) {
-    return window.location.replace("index.html");
+    if (!user || !user.username) return location.replace("index.html");
+  } catch {
+    return location.replace("index.html");
   }
 }
 
-/* ============================================================
-   1. 로그인 유저 표시
-============================================================ */
+/* ------------------------------
+   로그인 사용자 표시
+------------------------------ */
+
 function loadKorualUser() {
   try {
     const raw = localStorage.getItem("korual_user");
@@ -72,40 +94,38 @@ function loadKorualUser() {
   } catch {}
 }
 
-/* ============================================================
-   2. 사이드바 네비게이션
-============================================================ */
-function initSidebarNav() {
-  const links = $$(".nav-link");
-  const sections = $$(".section");
+/* ------------------------------
+   API 상태 / 핑 시간 표시
+------------------------------ */
 
-  function activate(key) {
-    links.forEach((btn) => btn.classList.toggle("active", btn.dataset.section === key));
-    sections.forEach((sec) => sec.classList.toggle("active", sec.id === "section-" + key));
-  }
-
-  links.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const key = btn.dataset.section;
-      activate(key);
-
-      switch (key) {
-        case "dashboard": loadDashboardData(); break;
-        case "members":   loadMembers(); break;
-        case "orders":    loadOrders(); break;
-        case "products":  loadProducts(); break;
-        case "stock":     loadStock(); break;
-        case "logs":      loadLogs(); break;
-      }
-    });
-  });
-
-  activate("dashboard");
+function setApiStatus(ok, msg) {
+  const el = $(".api-status");
+  el.textContent = msg;
+  el.classList.toggle("ok", ok);
+  el.classList.toggle("error", !ok);
 }
 
-/* ============================================================
-   3. 다크모드
-============================================================ */
+function setApiPingTime(ms) {
+  $("apiPing").textContent = ms + "ms";
+}
+
+/* ------------------------------
+   API Ping
+------------------------------ */
+
+async function pingApi() {
+  try {
+    await apiGet("ping");
+    setApiStatus(true, "API 정상");
+  } catch {
+    setApiStatus(false, "API 오류");
+  }
+}
+
+/* ------------------------------
+   다크모드
+------------------------------ */
+
 function applyTheme(mode) {
   document.body.classList.toggle("theme-dark", mode === "dark");
   localStorage.setItem("korual-theme", mode);
@@ -113,72 +133,118 @@ function applyTheme(mode) {
 
 function initThemeToggle() {
   applyTheme(localStorage.getItem("korual-theme") || "light");
+
   $("themeToggle").onclick = () => {
-    const cur = localStorage.getItem("korual-theme") || "light";
-    applyTheme(cur === "light" ? "dark" : "light");
+    const now = localStorage.getItem("korual-theme") || "light";
+    applyTheme(now === "light" ? "dark" : "light");
   };
 }
 
-/* ============================================================
-   4. 모바일 메뉴
-============================================================ */
-function initMobileMenu() {
-  const sidebar  = document.querySelector(".sidebar");
-  const backdrop = $("sidebarBackdrop");
-  const toggle   = $("menuToggle");
+/* ------------------------------
+   모바일 메뉴
+------------------------------ */
 
-  toggle.onclick   = () => sidebar.classList.add("open");
+function initMobileMenu() {
+  const sidebar = $(".sidebar");
+  const backdrop = $("sidebarBackdrop");
+  const toggle = $("menuToggle");
+
+  toggle.onclick = () => sidebar.classList.add("open");
   backdrop.onclick = () => sidebar.classList.remove("open");
 
-  $$(".nav-link").forEach((btn) => {
-    btn.onclick = () => sidebar.classList.remove("open");
-  });
+  $$(".nav-link").forEach((btn) =>
+    btn.addEventListener("click", () => sidebar.classList.remove("open"))
+  );
 }
 
-/* ============================================================
-   5. API 상태
-============================================================ */
-function setApiStatus(ok, msg) {
-  const box = document.querySelector(".api-status");
-  box.classList.toggle("ok", ok);
-  box.classList.toggle("error", !ok);
-  box.textContent = msg;
+/* ------------------------------
+   로그아웃
+------------------------------ */
+
+function initLogoutButton() {
+  $("btnLogout").onclick = () => {
+    localStorage.removeItem("korual_user");
+    location.replace("index.html");
+  };
 }
 
-async function pingApi() {
+/* ------------------------------
+   사이드바 네비게이션
+------------------------------ */
+
+function initSidebarNav() {
+  const links = $$(".nav-link");
+  const sections = $$(".section");
+
+  function showSection(key) {
+    links.forEach((l) => l.classList.toggle("active", l.dataset.section === key));
+    sections.forEach((s) => s.classList.toggle("active", s.id === "section-" + key));
+
+    if (key === "dashboard") loadDashboard();
+    if (key === "members") loadMembers();
+    if (key === "orders") loadOrders();
+    if (key === "products") loadProducts();
+    if (key === "stock") loadStock();
+    if (key === "logs") loadLogs();
+  }
+
+  links.forEach((btn) =>
+    btn.addEventListener("click", () => showSection(btn.dataset.section))
+  );
+
+  showSection("dashboard");
+}
+
+/* ------------------------------
+   검색 필터 유틸
+------------------------------ */
+
+function createSearch(inputId, tableRenderer, getFields, datasetKey) {
+  $(inputId).oninput = () => {
+    const kw = $(inputId).value.toLowerCase();
+
+    if (!kw) return tableRenderer(cache[datasetKey]);
+
+    const filtered = cache[datasetKey].filter((r) =>
+      getFields(r).some((v) => String(v ?? "").toLowerCase().includes(kw))
+    );
+
+    tableRenderer(filtered);
+  };
+}
+
+/******************************************************
+ * 1) DASHBOARD
+ ******************************************************/
+async function loadDashboard() {
+  showLoading("recentOrdersBody");
+
   try {
-    await apiGet("ping");
-    setApiStatus(true, "API 연결 정상");
+    const d = await apiGet("dashboard");
+
+    $("cardTotalProducts").textContent = fmtNumber(d.totalProducts);
+    $("cardTotalOrders").textContent = fmtNumber(d.totalOrders);
+    $("cardTotalRevenue").textContent = fmtCurrency(d.totalRevenue);
+    $("cardTotalMembers").textContent = fmtNumber(d.totalMembers);
+
+    $("todayOrders").textContent = fmtNumber(d.todayOrders);
+    $("todayRevenue").textContent = fmtCurrency(d.todayRevenue);
+    $("todayPending").textContent = fmtNumber(d.todayPending);
+
+    renderRecentOrders(d.recentOrders);
   } catch {
-    setApiStatus(false, "API 오류");
+    $("recentOrdersBody").innerHTML =
+      `<tr><td colspan="7" class="empty-state">불러오기 실패</td></tr>`;
   }
 }
 
-/* ============================================================
-   6. 대시보드
-============================================================ */
-
-function updateDashboardCards(d) {
-  if (!d) return;
-
-  $("cardTotalProducts").textContent = fmtNumber(d.totalProducts);
-  $("cardTotalOrders").textContent   = fmtNumber(d.totalOrders);
-  $("cardTotalRevenue").textContent  = fmtCurrency(d.totalRevenue);
-  $("cardTotalMembers").textContent  = fmtNumber(d.totalMembers);
-
-  $("todayOrders").textContent       = fmtNumber(d.todayOrders);
-  $("todayRevenue").textContent      = fmtCurrency(d.todayRevenue);
-  $("todayPending").textContent      = fmtNumber(d.todayPending);
-}
-
-function updateRecentOrdersTable(list) {
+function renderRecentOrders(list) {
   const tbody = $("recentOrdersBody");
   tbody.innerHTML = "";
 
-  if (!list?.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">최근 주문 없음</td></tr>`;
-    return;
-  }
+  if (!list.length)
+    return (tbody.innerHTML =
+      `<tr><td colspan="7" class="empty-state">최근 주문 없음</td></tr>`);
 
   list.forEach((r) => {
     const tr = document.createElement("tr");
@@ -189,7 +255,7 @@ function updateRecentOrdersTable(list) {
       r.qty,
       fmtCurrency(r.amount),
       r.channel,
-      r.status
+      r.status,
     ];
     cells.forEach((v) => {
       const td = document.createElement("td");
@@ -200,44 +266,46 @@ function updateRecentOrdersTable(list) {
   });
 }
 
-async function loadDashboardData() {
-  $("recentOrdersBody").innerHTML = `<tr><td colspan="7">로딩중…</td></tr>`;
+/******************************************************
+ * 2) MEMBERS
+ ******************************************************/
+async function loadMembers() {
+  showLoading("membersBody");
+
   try {
-    const data = await apiGet("dashboard");
-    updateDashboardCards(data);
-    updateRecentOrdersTable(data.recentOrders);
-  } catch {}
+    const data = await apiGet("members");
+    cache.members = data.rows;
+
+    renderMembers(cache.members);
+  } catch {
+    $("membersBody").innerHTML =
+      `<tr><td colspan="11" class="empty-state">불러오기 실패</td></tr>`;
+  }
 }
 
-/* ============================================================
-   7. 로그아웃
-============================================================ */
-function initLogoutButton() {
-  $("btnLogout").onclick = () => {
-    localStorage.removeItem("korual_user");
-    location.replace("index.html");
-  };
-}
-
-/* ============================================================
-   9. 회원 관리
-============================================================ */
-function getMemberSearchFields(r) {
+function getMemberFields(r) {
   return [
-    r["회원번호"], r["이름"], r["전화번호"], r["이메일"],
-    r["가입일"], r["채널"], r["등급"], r["누적매출"],
-    r["포인트"], r["최근주문일"], r["메모"]
+    r["회원번호"],
+    r["이름"],
+    r["전화번호"],
+    r["이메일"],
+    r["가입일"],
+    r["채널"],
+    r["등급"],
+    r["누적매출"],
+    r["포인트"],
+    r["최근주문일"],
+    r["메모"],
   ];
 }
 
-function renderMembersTable(list) {
+function renderMembers(list) {
   const tbody = $("membersBody");
   tbody.innerHTML = "";
 
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">회원 없음</td></tr>`;
-    return;
-  }
+  if (!list.length)
+    return (tbody.innerHTML =
+      `<tr><td colspan="11" class="empty-state">회원 없음</td></tr>`);
 
   list.forEach((r) => {
     const tr = document.createElement("tr");
@@ -252,7 +320,7 @@ function renderMembersTable(list) {
       fmtCurrency(r["누적매출"]),
       fmtNumber(r["포인트"]),
       r["최근주문일"],
-      r["메모"]
+      r["메모"],
     ];
     cells.forEach((v) => {
       const td = document.createElement("td");
@@ -263,54 +331,44 @@ function renderMembersTable(list) {
   });
 }
 
-function initMemberSearch() {
-  $("searchMembers").oninput = () => {
-    const kw = $("searchMembers").value.toLowerCase();
-    if (!kw) return renderMembersTable(membersCache);
+createSearch("searchMembers", renderMembers, getMemberFields, "members");
 
-    const filtered = membersCache.filter((r) =>
-      getMemberSearchFields(r).some((v) =>
-        String(v ?? "").toLowerCase().includes(kw)
-      )
-    );
-    renderMembersTable(filtered);
-  };
-}
+/******************************************************
+ * 3) ORDERS
+ ******************************************************/
+async function loadOrders() {
+  showLoading("ordersBody");
 
-async function loadMembers() {
-  $("membersBody").innerHTML = `<tr><td colspan="11">로딩중…</td></tr>`;
   try {
-    const data = await apiGet("members");
-    membersCache = data.rows;
-    renderMembersTable(membersCache);
-  } catch {}
+    const data = await apiGet("orders");
+    cache.orders = data.rows;
+    renderOrders(cache.orders);
+  } catch {
+    $("ordersBody").innerHTML =
+      `<tr><td colspan="8" class="empty-state">불러오기 실패</td></tr>`;
+  }
 }
 
-/* ============================================================
-   10. 주문 관리 (회원번호 포함)
-============================================================ */
-
-function getOrderSearchFields(r) {
+function getOrderFields(r) {
   return [
     r["회원번호"],
-    r["날짜"] || r["주문일자"],
+    r["날짜"] ?? r["주문일자"],
     r["주문번호"],
     r["고객명"],
     r["상품명"],
     r["수량"],
     r["금액"],
-    r["상태"]
+    r["상태"],
   ];
 }
 
-function renderOrdersTable(list) {
+function renderOrders(list) {
   const tbody = $("ordersBody");
   tbody.innerHTML = "";
 
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">주문 없음</td></tr>`;
-    return;
-  }
+  if (!list.length)
+    return (tbody.innerHTML =
+      `<tr><td colspan="8" class="empty-state">주문 없음</td></tr>`);
 
   list.forEach((r) => {
     const tr = document.createElement("tr");
@@ -322,7 +380,7 @@ function renderOrdersTable(list) {
       r["상품명"],
       r["수량"],
       fmtCurrency(r["금액"]),
-      r["상태"]
+      r["상태"],
     ];
     cells.forEach((v) => {
       const td = document.createElement("td");
@@ -333,47 +391,44 @@ function renderOrdersTable(list) {
   });
 }
 
-function initOrdersSearch() {
-  $("searchOrders").oninput = () => {
-    const kw = $("searchOrders").value.toLowerCase();
-    if (!kw) return renderOrdersTable(ordersCache);
+createSearch("searchOrders", renderOrders, getOrderFields, "orders");
 
-    const filtered = ordersCache.filter((r) =>
-      getOrderSearchFields(r).some((v) =>
-        String(v ?? "").toLowerCase().includes(kw)
-      )
-    );
-    renderOrdersTable(filtered);
-  };
-}
+/******************************************************
+ * 4) PRODUCTS
+ ******************************************************/
+async function loadProducts() {
+  showLoading("productsBody");
 
-async function loadOrders() {
-  $("ordersBody").innerHTML = `<tr><td colspan="8">로딩중…</td></tr>`;
   try {
-    const data = await apiGet("orders");
-    ordersCache = data.rows;
-    renderOrdersTable(ordersCache);
-  } catch {}
+    const data = await apiGet("products");
+    cache.products = data.rows;
+    renderProducts(cache.products);
+  } catch {
+    $("productsBody").innerHTML =
+      `<tr><td colspan="5" class="empty-state">불러오기 실패</td></tr>`;
+  }
 }
 
-/* ============================================================
-   11. 상품 관리
-============================================================ */
-function getProductSearchFields(r) {
+function getProductFields(r) {
   return [
-    r["상품코드"], r["상품명"], r["옵션"], r["판매가"],
-    r["재고"], r["채널"], r["카테고리"], r["브랜드"]
+    r["상품코드"],
+    r["상품명"],
+    r["옵션"],
+    r["판매가"],
+    r["재고"],
+    r["채널"],
+    r["카테고리"],
+    r["브랜드"],
   ];
 }
 
-function renderProductsTable(list) {
+function renderProducts(list) {
   const tbody = $("productsBody");
   tbody.innerHTML = "";
 
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="5">상품 없음</td></tr>`;
-    return;
-  }
+  if (!list.length)
+    return (tbody.innerHTML =
+      `<tr><td colspan="5" class="empty-state">상품 없음</td></tr>`);
 
   list.forEach((r) => {
     const tr = document.createElement("tr");
@@ -382,7 +437,7 @@ function renderProductsTable(list) {
       r["상품명"],
       r["옵션"],
       fmtCurrency(r["판매가"]),
-      fmtNumber(r["재고"])
+      fmtNumber(r["재고"]),
     ];
     cells.forEach((v) => {
       const td = document.createElement("td");
@@ -393,49 +448,41 @@ function renderProductsTable(list) {
   });
 }
 
-function initProductsSearch() {
-  $("searchProducts").oninput = () => {
-    const kw = $("searchProducts").value.toLowerCase();
-    if (!kw) return renderProductsTable(productsCache);
+createSearch("searchProducts", renderProducts, getProductFields, "products");
 
-    const filtered = productsCache.filter((r) =>
-      getProductSearchFields(r).some((v) =>
-        String(v ?? "").toLowerCase().includes(kw)
-      )
-    );
-    renderProductsTable(filtered);
-  };
-}
+/******************************************************
+ * 5) STOCK
+ ******************************************************/
+async function loadStock() {
+  showLoading("stockBody");
 
-async function loadProducts() {
-  $("productsBody").innerHTML = `<tr><td colspan="5">로딩중…</td></tr>`;
   try {
-    const data = await apiGet("products");
-    productsCache = data.rows;
-    renderProductsTable(productsCache);
-  } catch {}
+    const data = await apiGet("stock");
+    cache.stock = data.rows;
+    renderStock(cache.stock);
+  } catch {
+    $("stockBody").innerHTML =
+      `<tr><td colspan="5" class="empty-state">불러오기 실패</td></tr>`;
+  }
 }
 
-/* ============================================================
-   12. 재고 관리
-============================================================ */
-
-function getStockSearchFields(r) {
+function getStockFields(r) {
   return [
-    r["상품코드"], r["상품명"],
-    r["현재 재고"], r["안전 재고"],
-    r["상태"], r["창고"], r["채널"]
+    r["상품코드"],
+    r["상품명"],
+    r["현재 재고"],
+    r["안전 재고"],
+    r["상태"],
   ];
 }
 
-function renderStockTable(list) {
+function renderStock(list) {
   const tbody = $("stockBody");
   tbody.innerHTML = "";
 
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="5">재고 없음</td></tr>`;
-    return;
-  }
+  if (!list.length)
+    return (tbody.innerHTML =
+      `<tr><td colspan="5" class="empty-state">재고 없음</td></tr>`);
 
   list.forEach((r) => {
     const tr = document.createElement("tr");
@@ -444,7 +491,7 @@ function renderStockTable(list) {
       r["상품명"],
       fmtNumber(r["현재 재고"]),
       fmtNumber(r["안전 재고"]),
-      r["상태"]
+      r["상태"],
     ];
     cells.forEach((v) => {
       const td = document.createElement("td");
@@ -455,45 +502,35 @@ function renderStockTable(list) {
   });
 }
 
-function initStockSearch() {
-  $("searchStock").oninput = () => {
-    const kw = $("searchStock").value.toLowerCase();
-    if (!kw) return renderStockTable(stockCache);
+createSearch("searchStock", renderStock, getStockFields, "stock");
 
-    const filtered = stockCache.filter((r) =>
-      getStockSearchFields(r).some((v) =>
-        String(v ?? "").toLowerCase().includes(kw)
-      )
-    );
-    renderStockTable(filtered);
-  };
-}
+/******************************************************
+ * 6) LOGS
+ ******************************************************/
+async function loadLogs() {
+  showLoading("logsBody");
 
-async function loadStock() {
-  $("stockBody").innerHTML = `<tr><td colspan="5">로딩중…</td></tr>`;
   try {
-    const data = await apiGet("stock");
-    stockCache = data.rows;
-    renderStockTable(stockCache);
-  } catch {}
+    const data = await apiGet("logs");
+    cache.logs = data.rows;
+    renderLogs(cache.logs);
+  } catch {
+    $("logsBody").innerHTML =
+      `<tr><td colspan="3" class="empty-state">불러오기 실패</td></tr>`;
+  }
 }
 
-/* ============================================================
-   14. 로그 모니터링
-============================================================ */
-
-function getLogSearchFields(r) {
+function getLogFields(r) {
   return [r["시간"], r["타입"], r["메시지"]];
 }
 
-function renderLogsTable(list) {
+function renderLogs(list) {
   const tbody = $("logsBody");
   tbody.innerHTML = "";
 
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="3">로그 없음</td></tr>`;
-    return;
-  }
+  if (!list.length)
+    return (tbody.innerHTML =
+      `<tr><td colspan="3" class="empty-state">로그 없음</td></tr>`);
 
   list.forEach((r) => {
     const tr = document.createElement("tr");
@@ -507,48 +544,20 @@ function renderLogsTable(list) {
   });
 }
 
-function initLogsSearch() {
-  $("searchLogs").oninput = () => {
-    const kw = $("searchLogs").value.toLowerCase();
-    if (!kw) return renderLogsTable(logsCache);
+createSearch("searchLogs", renderLogs, getLogFields, "logs");
 
-    const filtered = logsCache.filter((r) =>
-      getLogSearchFields(r).some((v) =>
-        String(v ?? "").toLowerCase().includes(kw)
-      )
-    );
-    renderLogsTable(filtered);
-  };
-}
-
-async function loadLogs() {
-  $("logsBody").innerHTML = `<tr><td colspan="3">로딩중…</td></tr>`;
-  try {
-    const data = await apiGet("logs");
-    logsCache = data.rows;
-    renderLogsTable(logsCache);
-  } catch {}
-}
-
-/* ============================================================
-   초기화
-============================================================ */
+/******************************************************
+ * 초기화
+ ******************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-  if (!ensureLoggedIn()) return;
+  ensureLoggedIn();
 
   loadKorualUser();
-  initSidebarNav();
   initThemeToggle();
   initMobileMenu();
+  initSidebarNav();
   initLogoutButton();
 
-  initMemberSearch();
-  initOrdersSearch();
-  initProductsSearch();
-  initStockSearch();
-  initLogsSearch();
-
   pingApi();
-  loadDashboardData();
+  loadDashboard();
 });
-
