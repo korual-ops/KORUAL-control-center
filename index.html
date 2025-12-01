@@ -746,38 +746,58 @@
       });
 
       // Login
-      async function handleLogin() {
-        clearInputErrors();
-        const username = $("loginUsername").value.trim();
-        const password = $("loginPassword").value;
+async function handleLogin() {
+  clearInputErrors();
+  const username = $("loginUsername").value.trim();
+  const password = $("loginPassword").value;
 
-        if (!username || !password) {
-          $("loginMsg").textContent = I18N[LANG].need_id_pw;
-          if (!username) $("loginUsername").classList.add("input-error");
-          if (!password) $("loginPassword").classList.add("input-error");
-          return;
-        }
+  if (!username || !password) {
+    $("loginMsg").textContent = I18N[LANG].need_id_pw;
+    if (!username) $("loginUsername").classList.add("input-error");
+    if (!password) $("loginPassword").classList.add("input-error");
+    return;
+  }
 
-        $("loginMsg").textContent = "";
-        $("btnLogin").disabled = true;
-        $("btnLogin").textContent = "Loading...";
-        if (overlay) overlay.classList.remove("hidden");
+  $("loginMsg").textContent = "";
+  $("btnLogin").disabled = true;
+  $("btnLogin").textContent = "Loading...";
+  if (overlay) overlay.classList.remove("hidden");
 
-        const remember = $("rememberId")?.checked;
-        if (remember) localStorage.setItem("korual_login_id", username);
-        else localStorage.removeItem("korual_login_id");
+  // remember ID
+  const remember = $("rememberId")?.checked;
+  if (remember) localStorage.setItem("korual_login_id", username);
+  else localStorage.removeItem("korual_login_id");
 
-        try {
-          await apiLogin(username, password);
-          window.location.href = DASHBOARD_URL;
-        } catch (e) {
-          $("loginMsg").textContent = e.message || I18N[LANG].login_failed;
-        } finally {
-          $("btnLogin").disabled = false;
-          $("btnLogin").textContent = I18N[LANG].login_btn;
-          if (overlay) overlay.classList.add("hidden");
-        }
-      }
+  try {
+    // 로그인 API 호출
+    const data = await apiLogin(username, password);
+
+    // 로그인 정보 localStorage 저장 (대시보드에서 사용)
+    const fullName =
+      data.full_name ||
+      (data.user && data.user.full_name) ||
+      username;
+
+    localStorage.setItem(
+      "korual_user",
+      JSON.stringify({
+        username,
+        full_name: fullName,
+        logged_at: new Date().toISOString(),
+      })
+    );
+
+    // 대시보드로 이동
+    window.location.href = "dashboard.html";
+  } catch (e) {
+    $("loginMsg").textContent = e.message || I18N[LANG].login_failed;
+  } finally {
+    $("btnLogin").disabled = false;
+    $("btnLogin").textContent = I18N[LANG].login_btn;
+    if (overlay) overlay.classList.add("hidden");
+  }
+}
+
 
       $("btnLogin").addEventListener("click", handleLogin);
       ["loginUsername", "loginPassword"].forEach(id => {
@@ -791,3 +811,4 @@
   </script>
 </body>
 </html>
+
