@@ -1,22 +1,22 @@
 /******************************************************
- * KORUAL CONTROL CENTER – app.js (정리 버전)
+ * KORUAL CONTROL CENTER – app.js (하이엔드 정리 버전)
  * - 로그인 여부 체크 (dashboard 보호)
  * - 로그인 유저 이름 표시
  * - 사이드바 네비게이션 + 모바일 메뉴
  * - 라이트 / 다크 테마 토글
  * - 로그아웃
  * - 대시보드 데이터 로딩
+ * - 회원 관리 + 실시간 검색
  ******************************************************/
 
+/* ========== 공통 유틸 ========== */
+
+// DOM 헬퍼
 const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 // 회원 데이터 캐시
 let membersCache = [];
-
-// ===== 공통 유틸 =====
-const $  = (id)  => document.getElementById(id);
-const $$ = (sel) => document.querySelectorAll(sel);
 
 // 실제 구글 Apps Script / Control Center API 주소
 const API_BASE =
@@ -46,7 +46,8 @@ function fmtCurrency(v) {
   return Number(v).toLocaleString("ko-KR") + "원";
 }
 
-// ===== 0. 로그인 여부 확인 (대시보드 보호) =====
+/* ========== 0. 로그인 여부 확인 (대시보드 보호) ========== */
+
 function ensureLoggedIn() {
   try {
     const raw = localStorage.getItem("korual_user");
@@ -67,7 +68,8 @@ function ensureLoggedIn() {
   }
 }
 
-// ===== 1. 로그인 유저 이름 표시 =====
+/* ========== 1. 로그인 유저 이름 표시 ========== */
+
 function loadKorualUser() {
   try {
     const raw = localStorage.getItem("korual_user");
@@ -86,9 +88,10 @@ function loadKorualUser() {
   }
 }
 
-// ===== 2. 사이드바 네비게이션 =====
+/* ========== 2. 사이드바 네비게이션 ========== */
+
 function initSidebarNav() {
-  const links = $$(".nav-link");
+  const links    = $$(".nav-link");
   const sections = $$(".section");
 
   if (!links.length || !sections.length) return;
@@ -103,7 +106,7 @@ function initSidebarNav() {
     });
   }
 
-    links.forEach((btn) => {
+  links.forEach((btn) => {
     btn.addEventListener("click", () => {
       const key = btn.dataset.section;
       if (!key) return;
@@ -111,103 +114,17 @@ function initSidebarNav() {
       activate(key);
 
       // 섹션별 데이터 로딩
-      if (key === "dashboard") {
-        loadDashboardData();
-      } else if (key === "members") {
-        loadMembers();
+      switch (key) {
+        case "dashboard":
+          loadDashboardData();
+          break;
+        case "members":
+          loadMembers();
+          break;
+        // 이후 products / orders / stock / logs 확장 가능
       }
-
-      // 검색 인풋과 연동
-function initMemberSearch() {
-  const input = $("searchMembers");
-  if (!input) return;
-
-  input.addEventListener("input", () => {
-    const kw = input.value.trim().toLowerCase();
-
-    if (!kw) {
-      // 검색어 없으면 전체 표시
-      renderMembersTable(membersCache);
-      return;
-    }
-
-    const filtered = membersCache.filter((row) => {
-      const fields = [
-        row["회원번호"],
-        row["이름"],
-        row["전화번호"],
-        row["이메일"],
-        row["채널"],
-        row["등급"],
-        row["메모"],
-      ];
-      return fields.some((v) =>
-        String(v ?? "").toLowerCase().includes(kw)
-      );
-    });
-
-    renderMembersTable(filtered);
-  });
-}
-
-      
-      // 화면에 회원 목록 렌더링
-function renderMembersTable(list) {
-  const tbody = $("membersBody");
-  if (!tbody) return;
-
-  tbody.innerHTML = "";
-
-  if (!Array.isArray(list) || list.length === 0) {
-    tbody.innerHTML =
-      '<tr><td colspan="11" class="empty-state">회원 데이터가 없습니다.</td></tr>';
-    return;
-  }
-
-  list.forEach((row) => {
-    const tr = document.createElement("tr");
-
-    const memberNo   = row["회원번호"]   ?? "-";
-    const name       = row["이름"]       ?? "-";
-    const phone      = row["전화번호"]   ?? "-";
-    const email      = row["이메일"]     ?? "-";
-    const joinedAt   = row["가입일"]     ?? "-";
-    const channel    = row["채널"]       ?? "-";
-    const grade      = row["등급"]       ?? "-";
-    const totalSales = row["누적매출"]   ?? 0;
-    const point      = row["포인트"]     ?? 0;
-    const lastOrder  = row["최근주문일"] ?? "-";
-    const memo       = row["메모"]       ?? "";
-
-    const cells = [
-      memberNo,
-      name,
-      phone,
-      email,
-      joinedAt,
-      channel,
-      grade,
-      fmtCurrency(totalSales),
-      fmtNumber(point),
-      lastOrder,
-      memo,
-    ];
-
-    cells.forEach((v) => {
-      const td = document.createElement("td");
-      td.textContent =
-        v === undefined || v === null || v === "" ? "-" : v;
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-}
-
-      // 나중에 products / orders / stock / logs 도 여기서 연결하면 됨
     });
   });
-
 
   // "주문 관리로 이동" 버튼
   const goOrders = $("goOrders");
@@ -222,12 +139,12 @@ function renderMembersTable(list) {
   activate("dashboard");
 }
 
-// ===== 3. 테마 토글 (Light / Dark) =====
+/* ========== 3. 테마 토글 (Light / Dark) ========== */
+
 function applyTheme(theme) {
   const body = document.body;
   if (!body) return;
 
-  // theme-dark 클래스로 제어 (style.css 기준)
   const mode = theme === "dark" ? "dark" : "light";
   body.classList.toggle("theme-dark", mode === "dark");
 
@@ -257,7 +174,8 @@ function initThemeToggle() {
   });
 }
 
-// ===== 4. 모바일 사이드바 토글 =====
+/* ========== 4. 모바일 사이드바 토글 ========== */
+
 function initMobileMenu() {
   const sidebar  = document.querySelector(".sidebar");
   const backdrop = $("sidebarBackdrop");
@@ -287,7 +205,8 @@ function initMobileMenu() {
   });
 }
 
-// ===== 5. API 상태 표시 =====
+/* ========== 5. API 상태 표시 / ping ========== */
+
 function setApiStatus(ok, msg) {
   const el = document.querySelector(".api-status");
   if (!el) return;
@@ -312,7 +231,8 @@ async function pingApi() {
   }
 }
 
-// ===== 6. 대시보드 데이터 로딩 =====
+/* ========== 6. 대시보드 데이터 로딩 ========== */
+
 function setDashboardLoading(loading) {
   const tbody = $("recentOrdersBody");
   if (!tbody) return;
@@ -433,7 +353,8 @@ async function loadDashboardData() {
   }
 }
 
-// ===== 7. 새로고침 버튼 =====
+/* ========== 7. 새로고침 버튼 ========== */
+
 function initRefreshButton() {
   const btn = $("btnRefreshAll");
   if (!btn) return;
@@ -442,19 +363,15 @@ function initRefreshButton() {
   });
 }
 
-// ===== 8. 로그아웃 버튼 =====
+/* ========== 8. 로그아웃 버튼 ========== */
+
 function initLogoutButton() {
   const btn = $("btnLogout");
   if (!btn) return;
 
   btn.addEventListener("click", () => {
     try {
-      // 세션/관련 정보 제거
       localStorage.removeItem("korual_user");
-      // 아이디 기억 옵션은 유지하고 싶으면 아래 줄은 지워도 됨
-      // localStorage.removeItem("korual_login_id");
-
-      // index.html로 이동
       window.location.replace("index.html");
     } catch (e) {
       console.error("로그아웃 중 오류:", e);
@@ -462,7 +379,95 @@ function initLogoutButton() {
     }
   });
 }
-// ===== 회원 관리 데이터 로딩 =====
+
+/* ========== 9. 회원 관리 – 렌더링 + 검색 + 로딩 ========== */
+
+// 화면에 회원 목록 렌더링
+function renderMembersTable(list) {
+  const tbody = $("membersBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(list) || list.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="11" class="empty-state">회원 데이터가 없습니다.</td></tr>';
+    return;
+  }
+
+  list.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    const memberNo   = row["회원번호"]   ?? "-";
+    const name       = row["이름"]       ?? "-";
+    const phone      = row["전화번호"]   ?? "-";
+    const email      = row["이메일"]     ?? "-";
+    const joinedAt   = row["가입일"]     ?? "-";
+    const channel    = row["채널"]       ?? "-";
+    const grade      = row["등급"]       ?? "-";
+    const totalSales = row["누적매출"]   ?? 0;
+    const point      = row["포인트"]     ?? 0;
+    const lastOrder  = row["최근주문일"] ?? "-";
+    const memo       = row["메모"]       ?? "";
+
+    const cells = [
+      memberNo,
+      name,
+      phone,
+      email,
+      joinedAt,
+      channel,
+      grade,
+      fmtCurrency(totalSales),
+      fmtNumber(point),
+      lastOrder,
+      memo,
+    ];
+
+    cells.forEach((v) => {
+      const td = document.createElement("td");
+      td.textContent =
+        v === undefined || v === null || v === "" ? "-" : v;
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+// 검색 인풋과 연동
+function initMemberSearch() {
+  const input = $("searchMembers");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    const kw = input.value.trim().toLowerCase();
+
+    if (!kw) {
+      renderMembersTable(membersCache);
+      return;
+    }
+
+    const filtered = membersCache.filter((row) => {
+      const fields = [
+        row["회원번호"],
+        row["이름"],
+        row["전화번호"],
+        row["이메일"],
+        row["채널"],
+        row["등급"],
+        row["메모"],
+      ];
+      return fields.some((v) =>
+        String(v ?? "").toLowerCase().includes(kw)
+      );
+    });
+
+    renderMembersTable(filtered);
+  });
+}
+
+// 회원 데이터 로딩
 async function loadMembers() {
   const tbody = $("membersBody");
   if (!tbody) return;
@@ -485,7 +490,6 @@ async function loadMembers() {
     const input = $("searchMembers");
     const keyword = input ? input.value.trim().toLowerCase() : "";
 
-    // 검색어가 이미 들어가 있으면 필터 후 렌더링
     if (keyword) {
       const filtered = membersCache.filter((row) => {
         const fields = [
@@ -503,7 +507,6 @@ async function loadMembers() {
       });
       renderMembersTable(filtered);
     } else {
-      // 검색어 없으면 전체 렌더링
       renderMembersTable(membersCache);
     }
   } catch (e) {
@@ -513,8 +516,8 @@ async function loadMembers() {
   }
 }
 
+/* ========== 10. 초기화 ========== */
 
-// ===== 9. 초기화 =====
 document.addEventListener("DOMContentLoaded", () => {
   // 1) 비로그인 접근 차단
   if (!ensureLoggedIn()) return;
@@ -526,9 +529,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileMenu();
   initRefreshButton();
   initLogoutButton();
-  initMemberSearch();
+  initMemberSearch();    // 회원 검색 연결
   pingApi();
-  loadDashboardData();
+  loadDashboardData();   // 첫 화면: 대시보드
 });
-
-
