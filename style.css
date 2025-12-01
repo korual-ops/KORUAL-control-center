@@ -1,515 +1,294 @@
-/* ======================================================
-   KORUAL CONTROL CENTER – High-End Style v4.0
-   Luxurious Marble / Gold / Soft Glass UI
-   ====================================================== */
+/* ============================================================
+   KORUAL CONTROL CENTER – High-end UI Style
+   Marble + Gold + Glassmorphic + Darkmode Support
+   ============================================================ */
 
-/* ======================================
-   기본 색상 / 변수 선언
-   ====================================== */
-:root {
-  --bg-main-light: #f8f8fa;
-  --bg-main-dark: #0a0a0a;
-
-  --bg-sidebar-light: #ffffffdd;
-  --bg-sidebar-dark: #111111d9;
-
-  --glass-light: rgba(255, 255, 255, 0.45);
-  --glass-dark: rgba(20, 20, 20, 0.55);
-
-  --primary-gold: #d8b265;
-  --primary-gold-dark: #b8984c;
-
-  --text-main-light: #1a1a1a;
-  --text-main-dark: #eeeeee;
-
-  --text-soft-light: #666;
-  --text-soft-dark: #bbb;
-
-  --shadow-soft: 0 8px 25px rgba(0, 0, 0, 0.12);
-  --shadow-glass: 0 10px 35px rgba(0, 0, 0, 0.18);
-
-  --radius: 18px;
-  --transition-fast: 0.22s ease-out;
-
-  --sidebar-width: 230px;
-}
-
-
-/* ======================================
-   전체 레이아웃
-   ====================================== */
-body {
+/* -----------------------------
+   RESET
+----------------------------- */
+* {
   margin: 0;
   padding: 0;
-  font-family: "Pretendard", "Inter", sans-serif;
-  background: var(--bg-main-light);
-  color: var(--text-main-light);
+  box-sizing: border-box;
+  font-family: "Pretendard", "Noto Sans KR", sans-serif;
+}
+
+html, body {
+  background: #f5f3ee;
+  height: 100%;
+  overflow: hidden;
+}
+
+body.theme-dark {
+  background: radial-gradient(circle at top, #141820, #0b0d11 60%, #000);
+  color: #ececec;
+}
+
+/* -----------------------------
+   전체 레이아웃
+----------------------------- */
+.app-shell {
   display: flex;
   height: 100vh;
-  overflow: hidden;
-
-  background-image:
-    url("https://images.unsplash.com/photo-1523413651479-597eb2da0ad6?q=80&w=1200"),
-    linear-gradient(to bottom right, #fafafa, #e9e9e9);
-  background-size: cover;
-  background-attachment: fixed;
-  backdrop-filter: blur(18px);
+  width: 100vw;
 }
 
-
-/* ======================================
-   앱 쉘
-   ====================================== */
-.app-shell {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  backdrop-filter: blur(12px);
-}
-
-
-/* ======================================
+/* -----------------------------
    사이드바
-   ====================================== */
+----------------------------- */
 .sidebar {
-  width: var(--sidebar-width);
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
-  background: var(--bg-sidebar-light);
-  backdrop-filter: blur(12px);
-  padding: 25px 20px;
+  width: 240px;
+  padding: 24px 18px;
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(18px);
+  border-right: 1px solid rgba(0,0,0,0.05);
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-glass);
-  z-index: 5;
+  justify-content: space-between;
 }
 
-.sidebar.dark {
-  background: var(--bg-sidebar-dark);
+body.theme-dark .sidebar {
+  background: rgba(10, 10, 18, 0.82);
+  border-right: 1px solid rgba(255,255,255,0.1);
 }
 
 .brand-title {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  margin-bottom: 4px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #111;
+}
+
+body.theme-dark .brand-title {
+  color: #fff;
 }
 
 .brand-subtitle {
-  font-size: 12px;
-  color: var(--text-soft-light);
-  margin-bottom: 25px;
+  margin-top: 2px;
+  color: #666;
+  font-size: 13px;
 }
 
+body.theme-dark .brand-subtitle {
+  color: #aaa;
+}
+
+/* 네비 */
 .nav {
-  flex: 1;
+  margin-top: 32px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .nav-link {
-  padding: 12px 16px;
-  font-size: 15px;
-  border-radius: var(--radius);
+  padding: 12px 14px;
+  border-radius: 10px;
   text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  color: #333;
   border: none;
   cursor: pointer;
-  transition: var(--transition-fast);
-  background: transparent;
-  color: #888;
+  transition: 0.15s ease;
 }
 
 .nav-link:hover {
-  background: var(--glass-light);
-  transform: translateX(3px);
+  background: rgba(0,0,0,0.05);
 }
 
 .nav-link.active {
-  background: linear-gradient(135deg, var(--primary-gold), #ffe9b0);
+  background: linear-gradient(135deg, #ffe19f, #ffd86c);
   color: #000;
-  font-weight: 700;
-  box-shadow: 0 6px 15px rgba(215, 178, 101, 0.45);
-}
-
-
-/* ======================================
-   사이드바 푸터
-   ====================================== */
-.sidebar-footer {
-  margin-top: 30px;
-  font-size: 11px;
-}
-
-.api-status {
-  color: #4bd37c;
   font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.api-status.error {
-  color: #ff4a4a;
-}
-
-.api-url {
-  font-size: 10px;
-  opacity: 0.7;
-}
-
-
-/* ======================================
-   메인 컨텐츠
-   ====================================== */
-.content {
-  flex: 1;
-  overflow-y: auto;
-  padding-bottom: 50px;
-  background: transparent;
-}
-
-
-/* ======================================
-   상단 바
-   ====================================== */
-.topbar {
-  height: 70px;
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 28px;
-  border-bottom: 1px solid #ffffff3b;
-  box-shadow: var(--shadow-soft);
-  z-index: 3;
-}
-
-.topbar-title {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.topbar-right {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-
-#last-sync {
-  font-size: 13px;
-  color: var(--text-soft-light);
-}
-
-
-/* ======================================
-   섹션
-   ====================================== */
-.section {
-  display: none;
-  padding: 30px;
-}
-
-.section.active {
-  display: block;
-}
-
-.section-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.section-desc {
-  margin-top: -5px;
-  color: #888;
-  font-size: 14px;
-}
-
-
-/* ======================================
-   카드 (요약 카드)
-   ====================================== */
-.cards-grid {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  margin-top: 25px;
-}
-
-.card {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
-  padding: 25px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-.card-label {
-  font-size: 14px;
-  color: #777;
-}
-
-.card-value {
-  font-size: 32px;
-  font-weight: 800;
-  margin-top: 6px;
-}
-
-.card-hint {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #999;
-}
-
-
-/* ======================================
-   패널 박스
-   ====================================== */
-.panel {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(12px);
-  margin-top: 30px;
-  padding: 28px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-
-/* ======================================
-   입력창
-   ====================================== */
-.input {
-  padding: 11px 14px;
-  font-size: 14px;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-  background: #fff;
-  transition: var(--transition-fast);
-}
-
-.input:focus {
-  border-color: var(--primary-gold);
-  box-shadow: 0 0 0 4px rgba(216, 178, 101, 0.2);
-}
-
-
-/* ======================================
-   버튼
-   ====================================== */
-.btn {
-  padding: 8px 15px;
-  border-radius: 12px;
-  background: #ddd;
-  cursor: pointer;
-  border: none;
-  transition: var(--transition-fast);
-  font-size: 14px;
-}
-
-.btn:hover {
-  background: #d0d0d0;
-}
-
-.btn.primary {
-  background: var(--primary-gold);
-  color: #000;
-  font-weight: 700;
-}
-
-.btn.primary:hover {
-  background: var(--primary-gold-dark);
-}
-
-.btn.ghost {
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid #ccc;
-}
-
-.btn.ghost:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-
-/* ======================================
-   표 (Table)
-   ====================================== */
-.table-wrapper {
-  margin-top: 22px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(11px);
-  box-shadow: var(--shadow-soft);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-thead {
-  background: rgba(240, 240, 240, 0.8);
-  font-weight: 700;
-}
-
-th,
-td {
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(220, 220, 220, 0.5);
-  white-space: nowrap;
-}
-
-tbody tr:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 30px 0;
-  color: #666;
-}
-
-
-/* ======================================
-   다크 모드
-   ====================================== */
-body.dark {
-  background: var(--bg-main-dark);
-  color: var(--text-main-dark);
-}
-
-body.dark .sidebar {
-  background: var(--bg-sidebar-dark);
-}
-
-body.dark .topbar {
-  background: rgba(20, 20, 20, 0.75);
-  border-bottom-color: #222;
-}
-
-body.dark .cards-grid .card,
-body.dark .panel,
-body.dark .table-wrapper {
-  background: rgba(20, 20, 20, 0.55);
-  border-color: #333;
-}
-
-body.dark th,
-body.dark td {
-  border-bottom-color: #333;
-}
-
-body.dark .nav-link {
-  color: #bbb;
-}
-
-body.dark .nav-link:hover {
-  background: var(--glass-dark);
-}
-/* ========== THEME BASE ========== */
-
-/* 기본은 라이트 모드 (지금 이미 사용 중인 색 유지) */
-body {
-  background: #f5f3ee;
-  color: #222;
-}
-
-/* 다크 모드가 되면 body에 .theme-dark 클래스가 붙음 */
-body.theme-dark {
-  background: radial-gradient(circle at top, #151923 0%, #050608 55%, #000 100%);
-  color: #f5f5f5;
-}
-
-/* 사이드바, 카드 등 주요 영역만 다크 스타일 조금 강하게 오버라이드 */
-body.theme-dark .sidebar {
-  background: rgba(5, 7, 12, 0.96);
-  color: #f5f5f5;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.85);
-}
-
-body.theme-dark .sidebar .brand-title,
-body.theme-dark .sidebar .brand-subtitle {
-  color: #f5f5f5;
 }
 
 body.theme-dark .nav-link {
-  color: #c4c7d4;
+  color: #ddd;
+}
+
+body.theme-dark .nav-link:hover {
+  background: rgba(255,255,255,0.1);
 }
 
 body.theme-dark .nav-link.active {
-  color: #111;
-  background: linear-gradient(135deg, #ffd65a, #ffe9b5);
+  background: linear-gradient(135deg, #ffe09c, #ffd76a);
+  color: #000;
 }
 
-body.theme-dark .main {
-  background: radial-gradient(circle at top, #1a1e28 0%, #050608 55%, #000 100%);
+/* API 상태 */
+.sidebar-footer {
+  margin-top: 40px;
+  font-size: 13px;
 }
 
-body.theme-dark .card,
-body.theme-dark .stat-card,
-body.theme-dark .panel {
-  background: radial-gradient(circle at top left, #272c38 0%, #151821 45%, #080a0e 100%);
-  color: #f5f5f5;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+.api-status {
+  font-weight: 600;
 }
 
-/* “API 연결 실패” 같은 경고 텍스트는 다크에서도 잘 보이게 */
-body.theme-dark .status-badge--error,
-body.theme-dark .api-status-error {
-  color: #ff6b6b;
+.api-status.ok {
+  color: #24ce4b;
+}
+.api-status.error {
+  color: #ff6767;
 }
 
-/* ========== TOGGLE BUTTON STYLE ========== */
+.api-url {
+  margin-top: 4px;
+  color: #777;
+  font-size: 12px;
+}
+
+body.theme-dark .api-url {
+  color: #aaa;
+}
+
+/* -----------------------------
+   메인 컨텐츠
+----------------------------- */
+.content {
+  flex: 1;
+  background: #f7f5f0;
+  overflow-y: auto;
+  padding-bottom: 40px;
+}
+
+body.theme-dark .content {
+  background: radial-gradient(circle at top, #1a1e27, #0e1015 60%, #000);
+}
+
+/* -----------------------------
+   상단바
+----------------------------- */
+.topbar {
+  height: 80px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 28px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(16px);
+}
+
+body.theme-dark .topbar {
+  background: rgba(10,10,20,0.6);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.topbar-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.topbar-badge {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.topbar-text {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.topbar-subtext {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #777;
+}
+
+body.theme-dark .topbar-subtext {
+  color: #bbb;
+}
 
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+/* -----------------------------
+   버튼 공통
+----------------------------- */
+.primary-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #ffe19f, #ffd86c);
   border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(14px);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  transition: 0.15s;
+}
+
+.primary-btn:hover {
+  filter: brightness(1.05);
+}
+
+.ghost-btn {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0,0,0,0.1);
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.15s;
+}
+
+body.theme-dark .ghost-btn {
+  background: rgba(20,20,30,0.6);
+  border-color: rgba(255,255,255,0.15);
+  color: #eee;
+}
+
+.ghost-btn:hover {
+  backdrop-filter: blur(20px);
+  filter: brightness(1.1);
+}
+
+/* 로그아웃 버튼 */
+.logout-btn {
+  font-weight: 600;
+}
+
+/* -----------------------------
+   테마 토글
+----------------------------- */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.75);
+  border: 1px solid rgba(0,0,0,0.08);
+  backdrop-filter: blur(14px);
 }
 
 body.theme-dark .theme-toggle {
-  background: rgba(10, 10, 18, 0.9);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: #f5f5f5;
+  background: rgba(20,20,25,0.75);
+  border-color: rgba(255,255,255,0.12);
 }
 
 .theme-toggle-label {
-  min-width: 36px;
+  font-size: 12px;
+  font-weight: 600;
+  width: 38px;
   text-align: center;
 }
 
-/* 작은 스위치 모양 */
 .theme-toggle-track {
   position: relative;
   width: 40px;
   height: 18px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #ffe9b5, #ffd65a);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.07);
+  background: linear-gradient(135deg, #ffe19f, #ffd86c);
 }
 
 body.theme-dark .theme-toggle-track {
@@ -523,62 +302,167 @@ body.theme-dark .theme-toggle-track {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
-  transition: transform 0.18s ease;
+  background: white;
+  transition: transform 0.2s ease;
 }
 
-/* 다크 모드일 때는 오른쪽으로 이동 */
 body.theme-dark .theme-toggle-thumb {
   transform: translateX(22px);
 }
-/* ===== LOGOUT BUTTON (하이엔드 스타일) ===== */
 
-.logout-btn {
-  padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(244, 240, 233, 0.96));
+/* -----------------------------
+   Section 공통
+----------------------------- */
+.section {
+  padding: 32px 32px;
+  display: none;
+}
+.section.active {
+  display: block;
+}
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+
+.section-desc {
+  color: #777;
+  margin-top: 4px;
+}
+body.theme-dark .section-desc {
+  color: #aaa;
+}
+
+/* -----------------------------
+   카드 그리드
+----------------------------- */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.card {
+  padding: 20px;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(14px);
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+body.theme-dark .card {
+  background: rgba(20,20,28,0.78);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.card-label {
   font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  display: inline-flex;
+  opacity: 0.7;
+}
+
+.card-value {
+  margin-top: 6px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+/* -----------------------------
+   Panel
+----------------------------- */
+.panel {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(14px);
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid rgba(0,0,0,0.05);
+  margin-bottom: 22px;
+}
+
+body.theme-dark .panel {
+  background: rgba(20,20,28,0.78);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.2s ease,
-    border-color 0.2s ease;
 }
 
-.logout-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
-  border-color: rgba(0, 0, 0, 0.14);
+.today-metrics {
+  display: flex;
+  gap: 30px;
+  margin-top: 12px;
 }
 
-.logout-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+.today-label {
+  font-size: 13px;
+  opacity: 0.7;
 }
 
-/* 다크 모드일 때 느낌 */
-body.dark-mode .logout-btn,
-body.theme-dark .logout-btn {
-  background: radial-gradient(circle at top, #161827, #050814);
-  color: #f5f5f5;
-  border-color: rgba(148, 163, 184, 0.55);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
+.today-value {
+  margin-top: 2px;
+  font-size: 20px;
+  font-weight: 700;
 }
 
-body.dark-mode .logout-btn:hover,
-body.theme-dark .logout-btn:hover {
-  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.85);
+/* -----------------------------
+   테이블
+----------------------------- */
+.table-wrapper {
+  margin-top: 12px;
+  overflow-x: auto;
 }
 
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+}
 
+thead th {
+  font-size: 13px;
+  text-align: left;
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+tbody td {
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  font-size: 14px;
+}
+
+body.theme-dark thead th {
+  border-color: rgba(255,255,255,0.08);
+}
+body.theme-dark tbody td {
+  border-color: rgba(255,255,255,0.05);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 0;
+  opacity: 0.5;
+}
+
+/* -----------------------------
+   Misc
+----------------------------- */
+.input {
+  padding: 8px 12px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+body.theme-dark .input {
+  background: rgba(20,20,28,0.9);
+  color: #eee;
+  border-color: rgba(255,255,255,0.12);
+}
 
