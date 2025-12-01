@@ -28,7 +28,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div class="api-status ok">API 연결 정상</div>
+        <div class="api-status ok">● API 연결 정상</div>
         <div class="api-url">KORUAL AUTH / CONTROL API</div>
       </div>
     </aside>
@@ -43,16 +43,17 @@
           <div class="topbar-greeting">
             <span class="topbar-badge">KORUAL CONTROL CENTER</span>
             <span class="topbar-text">
+              <span id="themeLabel">Light</span>
               반갑습니다, <span id="welcomeUser">KORUAL</span>님
             </span>
           </div>
           <div class="topbar-subtext" id="last-sync">
-            마지막 동기화: - 
+            마지막 동기화: -
           </div>
         </div>
 
         <div class="topbar-right">
-          <!-- 테마 토글 -->
+          <!-- 라이트 / 다크 모드 토글 버튼 -->
           <button
             id="themeToggle"
             class="theme-toggle"
@@ -67,12 +68,12 @@
             </span>
           </button>
 
-          <!-- 전체 새로고침 -->
+          <!-- 전체 새로고침 버튼 -->
           <button id="btnRefreshAll" class="primary-btn" type="button">
             새로고침
           </button>
 
-          <!-- 로그아웃 -->
+          <!-- 로그아웃 버튼 -->
           <button id="btnLogout" class="ghost-btn logout-btn" type="button">
             로그아웃
           </button>
@@ -87,13 +88,6 @@
           <div>
             <h2>대시보드</h2>
             <p class="section-desc">코루알 전체 현황을 한눈에 보는 관제탑입니다.</p>
-          </div>
-
-          <!-- 기간 필터 (추후 기능 연동용) -->
-          <div class="chips">
-            <button class="chip chip-active" data-range="today">오늘</button>
-            <button class="chip" data-range="7d">7일</button>
-            <button class="chip" data-range="30d">30일</button>
           </div>
         </div>
 
@@ -185,7 +179,6 @@
 
           <div class="section-actions">
             <input id="searchProducts" class="input" placeholder="상품명 검색" />
-            <button class="btn subtle" type="button">CSV 내보내기</button>
           </div>
         </div>
 
@@ -219,12 +212,6 @@
 
           <div class="section-actions">
             <input id="searchOrders" class="input" placeholder="주문번호 / 고객명" />
-            <select id="filterOrderStatus" class="input select">
-              <option value="">전체 상태</option>
-              <option value="pending">준비중</option>
-              <option value="shipping">배송중</option>
-              <option value="completed">배송완료</option>
-            </select>
           </div>
         </div>
 
@@ -260,13 +247,6 @@
 
           <div class="section-actions">
             <input id="searchMembers" class="input" placeholder="이름 / 이메일" />
-            <select id="filterMemberGrade" class="input select">
-              <option value="">전체 등급</option>
-              <option value="BRZ">BRZ</option>
-              <option value="SLV">SLV</option>
-              <option value="GLD">GLD</option>
-              <option value="BLK">BLK</option>
-            </select>
           </div>
         </div>
 
@@ -325,15 +305,6 @@
         <div class="section-header-row">
           <div>
             <h2>로그 모니터링</h2>
-          </div>
-
-          <div class="section-actions">
-            <select id="filterLogLevel" class="input select">
-              <option value="">전체 레벨</option>
-              <option value="info">INFO</option>
-              <option value="warn">WARN</option>
-              <option value="error">ERROR</option>
-            </select>
           </div>
         </div>
 
