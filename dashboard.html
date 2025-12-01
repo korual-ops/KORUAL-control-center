@@ -2,6 +2,24 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
+  <script>
+  // 페이지가 렌더링되기 전에 즉시 비로그인 차단
+  (function () {
+    try {
+      const raw = localStorage.getItem("korual_user");
+      if (!raw) {
+        window.location.replace("index.html");
+      } else {
+        const user = JSON.parse(raw);
+        if (!user || !user.username) {
+          window.location.replace("index.html");
+        }
+      }
+    } catch (e) {
+      window.location.replace("index.html");
+    }
+  })();
+</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL CONTROL CENTER – Dashboard</title>
 
@@ -329,3 +347,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
