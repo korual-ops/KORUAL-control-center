@@ -42,8 +42,24 @@
   <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="topbar-left">
-        <span class="topbar-greeting">
+  <div class="topbar-left">
+    <span class="topbar-greeting">
+      <span id="themeLabel">Light</span>
+      반갑습니다! <span id="welcomeUser">KORUAL</span>님
+    </span>
+  </div>
+
+  <div class="topbar-right">
+    <!-- 이미 있는 새로고침 버튼 -->
+    <button id="btnRefreshAll" class="primary-btn">새로고침</button>
+
+    <!-- 🔥 하이엔드 로그아웃 버튼 -->
+    <button id="btnLogout" class="ghost-btn logout-btn" type="button">
+      로그아웃
+    </button>
+  </div>
+</header>
+
           반갑습니다! KORUAL님
         </span>
       </div>
@@ -303,4 +319,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
 
