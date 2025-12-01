@@ -1,34 +1,23 @@
 /******************************************************
- *  KORUAL CONTROL CENTER – app.js (Dashboard)
- *  - 사이드바 네비게이션
- *  - 테마 토글
- *  - 로그인 유저 이름 표시
- *  - 대시보드 데이터 로딩 (옵션)
+ * KORUAL CONTROL CENTER – app.js
+ * - 로그인 유저 이름 표시
+ * - 사이드바 네비게이션
+ * - 라이트 / 다크 테마 토글
+ * - 대시보드 데이터 로딩 (예시)
  ******************************************************/
 
-// ─────────────────────────────────────────────
-// 1. 공통 유틸
-// ─────────────────────────────────────────────
-const API_BASE = "https://script.google.com/macros/s/AKfycbx3s5j7YgqcWLGGGuzdtQy0Ayl3QHtHP7xwhEAv3N-BClUVFN/exec"; // 필요하면 본인 URL로 수정
-
+// ===== 공통 유틸 =====
 const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-function fmtNumber(n) {
-  if (n === null || n === undefined || isNaN(n)) return "-";
-  return Number(n).toLocaleString("ko-KR");
-}
+// 실제 구글 Apps Script / Control Center API 주소로 바꿔 써줘
+const API_BASE =
+  "https://script.google.com/macros/s/AKfycbx3s5j7YgqcWLGGGuzdtQy0Ayl3QHtHP7xwhEAv3N-BClUVFN/exec"; // 예시
 
-function fmtCurrency(n) {
-  if (n === null || n === undefined || isNaN(n)) return "-";
-  return Number(n).toLocaleString("ko-KR") + "원";
-}
-
-async function getJSON(target, params = {}) {
+async function apiGet(target, extraParams = {}) {
   const url = new URL(API_BASE);
   url.searchParams.set("target", target);
-
-  Object.entries(params).forEach(([k, v]) => {
+  Object.entries(extraParams).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== "") {
       url.searchParams.set(k, v);
     }
@@ -39,10 +28,17 @@ async function getJSON(target, params = {}) {
   return res.json();
 }
 
-// ─────────────────────────────────────────────
-// 2. 로그인한 유저 이름 불러오기
-//    (로그인 페이지에서 korual_user 저장해둔 값 사용)
-// ─────────────────────────────────────────────
+function fmtNumber(v) {
+  if (v === null || v === undefined || v === "" || isNaN(v)) return "-";
+  return Number(v).toLocaleString("ko-KR");
+}
+
+function fmtCurrency(v) {
+  if (v === null || v === undefined || v === "" || isNaN(v)) return "-";
+  return Number(v).toLocaleString("ko-KR") + "원";
+}
+
+// ===== 1. 로그인 유저 이름 표시 =====
 function loadKorualUser() {
   try {
     const raw = localStorage.getItem("korual_user");
@@ -61,94 +57,102 @@ function loadKorualUser() {
   }
 }
 
-// ─────────────────────────────────────────────
-// 3. 테마 토글 (Light / Dark)
-// ─────────────────────────────────────────────
-function applyTheme(theme) {
-  const body = document.body;
-  if (!body) return;
-
-  body.classList.toggle("dark", theme === "dark");
-
-  const themeLabel = $("themeModeLabel"); // Light / Dark 텍스트 표시용 span
-  if (themeLabel) {
-    themeLabel.textContent = theme === "dark" ? "Dark" : "Light";
-  }
-
-  localStorage.setItem("korual_theme_dashboard", theme);
-}
-
-function initThemeToggle() {
-  const saved = localStorage.getItem("korual_theme_dashboard") || "light";
-  applyTheme(saved);
-
-  const btn = $("toggleThemeDashboard"); // 상단 테마 버튼 id
-  if (!btn) return;
-
-  btn.addEventListener("click", () => {
-    const current = localStorage.getItem("korual_theme_dashboard") || "light";
-    const next = current === "light" ? "dark" : "light";
-    applyTheme(next);
-  });
-}
-
-// ─────────────────────────────────────────────
-// 4. 사이드바 네비게이션
-//    .nav-link[data-section] 과 .section id 연결
-// ─────────────────────────────────────────────
+// ===== 2. 사이드바 네비게이션 =====
 function initSidebarNav() {
-  const links    = $$(".nav-link[data-section]");
+  const links = $$(".nav-link");
   const sections = $$(".section");
 
   if (!links.length || !sections.length) return;
 
-  function activate(targetId) {
+  function activate(sectionKey) {
     links.forEach((btn) => {
-      const match = btn.dataset.section === targetId;
-      btn.classList.toggle("active", match);
+      btn.classList.toggle("active", btn.dataset.section === sectionKey);
     });
 
     sections.forEach((sec) => {
-      sec.classList.toggle("active", sec.id === targetId);
+      sec.classList.toggle("active", sec.id === "section-" + sectionKey);
     });
   }
 
   links.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const target = btn.dataset.section;
-      if (!target) return;
-      activate(target);
+      const key = btn.dataset.section;
+      if (!key) return;
+      activate(key);
     });
   });
 
-  // 초기 진입: 첫 번째 링크 기준
-  const first = links[0];
-  const defaultSection = (first && first.dataset.section) || "dashboard";
-  activate(defaultSection);
+  // "주문 관리로 이동" 버튼
+  const goOrders = $("goOrders");
+  if (goOrders) {
+    goOrders.addEventListener("click", () => {
+      const btn = document.querySelector('.nav-link[data-section="orders"]');
+      if (btn) btn.click();
+    });
+  }
+
+  // 첫 로드 시 기본: 대시보드
+  activate("dashboard");
 }
 
-// ─────────────────────────────────────────────
-// 5. API 상태 표시 (좌측 하단 "API 연결 정상")
-// ─────────────────────────────────────────────
-function setApiStatus(ok, message) {
-  const el = $("apiStatusText"); // 예: <span id="apiStatusText"></span>
-  const dot = $("apiStatusDot"); // 예: 초록 점 등
-  if (el) {
-    el.textContent = ok ? (message || "API 연결 정상") : (message || "API 오류");
+// ===== 3. 테마 토글 (Light / Dark) =====
+function applyTheme(theme) {
+  const body = document.body;
+  if (!body) return;
+
+  // body에 dark-mode 클래스로 제어 (style.css 이미 다크모드 스타일 있음)
+  body.classList.toggle("dark-mode", theme === "dark");
+
+  // 상단 Light / Dark 텍스트
+  const label = $("themeLabel");
+  if (label) {
+    label.textContent = theme === "dark" ? "Dark" : "Light";
   }
-  if (dot) {
-    dot.style.color = ok ? "#22c55e" : "#ef4444";
+
+  localStorage.setItem("korual_theme", theme);
+}
+
+function initThemeToggle() {
+  const saved = localStorage.getItem("korual_theme") || "light";
+  applyTheme(saved);
+
+  const btnRefreshTheme = $("themeLabel"); // 클릭해도 바뀌도록 옵션
+  const topbarThemeBtn = null;            // 필요하면 따로 버튼 만들었을 때 사용
+
+  const toggle = () => {
+    const current = localStorage.getItem("korual_theme") || "light";
+    const next = current === "light" ? "dark" : "light";
+    applyTheme(next);
+  };
+
+  // Light / Dark 텍스트를 클릭하면 토글되게
+  if (btnRefreshTheme) {
+    btnRefreshTheme.style.cursor = "pointer";
+    btnRefreshTheme.addEventListener("click", toggle);
   }
+  if (topbarThemeBtn) {
+    topbarThemeBtn.addEventListener("click", toggle);
+  }
+}
+
+// ===== 4. API 상태 표시 =====
+function setApiStatus(ok, msg) {
+  const el = document.querySelector(".api-status");
+  if (!el) return;
+
+  el.classList.toggle("ok", ok);
+  el.classList.toggle("error", !ok);
+  el.textContent = (ok ? "● " : "● ") + (msg || (ok ? "API 연결 정상" : "API 오류"));
 }
 
 async function pingApi() {
   try {
     setApiStatus(true, "API 체크 중…");
-    const data = await getJSON("ping"); // Apps Script 에 target=ping 구현된 경우
-    if (data && data.ok !== false) {
-      setApiStatus(true, "API 연결 정상");
-    } else {
+    const data = await apiGet("ping");
+    if (!data || data.ok === false) {
       setApiStatus(false, "API 응답 이상");
+    } else {
+      setApiStatus(true, "API 연결 정상");
     }
   } catch (e) {
     console.error("ping 실패:", e);
@@ -156,94 +160,102 @@ async function pingApi() {
   }
 }
 
-// ─────────────────────────────────────────────
-// 6. 대시보드 데이터 로딩
-//    (target=dashboard 기준 예시, 구조 달라도 에러 안나게)
-// ─────────────────────────────────────────────
+// ===== 5. 대시보드 데이터 로딩 =====
 function setDashboardLoading(loading) {
-  const el = $("recentOrdersLoading"); // "데이터 로딩 중…" 텍스트 div
-  if (el) el.style.display = loading ? "block" : "none";
+  const tbody = $("recentOrdersBody");
+  if (!tbody) return;
+
+  if (loading) {
+    tbody.innerHTML =
+      '<tr><td colspan="7" class="empty-state">데이터 로딩 중…</td></tr>';
+  }
 }
 
 function updateDashboardCards(payload) {
   if (!payload || typeof payload !== "object") return;
 
+  // API 구조에 맞게 키만 한 번 맞춰주면 됨
   const totalProducts = payload.totalProducts ?? payload.total_items;
-  const totalOrders   = payload.totalOrders ?? payload.total_orders;
-  const totalMembers  = payload.totalMembers ?? payload.total_members;
-  const todaySales    = payload.todayAmount ?? payload.today_sales;
-  const todayOrders   = payload.todayOrders;
-  const pendingOrders = payload.pendingOrders;
+  const totalOrders   = payload.totalOrders   ?? payload.total_orders;
+  const totalRevenue  = payload.totalRevenue  ?? payload.total_amount;
+  const totalMembers  = payload.totalMembers  ?? payload.total_members;
 
-  const map = [
+  const todayOrders   = payload.todayOrders   ?? payload.today_count;
+  const todayRevenue  = payload.todayRevenue  ?? payload.today_amount;
+  const todayPending  = payload.todayPending  ?? payload.today_pending;
+
+  const mapping = [
     ["cardTotalProducts", fmtNumber(totalProducts)],
     ["cardTotalOrders",   fmtNumber(totalOrders)],
-    ["cardTotalSales",    fmtCurrency(todaySales)],
+    ["cardTotalRevenue",  fmtCurrency(totalRevenue)],
     ["cardTotalMembers",  fmtNumber(totalMembers)],
-
-    ["statTodayOrders",   fmtNumber(todayOrders)],
-    ["statTodaySales",    fmtCurrency(todaySales)],
-    ["statPendingOrders", fmtNumber(pendingOrders)]
+    ["todayOrders",       fmtNumber(todayOrders)],
+    ["todayRevenue",      fmtCurrency(todayRevenue)],
+    ["todayPending",      fmtNumber(todayPending)],
   ];
 
-  map.forEach(([id, value]) => {
+  mapping.forEach(([id, value]) => {
     const el = $(id);
     if (el) el.textContent = value;
   });
 
+  // 마지막 동기화 시간
   const lastSync = $("last-sync");
   if (lastSync) {
     const now = new Date();
+    const timeStr = now.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     lastSync.textContent =
-      now.getFullYear() + ". " +
-      String(now.getMonth() + 1).padStart(2, "0") + ". " +
-      String(now.getDate()).padStart(2, "0") + ". " +
-      now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+      "마지막 동기화: " +
+      now.getFullYear() +
+      ". " +
+      String(now.getMonth() + 1).padStart(2, "0") +
+      ". " +
+      String(now.getDate()).padStart(2, "0") +
+      ". " +
+      " " +
+      timeStr;
   }
 }
 
 function updateRecentOrdersTable(list) {
   const tbody = $("recentOrdersBody");
-  const empty = $("recentOrdersEmpty");
-
   if (!tbody) return;
 
   tbody.innerHTML = "";
 
   if (!Array.isArray(list) || list.length === 0) {
-    if (empty) empty.style.display = "block";
+    tbody.innerHTML =
+      '<tr><td colspan="7" class="empty-state">최근 주문이 없습니다.</td></tr>';
     return;
   }
-  if (empty) empty.style.display = "none";
 
-  list.forEach((row, idx) => {
+  list.forEach((row) => {
     const tr = document.createElement("tr");
 
-    const orderDate  = row.order_date || row.date || "";
-    const orderNo    = row.order_no  || row.orderNumber || "";
-    const product    = row.item_name || row.product || "";
-    const qty        = row.qty       || row.quantity || "";
-    const amount     = row.amount    || row.price || "";
-    const channel    = row.channel   || "";
-    const status     = row.status    || "";
-    const trackingNo = row.tracking  || "";
-    const memo       = row.memo      || "";
+    const orderDate = row.order_date || row.date || "-";
+    const orderNo   = row.order_no   || row.orderNumber || "-";
+    const name      = row.item_name  || row.productName || "-";
+    const qty       = row.qty        || row.quantity || "-";
+    const amount    = row.amount     || row.price || "-";
+    const channel   = row.channel    || "-";
+    const status    = row.status     || "-";
 
     const cells = [
       orderDate,
       orderNo,
-      product,
+      name,
       qty,
       fmtCurrency(amount),
       channel,
       status,
-      trackingNo,
-      memo
     ];
 
-    cells.forEach((val) => {
+    cells.forEach((v) => {
       const td = document.createElement("td");
-      td.textContent = val === undefined || val === null ? "-" : val;
+      td.textContent = v === undefined || v === null ? "-" : v;
       tr.appendChild(td);
     });
 
@@ -251,44 +263,46 @@ function updateRecentOrdersTable(list) {
   });
 }
 
-async function initDashboardData() {
+async function loadDashboardData() {
   setDashboardLoading(true);
   try {
-    // Apps Script 에서 target=dashboard 로 JSON 내려주는 형태라고 가정
-    const data = await getJSON("dashboard");
+    // Apps Script 의 doGet(e) 에서 target=dashboard 처리하도록 구현해두면 됨
+    const data = await apiGet("dashboard");
+
     updateDashboardCards(data || {});
     updateRecentOrdersTable(data?.recentOrders || data?.latestOrders || []);
     setApiStatus(true, "API 연결 정상");
   } catch (e) {
-    console.error("대시보드 로딩 실패:", e);
+    console.error("대시보드 데이터 로딩 실패:", e);
     setApiStatus(false, "대시보드 로딩 실패");
-    const msg = $("recentOrdersError");
-    if (msg) msg.textContent = "대시보드 데이터를 불러오지 못했습니다.";
-  } finally {
-    setDashboardLoading(false);
+    const tbody = $("recentOrdersBody");
+    if (tbody) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" class="empty-state">데이터를 불러오지 못했습니다.</td></tr>';
+    }
   }
 }
 
-// ─────────────────────────────────────────────
-// 7. 전체 새로고침 버튼
-// ─────────────────────────────────────────────
+// 외부에서 다시 호출할 수 있게 export 느낌으로
+window.initDashboard = function () {
+  loadDashboardData();
+};
+
+// ===== 6. 전체 새로고침 버튼 =====
 function initRefreshButton() {
   const btn = $("btnRefreshAll");
   if (!btn) return;
-
   btn.addEventListener("click", () => {
-    initDashboardData();
+    loadDashboardData();
   });
 }
 
-// ─────────────────────────────────────────────
-// 8. 초기화
-// ─────────────────────────────────────────────
+// ===== 7. 초기화 =====
 document.addEventListener("DOMContentLoaded", () => {
-  loadKorualUser();        // 로그인 유저 이름 표시
-  initThemeToggle();       // 라이트/다크 토글
-  initSidebarNav();        // 카테고리 탭 전환
-  initRefreshButton();     // 전체 새로고침
-  pingApi();               // API 헬스 체크
-  initDashboardData();     // 대시보드 데이터 로딩
+  loadKorualUser();
+  initSidebarNav();
+  initThemeToggle();
+  initRefreshButton();
+  pingApi();
+  loadDashboardData(); // 첫 로드 시 한 번
 });
