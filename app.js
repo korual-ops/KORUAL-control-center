@@ -512,8 +512,8 @@ function closeModal(el) {
   const modalReset  = $("modalResetPw");
   const linkFind    = $("linkFindId");
   const linkReset   = $("linkResetPw");
-  const closeFind   = $("closeFindId");
-  const closeReset  = $("closeResetPw");
+  const closeFind   = $("closeFind");
+  const closeReset  = $("closeReset");
   const fiEmail     = $("fiEmail");
   const fiResult    = $("fiResult");
   const fiSubmit    = $("btnFindIdSubmit");
@@ -637,3 +637,4 @@ function closeModal(el) {
     });
   }
 })();
+
