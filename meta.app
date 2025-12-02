@@ -32,7 +32,7 @@ const KORUAL_META_APP = {
   },
 
   api: {
-    baseUrl: "https://script.google.com/macros/s/___REPLACE_WITH_DEPLOY_URL___/exec",
+    baseUrl: "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec",
     timeoutMs: 12000,
     secret: "KORUAL-ONLY",
     targets: {
@@ -86,3 +86,4 @@ const KORUAL_META_APP = {
     // 서버 사이드 환경일 경우 조용히 무시
   }
 })(KORUAL_META_APP);
+
