@@ -1,27 +1,11 @@
 /*************************************************
- * KORUAL CONTROL CENTER – High-End Auth Frontend (app.js)
+ * KORUAL CONTROL CENTER – High-End Frontend app.js
  * - 로그인 / 회원가입
  * - ID 찾기 / PW 재설정
- * - 5회 실패 잠금 (백엔드 code.gs 기준 연동)
+ * - 5회 실패 잠금 (백엔드 code.gs 기준)
  * - 클라이언트 IP + UserAgent 로그
  * - 다크/라이트 테마 + 다국어(i18n) + 토스트
- * - API 타임아웃 · 중복요청 방지 · 고급 에러 메시지
  *************************************************/
-
-/******** CONFIG ********/
-const KORUAL_CONFIG = {
-  GS_API: "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec",
-  DASHBOARD_URL: "dashboard.html",
-  API_TIMEOUT_MS: 12000,        // 12초 후 타임아웃
-  TOAST_MAX: 3,                 // 동시에 보여줄 토스트 개수 제한
-  STORAGE_KEYS: {
-    LANG: "korual_lang",
-    THEME: "korual_theme",
-    USER: "korual_user",
-    LOGIN_ID: "korual_login_id",
-    AUTH_TAB: "korual_auth_tab"
-  }
-};
 
 /******** i18n ********/
 const I18N = {
@@ -58,12 +42,10 @@ const I18N = {
     need_email: "이메일을 입력해주세요.",
     need_reset_fields: "아이디, 이메일, 새 비밀번호를 모두 입력해주세요.",
     pw_too_short: "새 비밀번호는 최소 6자리 이상이어야 합니다.",
-    // 추가 메시지
-    network_error: "네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-    timeout_error: "응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.",
-    locked: "여러 번 실패로 계정이 잠겼습니다. 관리자에게 문의해주세요.",
-    invalid_credential: "아이디 또는 비밀번호가 올바르지 않습니다.",
-    unknown_error: "알 수 없는 오류가 발생했습니다."
+    server_error: "서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
+    loading_login: "로그인 중...",
+    loading_signup: "가입 처리 중...",
+    loading_search: "조회 중..."
   },
   en: {
     sign_to_korual: "SIGN IN TO KORUAL",
@@ -86,7 +68,7 @@ const I18N = {
     signup_done: "Sign-up completed. Please login.",
     user_exists: "This username already exists.",
     need_id_pw: "Please enter username & password.",
-    // ID/PW 찾기
+    // ID/PW
     find_id: "Find ID",
     reset_pw: "Reset Password",
     find_id_desc: "Enter the email you used when signing up. All IDs registered with this email will be shown.",
@@ -98,16 +80,14 @@ const I18N = {
     need_email: "Please enter an email.",
     need_reset_fields: "Please fill ID, email, and new password.",
     pw_too_short: "New password must be at least 6 characters.",
-    // Extra
-    network_error: "Network error occurred. Please try again.",
-    timeout_error: "Request timed out. Please try again later.",
-    locked: "Your account is locked due to too many failed attempts. Contact admin.",
-    invalid_credential: "Invalid username or password.",
-    unknown_error: "Unknown error occurred."
+    server_error: "Unable to reach the server. Please try again.",
+    loading_login: "Signing in...",
+    loading_signup: "Signing up...",
+    loading_search: "Searching..."
   }
 };
 
-let LANG = localStorage.getItem(KORUAL_CONFIG.STORAGE_KEYS.LANG) || "ko";
+let LANG = localStorage.getItem("korual_lang") || "ko";
 
 /******** Helper ********/
 const $ = id => document.getElementById(id);
@@ -115,29 +95,13 @@ const $ = id => document.getElementById(id);
 function applyI18n() {
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
-    const v = I18N[LANG]?.[key];
+    const v = I18N[LANG][key];
     if (typeof v === "string") el.textContent = v;
   });
   const langTop  = $("langTop");
   const langAuth = $("langAuth");
   if (langTop)  langTop.value  = LANG;
   if (langAuth) langAuth.value = LANG;
-}
-
-function isValidEmail(email) {
-  if (!email) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function clearInputErrors() {
-  [
-    "loginUsername","loginPassword",
-    "suUser","suPass","suEmail",
-    "fiEmail","rpUser","rpEmail","rpNewPw"
-  ].forEach(id => {
-    const el = $(id);
-    if (el) el.classList.remove("input-error");
-  });
 }
 
 /******** Theme ********/
@@ -147,7 +111,7 @@ function applyTheme(mode) {
   const final = mode === "light" ? "light" : "dark";
 
   root.classList.toggle("dark", final === "dark");
-  localStorage.setItem(KORUAL_CONFIG.STORAGE_KEYS.THEME, final);
+  localStorage.setItem("korual_theme", final);
 
   if (final === "dark") {
     body.classList.remove("auth-bg-light");
@@ -166,177 +130,63 @@ function applyTheme(mode) {
   }
 }
 
-/******** Toast (High-End) ********/
+/******** Toast (하이엔드) ********/
+function ensureToastRoot() {
+  let root = $("toastRoot");
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "toastRoot";
+    root.className = "toast-container";
+    document.body.appendChild(root);
+  }
+  return root;
+}
+
 function showToast(message, type = "info") {
-  const root = $("toastRoot");
+  const root = ensureToastRoot();
   if (!root) return;
 
-  // 동시에 너무 많이 쌓이지 않게 제한
-  const existing = root.querySelectorAll(".korual-toast-item");
-  if (existing.length >= KORUAL_CONFIG.TOAST_MAX) {
-    // 가장 오래된 것 제거
-    const first = existing[0];
-    if (first) first.remove();
-  }
-
   const el = document.createElement("div");
-  el.className =
-    "korual-toast-item max-w-md w-full pointer-events-auto rounded-2xl px-4 py-3 text-[13px] flex items-center gap-3 shadow-[0_18px_45px_rgba(15,23,42,0.9)] ring-1 " +
-    (type === "success"
-      ? "bg-emerald-500/95 text-white ring-emerald-400/70"
-      : type === "error"
-      ? "bg-rose-500/95 text-white ring-rose-400/70"
-      : "bg-slate-900/95 text-slate-50 ring-slate-700/80");
+  let cls = "toast ";
+  if (type === "success") cls += "toast-success";
+  else if (type === "error") cls += "toast-error";
+  else cls += "toast-info";
 
-  const icon =
-    type === "success" ? "✅"
-      : type === "error" ? "⚠️"
-      : "🔔";
+  el.className = cls;
+  el.textContent = message;
 
-  el.innerHTML = `
-    <span class="text-lg">${icon}</span>
-    <span class="flex-1">${message}</span>
-  `;
-
-  el.classList.add("toast-enter");
   root.appendChild(el);
 
-  requestAnimationFrame(() => {
-    el.classList.remove("toast-enter");
-    el.classList.add("toast-enter-active");
-  });
-
+  // 자동 사라짐
   setTimeout(() => {
-    el.classList.remove("toast-enter-active");
-    el.classList.add("toast-exit");
-    requestAnimationFrame(() => {
-      el.classList.add("toast-exit-active");
-    });
+    el.classList.add("hide");
     setTimeout(() => {
       if (el.parentNode === root) root.removeChild(el);
-    }, 180);
+    }, 260);
   }, 2600);
 }
 
-/******** 공통 Fetch + 타임아웃 ********/
-async function korualFetch(url, options = {}) {
-  const { API_TIMEOUT_MS } = KORUAL_CONFIG;
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-  try {
-    const res = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(id);
-    return res;
-  } catch (err) {
-    clearTimeout(id);
-    if (err.name === "AbortError") {
-      throw new Error("TIMEOUT");
-    }
-    throw err;
-  }
+/******** 공통 유틸 ********/
+function isValidEmail(email) {
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-/******** Google Sheets Auth API ********/
-const GS_API        = KORUAL_CONFIG.GS_API;
-const DASHBOARD_URL = KORUAL_CONFIG.DASHBOARD_URL;
-window.__korualClientIp = "";
-
-/******** 클라이언트 IP ********/
-try {
-  fetch("https://api.ipify.org?format=json")
-    .then(res => res.json())
-    .then(d => { window.__korualClientIp = d.ip; })
-    .catch(() => {});
-} catch (_) {}
-
-/******** API Wrappers ********/
-async function apiSignup(payload) {
-  const res = await korualFetch(GS_API, {
-    method: "POST",
-    body: JSON.stringify({
-      mode: "signup",
-      ...payload,
-      client_ip:  window.__korualClientIp || "",
-      user_agent: navigator.userAgent || ""
-    })
+function clearInputErrors() {
+  [
+    "loginUsername",
+    "loginPassword",
+    "suUser",
+    "suPass",
+    "suEmail",
+    "fiEmail",
+    "rpUser",
+    "rpEmail",
+    "rpNewPw"
+  ].forEach(id => {
+    const el = $(id);
+    if (el) el.classList.remove("input-error");
   });
-  const data = await res.json();
-  if (!data.ok) {
-    const msg = data.message || I18N[LANG].unknown_error;
-    const error = new Error(msg);
-    error.code = data.code;
-    throw error;
-  }
-  return data;
-}
-
-async function apiLogin(username, password) {
-  const res = await korualFetch(GS_API, {
-    method: "POST",
-    body: JSON.stringify({
-      mode: "login",
-      username,
-      password,
-      client_ip:  window.__korualClientIp || "",
-      user_agent: navigator.userAgent || ""
-    })
-  });
-  const data = await res.json();
-  if (!data.ok) {
-    const error = new Error(data.message || I18N[LANG].login_failed);
-    error.code = data.code;
-    throw error;
-  }
-  return data;
-}
-
-// 아이디 찾기
-async function apiFindId(email) {
-  const res = await korualFetch(GS_API, {
-    method: "POST",
-    body: JSON.stringify({ mode: "findId", email })
-  });
-  return res.json();
-}
-
-// 비밀번호 재설정
-async function apiResetPw({ username, email, new_password }) {
-  const res = await korualFetch(GS_API, {
-    method: "POST",
-    body: JSON.stringify({ mode: "resetPw", username, email, new_password })
-  });
-  return res.json();
-}
-
-/******** API 상태 체크 ********/
-async function pingApi() {
-  const dot = $("apiStatusDot");
-  const txt = $("apiStatusText");
-  if (!dot || !txt) return;
-
-  const start = performance.now();
-  try {
-    const res = await korualFetch(GS_API, { method: "GET" });
-    const elapsed = Math.round(performance.now() - start);
-    const ok = res.ok;
-
-    dot.className =
-      "h-2.5 w-2.5 rounded-full " +
-      (ok
-        ? "bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.4)]"
-        : "bg-rose-400 shadow-[0_0_0_5px_rgba(248,113,113,0.4)]");
-
-    txt.textContent = ok
-      ? `Auth API Online · ${elapsed} ms`
-      : "Auth API Error";
-  } catch {
-    dot.className =
-      "h-2.5 w-2.5 rounded-full bg-rose-400 shadow-[0_0_0_5px_rgba(248,113,113,0.4)]";
-    txt.textContent = "Auth API Error";
-  }
 }
 
 /******** Modal Helper ********/
@@ -352,35 +202,105 @@ function closeModal(el) {
   el.classList.remove("flex");
 }
 
+/******** Loading Overlay ********/
+function setOverlayVisible(isVisible) {
+  const overlay = $("loadingOverlay");
+  if (!overlay) return;
+  overlay.classList.toggle("hidden", !isVisible);
+}
+
+/******** Google Sheets Auth API ********/
+const GS_API        = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
+const DASHBOARD_URL = "dashboard.html";
+
+/******** 클라이언트 IP ********/
+window.__korualClientIp = "";
+try {
+  fetch("https://api.ipify.org?format=json")
+    .then(res => res.json())
+    .then(d => { window.__korualClientIp = d.ip; })
+    .catch(() => {});
+} catch (_) {}
+
+/******** API Wrappers ********/
+async function apiSignup(payload) {
+  const res = await fetch(GS_API, {
+    method: "POST",
+    body: JSON.stringify({
+      mode: "signup",
+      ...payload,
+      client_ip:  window.__korualClientIp || "",
+      user_agent: navigator.userAgent || ""
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!data.ok) throw new Error(data.message || "Signup error");
+  return data;
+}
+
+async function apiLogin(username, password) {
+  const res = await fetch(GS_API, {
+    method: "POST",
+    body: JSON.stringify({
+      mode: "login",
+      username,
+      password,
+      client_ip:  window.__korualClientIp || "",
+      user_agent: navigator.userAgent || ""
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!data.ok) throw new Error(data.message || "Login error");
+  return data;
+}
+
+// 아이디 찾기
+async function apiFindId(email) {
+  const res = await fetch(GS_API, {
+    method: "POST",
+    body: JSON.stringify({ mode: "findId", email })
+  });
+  return res.json().catch(() => ({ ok: false }));
+}
+
+// 비밀번호 재설정
+async function apiResetPw({ username, email, new_password }) {
+  const res = await fetch(GS_API, {
+    method: "POST",
+    body: JSON.stringify({ mode: "resetPw", username, email, new_password })
+  });
+  return res.json().catch(() => ({ ok: false }));
+}
+
+/******** API 상태 체크 ********/
+async function pingApi() {
+  const dot = $("apiStatusDot");
+  const txt = $("apiStatusText");
+  if (!dot || !txt) return;
+
+  try {
+    const res = await fetch(GS_API);
+    const ok  = res.ok;
+    dot.className = "api-status-dot " + (ok ? "" : "api-status-dot-error");
+    txt.textContent = ok ? "Auth API Online" : "Auth API Error";
+  } catch {
+    dot.className = "api-status-dot api-status-dot-error";
+    txt.textContent = "Auth API Error";
+  }
+}
+
 /******** Bootstrap ********/
 (function bootstrap() {
-  // 이미 로그인된 유저면 바로 대시보드로 (고급 UX)
-  try {
-    const raw = localStorage.getItem(KORUAL_CONFIG.STORAGE_KEYS.USER);
-    if (raw) {
-      const user = JSON.parse(raw);
-      if (user && user.username) {
-        showToast(`다시 오셨네요, ${user.full_name || user.username}님.`, "info");
-        setTimeout(() => {
-          window.location.href = DASHBOARD_URL;
-        }, 800);
-        return;
-      }
-    }
-  } catch (_) {
-    // 무시
-  }
-
   const y = $("year");
   if (y) y.textContent = new Date().getFullYear();
 
   // Theme 초기값
-  const savedTheme = localStorage.getItem(KORUAL_CONFIG.STORAGE_KEYS.THEME) || "dark";
+  const savedTheme = localStorage.getItem("korual_theme") || "dark";
   applyTheme(savedTheme);
   const themeBtn = $("toggleTheme");
   if (themeBtn) {
     themeBtn.addEventListener("click", () => {
-      const current = localStorage.getItem(KORUAL_CONFIG.STORAGE_KEYS.THEME) || "dark";
+      const current = localStorage.getItem("korual_theme") || "dark";
       const next = current === "dark" ? "light" : "dark";
       applyTheme(next);
     });
@@ -396,13 +316,13 @@ function closeModal(el) {
     if (!sel) return;
     sel.addEventListener("change", e => {
       LANG = e.target.value;
-      localStorage.setItem(KORUAL_CONFIG.STORAGE_KEYS.LANG, LANG);
+      localStorage.setItem("korual_lang", LANG);
       applyI18n();
     });
   });
 
   // Remember ID
-  const savedId = localStorage.getItem(KORUAL_CONFIG.STORAGE_KEYS.LOGIN_ID) || "";
+  const savedId = localStorage.getItem("korual_login_id") || "";
   if (savedId && $("loginUsername")) {
     $("loginUsername").value = savedId;
     const rememberCheckbox = $("rememberId");
@@ -426,7 +346,7 @@ function closeModal(el) {
   const tabLoginBtn  = $("tabLoginBtn");
   const tabSignupBtn = $("tabSignupBtn");
 
-  const lastTab = localStorage.getItem(KORUAL_CONFIG.STORAGE_KEYS.AUTH_TAB) || "login";
+  const lastTab = localStorage.getItem("korual_auth_tab") || "login";
 
   function setTab(active) {
     if (!loginPanel || !signupPanel || !tabLoginBtn || !tabSignupBtn) return;
@@ -446,7 +366,7 @@ function closeModal(el) {
       tabSignupBtn.classList.remove("tab-active");
       tabSignupBtn.classList.add("tab-inactive");
     }
-    localStorage.setItem(KORUAL_CONFIG.STORAGE_KEYS.AUTH_TAB, active);
+    localStorage.setItem("korual_auth_tab", active);
   }
 
   if (tabLoginBtn && tabSignupBtn) {
@@ -479,16 +399,14 @@ function closeModal(el) {
     });
   }
 
-  const overlay = $("loadingOverlay");
-
   /******** Signup ********/
   const btnSignup = $("btnSignup");
-  let signupLock = false;
+  let signingUp = false;
 
   if (btnSignup) {
     btnSignup.addEventListener("click", async () => {
-      if (signupLock) return;
-      signupLock = true;
+      if (signingUp) return;
+      signingUp = true;
 
       clearInputErrors();
       const payload = {
@@ -516,11 +434,14 @@ function closeModal(el) {
       if (hasErr) {
         if ($("signupMsg")) $("signupMsg").textContent = I18N[LANG].need_id_pw;
         showToast(I18N[LANG].need_id_pw, "error");
-        signupLock = false;
+        signingUp = false;
         return;
       }
 
-      if ($("signupMsg")) $("signupMsg").textContent = "Saving...";
+      if ($("signupMsg")) $("signupMsg").textContent = I18N[LANG].loading_signup;
+      setOverlayVisible(true);
+      btnSignup.disabled = true;
+
       try {
         await apiSignup(payload);
         if ($("signupMsg")) $("signupMsg").textContent = I18N[LANG].signup_done;
@@ -528,40 +449,24 @@ function closeModal(el) {
         setTab("login");
         if ($("loginUsername")) $("loginUsername").value = payload.username;
       } catch (e) {
-        let msg = e.message || I18N[LANG].user_exists;
-        if (e.code === "USER_EXISTS") {
-          msg = I18N[LANG].user_exists;
-        }
+        const msg = e.message || I18N[LANG].user_exists || I18N[LANG].server_error;
         if ($("signupMsg")) $("signupMsg").textContent = msg;
         showToast(msg, "error");
       } finally {
-        signupLock = false;
+        signingUp = false;
+        setOverlayVisible(false);
+        btnSignup.disabled = false;
       }
     });
   }
 
   /******** Login ********/
   const btnLogin = $("btnLogin");
-  let loginLock = false;
-
-  function mapLoginError(e) {
-    if (e.message === "TIMEOUT") return I18N[LANG].timeout_error;
-
-    switch (e.code) {
-      case "LOCKED":
-        return I18N[LANG].locked;
-      case "INVALID_CREDENTIAL":
-        return I18N[LANG].invalid_credential;
-      case "TOO_MANY_ATTEMPTS":
-        return I18N[LANG].locked;
-      default:
-        return e.message || I18N[LANG].login_failed;
-    }
-  }
+  let loggingIn = false;
 
   async function handleLogin() {
-    if (loginLock) return;
-    loginLock = true;
+    if (loggingIn) return;
+    loggingIn = true;
 
     clearInputErrors();
     const username = $("loginUsername") ? $("loginUsername").value.trim() : "";
@@ -572,21 +477,21 @@ function closeModal(el) {
       if (!username) $("loginUsername")?.classList.add("input-error");
       if (!password) $("loginPassword")?.classList.add("input-error");
       showToast(I18N[LANG].need_id_pw, "error");
-      loginLock = false;
+      loggingIn = false;
       return;
     }
 
     if ($("loginMsg")) $("loginMsg").textContent = "";
     if (btnLogin) {
       btnLogin.disabled = true;
-      btnLogin.textContent = "Loading...";
+      btnLogin.textContent = I18N[LANG].loading_login;
     }
-    if (overlay) overlay.classList.remove("hidden");
+    setOverlayVisible(true);
 
     // remember ID
     const remember = $("rememberId")?.checked;
-    if (remember) localStorage.setItem(KORUAL_CONFIG.STORAGE_KEYS.LOGIN_ID, username);
-    else localStorage.removeItem(KORUAL_CONFIG.STORAGE_KEYS.LOGIN_ID);
+    if (remember) localStorage.setItem("korual_login_id", username);
+    else localStorage.removeItem("korual_login_id");
 
     try {
       const data = await apiLogin(username, password);
@@ -598,7 +503,7 @@ function closeModal(el) {
 
       // localStorage 세션 저장
       localStorage.setItem(
-        KORUAL_CONFIG.STORAGE_KEYS.USER,
+        "korual_user",
         JSON.stringify({
           username:   u.username || username,
           full_name:  fullName,
@@ -612,16 +517,16 @@ function closeModal(el) {
       showToast(`어서오세요, ${fullName}님. Control Center로 이동합니다.`, "success");
       setTimeout(() => { window.location.href = DASHBOARD_URL; }, 600);
     } catch (e) {
-      const msg = mapLoginError(e);
+      const msg = e.message || I18N[LANG].login_failed || I18N[LANG].server_error;
       if ($("loginMsg")) $("loginMsg").textContent = msg;
       showToast(msg, "error");
     } finally {
-      loginLock = false;
+      loggingIn = false;
       if (btnLogin) {
         btnLogin.disabled = false;
         btnLogin.textContent = I18N[LANG].login_btn;
       }
-      if (overlay) overlay.classList.add("hidden");
+      setOverlayVisible(false);
     }
   }
 
@@ -655,7 +560,6 @@ function closeModal(el) {
       if (fiEmail) fiEmail.value = "";
       if (fiResult) fiResult.textContent = "";
       openModal(modalFind);
-      fiEmail?.focus();
     });
   }
 
@@ -666,7 +570,6 @@ function closeModal(el) {
       if (rpNewPw) rpNewPw.value = "";
       if (rpMsg)   rpMsg.textContent = "";
       openModal(modalReset);
-      rpUser?.focus();
     });
   }
 
@@ -696,13 +599,12 @@ function closeModal(el) {
         showToast(I18N[LANG].need_email, "error");
         return;
       }
-      fiResult.textContent = "Searching...";
+      fiResult.textContent = I18N[LANG].loading_search;
       try {
         const res = await apiFindId(email);
         if (!res.ok) {
-          const msg = res.message || I18N[LANG].find_id_empty;
-          fiResult.textContent = msg;
-          showToast(msg, "error");
+          fiResult.textContent = res.message || I18N[LANG].find_id_empty;
+          showToast(res.message || I18N[LANG].find_id_empty, "error");
           return;
         }
         const ids = res.ids || [];
@@ -714,12 +616,8 @@ function closeModal(el) {
           showToast(I18N[LANG].find_id_success_prefix, "success");
         }
       } catch (err) {
-        const msg =
-          err.message === "TIMEOUT"
-            ? I18N[LANG].timeout_error
-            : I18N[LANG].find_id_empty;
-        fiResult.textContent = msg;
-        showToast(msg, "error");
+        fiResult.textContent = I18N[LANG].find_id_empty;
+        showToast(I18N[LANG].server_error, "error");
       }
     });
   }
@@ -759,17 +657,13 @@ function closeModal(el) {
         }
         rpMsg.textContent = I18N[LANG].reset_pw_success;
         showToast(I18N[LANG].reset_pw_success, "success");
-        // 성공 후 잠깐 뒤에 모달 닫기
         setTimeout(() => {
           if (modalReset) closeModal(modalReset);
         }, 800);
       } catch (err) {
-        const msg =
-          err.message === "TIMEOUT"
-            ? I18N[LANG].timeout_error
-            : I18N[LANG].reset_pw_failed;
+        const msg = I18N[LANG].reset_pw_failed;
         rpMsg.textContent = msg;
-        showToast(msg, "error");
+        showToast(I18N[LANG].server_error, "error");
       }
     });
   }
