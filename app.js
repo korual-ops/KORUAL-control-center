@@ -1,19 +1,60 @@
 /******************************************************
- * KORUAL CONTROL CENTER – Frontend (High-End app.js)
- * - 대시보드 / 상품 / 주문 / 회원 / 재고 / 로그
- * - Google Apps Script Web App(code.gs High-End) 연동
- * - 테마 토글, 모바일 사이드바, 검색 + 페이징, 행 수정/삭제 모달
+ * KORUAL CONTROL CENTER – Frontend (Ultra High-End app.js)
+ * - Dashboard / Products / Orders / Members / Stock / Logs
+ * - Google Apps Script Web App (Ultra High-End code.gs) 연동
+ * - META.APP 연동 / 테마 / 모바일 사이드바 / 검색 + 페이징 / 행 수정·삭제 모달
  ******************************************************/
 
 /* ==============================
-   0) 기본 설정
+   0) META.APP 연동 + 기본 설정
 ============================== */
 
-// ※ 배포된 Web App URL 로 교체해서 사용
-const API_BASE   = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
-const API_SECRET = "KORUAL-ONLY";
+// META.APP (meta.app.js) 를 먼저 로드했다면 여기서 바라봄
+const KORUAL_META =
+  typeof window !== "undefined" && window.KORUAL_META_APP
+    ? window.KORUAL_META_APP
+    : {
+        app: {
+          id: "korual-control-center",
+          name: "KORUAL CONTROL CENTER",
+          version: "v4.1",
+          env: "prod",
+        },
+        api: {
+          baseUrl:
+            "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
+          timeoutMs: 12000,
+          secret: "KORUAL-ONLY",
+        },
+        ui: {
+          defaultPageSize: 20,
+        },
+        brand: {
+          accent: "#facc15",
+        },
+        routes: {
+          auth: "index.html",
+          dashboard: "dashboard.html",
+        },
+      };
 
-const PAGE_SIZE = 20;
+// API 설정 (백엔드 code.gs APP_META 와 맞춤)
+const API_BASE = KORUAL_META.api.baseUrl;
+const API_SECRET = KORUAL_META.api.secret;
+const PAGE_SIZE = KORUAL_META.ui.defaultPageSize || 20;
+
+// 브랜드 컬러를 CSS 변수로 반영
+(function applyBrandCssVars() {
+  try {
+    const root = document.documentElement;
+    if (!root) return;
+    if (KORUAL_META.brand?.accent) {
+      root.style.setProperty("--korual-accent", KORUAL_META.brand.accent);
+    }
+  } catch (_) {
+    // ignore
+  }
+})();
 
 /* ==============================
    1) 전역 상태
@@ -23,10 +64,10 @@ const STATE = {
   lastSync: null,
   entities: {
     products: { sheet: "PRODUCTS", rows: [], filtered: [], page: 1 },
-    orders:   { sheet: "ORDERS",   rows: [], filtered: [], page: 1 },
-    members:  { sheet: "MEMBERS",  rows: [], filtered: [], page: 1 },
-    stock:    { sheet: "STOCK",    rows: [], filtered: [], page: 1 },
-    logs:     { sheet: "LOGS",     rows: [], filtered: [], page: 1 },
+    orders: { sheet: "ORDERS", rows: [], filtered: [], page: 1 },
+    members: { sheet: "MEMBERS", rows: [], filtered: [], page: 1 },
+    stock: { sheet: "STOCK", rows: [], filtered: [], page: 1 },
+    logs: { sheet: "LOGS", rows: [], filtered: [], page: 1 },
   },
   currentEdit: null,
 };
@@ -167,8 +208,11 @@ function setSpinner(visible) {
 
 async function getJson(target) {
   const url = `${API_BASE}?target=${encodeURIComponent(target)}`;
+
   const t0 = performance.now();
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    method: "GET",
+  });
   const t1 = performance.now();
   const elapsed = Math.round(t1 - t0);
 
@@ -288,7 +332,7 @@ function initUserHeader() {
       localStorage.removeItem("korual_user");
       showToast("로그아웃 되었습니다.", "info");
       setTimeout(() => {
-        location.replace("index.html");
+        location.replace(KORUAL_META.routes.auth || "index.html");
       }, 500);
     });
   }
@@ -316,7 +360,6 @@ function initNav() {
     });
   });
 
-  // 대시보드 → 주문관리 바로가기
   const goOrders = $("goOrders");
   if (goOrders) {
     goOrders.addEventListener("click", () => {
@@ -348,24 +391,24 @@ function initMobileSidebar() {
 
 async function loadDashboard() {
   const cardTotalProducts = $("cardTotalProducts");
-  const cardTotalOrders   = $("cardTotalOrders");
-  const cardTotalRevenue  = $("cardTotalRevenue");
-  const cardTotalMembers  = $("cardTotalMembers");
-  const todayOrders       = $("todayOrders");
-  const todayRevenue      = $("todayRevenue");
-  const todayPending      = $("todayPending");
-  const recentBody        = $("recentOrdersBody");
-  const todayLabel        = $("todayDateLabel");
+  const cardTotalOrders = $("cardTotalOrders");
+  const cardTotalRevenue = $("cardTotalRevenue");
+  const cardTotalMembers = $("cardTotalMembers");
+  const todayOrders = $("todayOrders");
+  const todayRevenue = $("todayRevenue");
+  const todayPending = $("todayPending");
+  const recentBody = $("recentOrdersBody");
+  const todayLabel = $("todayDateLabel");
 
   try {
     const { data } = await getJson("dashboard");
 
     if (cardTotalProducts) cardTotalProducts.textContent = formatNumber(data.totalProducts);
-    if (cardTotalOrders)   cardTotalOrders.textContent   = formatNumber(data.totalOrders);
-    if (cardTotalRevenue)  cardTotalRevenue.textContent  = formatCurrency(data.totalRevenue);
-    if (cardTotalMembers)  cardTotalMembers.textContent  = formatNumber(data.totalMembers);
+    if (cardTotalOrders) cardTotalOrders.textContent = formatNumber(data.totalOrders);
+    if (cardTotalRevenue) cardTotalRevenue.textContent = formatCurrency(data.totalRevenue);
+    if (cardTotalMembers) cardTotalMembers.textContent = formatNumber(data.totalMembers);
 
-    if (todayOrders)  todayOrders.textContent  = formatNumber(data.todayOrders);
+    if (todayOrders) todayOrders.textContent = formatNumber(data.todayOrders);
     if (todayRevenue) todayRevenue.textContent = formatCurrency(data.todayRevenue);
     if (todayPending) todayPending.textContent = formatNumber(data.todayPending);
 
@@ -414,12 +457,11 @@ async function loadEntity(entityKey) {
   const cfg = ENTITY_CONFIG[entityKey];
   if (!cfg) return;
 
-  const target = entityKey; // members → target=members
+  const target = entityKey;
   try {
     const { data } = await getJson(target);
     const rows = Array.isArray(data.rows) ? data.rows : [];
 
-    // 시트 rowIndex (2행부터 데이터)
     const withIndex = rows.map((r, idx) => ({
       ...r,
       __rowIndex: idx + 2,
@@ -431,9 +473,7 @@ async function loadEntity(entityKey) {
 
     renderEntityTable(entityKey);
   } catch (err) {
-    const tbody = document.querySelector(
-      `tbody[data-entity="${entityKey}"]`
-    );
+    const tbody = document.querySelector(`tbody[data-entity="${entityKey}"]`);
     if (tbody) {
       tbody.innerHTML = `<tr><td colspan="${cfg.columnCount}" class="empty-state">${cfg.sheet} 데이터를 불러오는 중 오류가 발생했습니다.</td></tr>`;
     }
@@ -446,9 +486,7 @@ function renderEntityTable(entityKey) {
   const entityState = STATE.entities[entityKey];
   if (!cfg || !entityState) return;
 
-  const tbody = document.querySelector(
-    `tbody[data-entity="${entityKey}"]`
-  );
+  const tbody = document.querySelector(`tbody[data-entity="${entityKey}"]`);
   if (!tbody) return;
 
   const pager = $(`${entityKey}Pager`);
@@ -472,7 +510,6 @@ function renderEntityTable(entityKey) {
     slice.forEach((row) => {
       const tr = document.createElement("tr");
 
-      // 데이터 컬럼
       cfg.columns.forEach((key) => {
         const td = document.createElement("td");
         let val = row[key];
@@ -493,7 +530,6 @@ function renderEntityTable(entityKey) {
         tr.appendChild(td);
       });
 
-      // 관리 컬럼 (있는 엔티티만)
       if (cfg.editable) {
         const td = document.createElement("td");
         td.className = "table-actions";
@@ -525,7 +561,6 @@ function renderEntityTable(entityKey) {
     });
   }
 
-  // 페이저 UI
   if (pager) {
     const prevBtn = pager.querySelector('button[data-page="prev"]');
     const nextBtn = pager.querySelector('button[data-page="next"]');
@@ -607,7 +642,6 @@ function openEditRow(entityKey, row) {
   if (!cfg) return;
   if (!window.KORUAL_MODAL || !window.KORUAL_MODAL.openEdit) return;
 
-  // 컬럼 순서대로 데이터 재구성(모달 필드 순서용)
   const ordered = {};
   cfg.columns.forEach((k) => {
     ordered[k] = row[k] != null ? row[k] : "";
@@ -672,8 +706,7 @@ function initModalActions() {
       inputs.forEach((inp) => {
         const key = inp.dataset.fieldKey;
         const newVal = inp.value;
-        const oldVal =
-          originalRow[key] != null ? String(originalRow[key]) : "";
+        const oldVal = originalRow[key] != null ? String(originalRow[key]) : "";
         if (String(newVal) !== oldVal) {
           changes[key] = newVal;
         }
@@ -687,7 +720,7 @@ function initModalActions() {
 
       try {
         setSpinner(true);
-        // 컬럼마다 updateCell 호출
+
         for (const key of Object.keys(changes)) {
           const colIndex = cfg.columns.indexOf(key) + 1;
           if (colIndex <= 0) continue;
@@ -699,17 +732,14 @@ function initModalActions() {
           });
         }
 
-        // 로컬 상태 업데이트 & 재렌더
         const state = STATE.entities[entity];
         if (state) {
-          const idx = state.rows.findIndex(
-            (r) => r.__rowIndex === rowIndex
-          );
+          const idx = state.rows.findIndex((r) => r.__rowIndex === rowIndex);
           if (idx >= 0) {
             const updated = { ...state.rows[idx], ...changes };
             state.rows[idx] = updated;
           }
-          // 다시 필터 적용
+
           const termInputId =
             entity === "products"
               ? "searchProducts"
@@ -722,7 +752,6 @@ function initModalActions() {
               : "searchLogs";
           const searchEl = $(termInputId);
           if (searchEl && searchEl.value.trim()) {
-            // 검색어가 있으면 그대로 필터 다시 실행
             const keys = cfg.searchKeys || cfg.columns;
             const term = searchEl.value.trim().toLowerCase();
             state.filtered = state.rows.filter((row) =>
@@ -764,7 +793,6 @@ function initModalActions() {
           row: rowIndex,
         });
 
-        // 삭제 후 목록 다시 로딩 (rowIndex가 전체에 영향을 주기 때문)
         await loadEntity(entity);
         showToast("삭제되었습니다.", "success");
         window.KORUAL_MODAL.closeAll();
@@ -782,7 +810,6 @@ function initModalActions() {
 ============================== */
 
 async function bootstrap() {
-  // Footer 연도 표기용
   const yearText = document.querySelector(".footer-inner span");
   if (yearText) {
     const nowY = new Date().getFullYear();
@@ -796,10 +823,8 @@ async function bootstrap() {
   initSearch();
   initModalActions();
 
-  // API 상태 체크 1회
   pingApiOnce();
 
-  // 전체 데이터 로딩
   setSpinner(true);
   try {
     await Promise.all([
@@ -812,14 +837,12 @@ async function bootstrap() {
     ]);
     STATE.lastSync = new Date();
     if ($("last-sync")) {
-      $("last-sync").textContent =
-        "마지막 동기화: " + formatDateLabel(STATE.lastSync);
+      $("last-sync").textContent = "마지막 동기화: " + formatDateLabel(STATE.lastSync);
     }
   } finally {
     setSpinner(false);
   }
 
-  // 전체 새로고침 버튼
   const btnRefreshAll = $("btnRefreshAll");
   if (btnRefreshAll) {
     btnRefreshAll.addEventListener("click", async () => {
@@ -835,8 +858,7 @@ async function bootstrap() {
         ]);
         STATE.lastSync = new Date();
         if ($("last-sync")) {
-          $("last-sync").textContent =
-            "마지막 동기화: " + formatDateLabel(STATE.lastSync);
+          $("last-sync").textContent = "마지막 동기화: " + formatDateLabel(STATE.lastSync);
         }
         showToast("모든 데이터가 새로고침되었습니다.", "success");
       } catch (err) {
@@ -849,5 +871,3 @@ async function bootstrap() {
 }
 
 document.addEventListener("DOMContentLoaded", bootstrap);
-
-
