@@ -15,44 +15,123 @@
     html:not(.dark) { color-scheme: light; }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* 메인 배경 – 살짝 3D 레이더 느낌 */
+    .korual-bg {
+      position: relative;
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.24), transparent 65%),
+        radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.30), transparent 65%),
+        linear-gradient(to bottom right, #020617, #020617);
+      color: #e5e7eb;
+      isolation: isolate;
+    }
+    .korual-bg::before {
+      content: "";
+      position: fixed;
+      inset: -200px;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(15,23,42,0.7) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15,23,42,0.7) 1px, transparent 1px);
+      background-size: 80px 80px;
+      opacity: 0.65;
+      mix-blend-mode: soft-light;
+      mask-image: radial-gradient(circle at center, black 0%, transparent 65%);
+      z-index: -2;
+    }
+
+    /* 떠다니는 오브젝트 */
+    .orb {
+      position: fixed;
+      border-radius: 999px;
+      filter: blur(24px);
+      opacity: 0.7;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .orb-1 {
+      width: 220px; height: 220px;
+      top: 6%; left: 8%;
+      background: radial-gradient(circle at 30% 30%, rgba(56,189,248,.75), transparent 60%);
+      animation: floatOrb1 16s ease-in-out infinite alternate;
+    }
+    .orb-2 {
+      width: 260px; height: 260px;
+      bottom: 4%; right: 10%;
+      background: radial-gradient(circle at 70% 60%, rgba(129,140,248,.85), transparent 60%);
+      animation: floatOrb2 18s ease-in-out infinite alternate;
+    }
+    .orb-3 {
+      width: 280px; height: 280px;
+      bottom: 40%; left: -40px;
+      background: radial-gradient(circle at 40% 40%, rgba(52,211,153,.8), transparent 65%);
+      opacity: 0.4;
+      animation: floatOrb3 20s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatOrb1 {
+      0%   { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(20px, 40px, 0); }
+    }
+    @keyframes floatOrb2 {
+      0%   { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-30px, -30px, 0); }
+    }
+    @keyframes floatOrb3 {
+      0%   { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(10px, -30px, 0); }
     }
 
     .glass {
-      backdrop-filter: blur(22px);
-      -webkit-backdrop-filter: blur(22px);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0.65rem 1.1rem;
-      border-radius: 0.9rem;
+      padding: 0.7rem 1.15rem;
+      border-radius: 0.95rem;
       font-size: 0.875rem;
       font-weight: 600;
       letter-spacing: -0.01em;
       color: #fff;
-      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.23), transparent 55%),
+        linear-gradient(135deg, #2563eb, #0ea5e9);
       box-shadow:
-        0 18px 40px rgba(15, 23, 42, 0.65),
-        0 0 0 1px rgba(148, 163, 184, 0.15);
+        0 18px 40px rgba(15, 23, 42, 0.85),
+        0 0 0 1px rgba(148, 163, 184, 0.18);
       transition: all 0.18s ease-out;
       border: 0;
     }
     .btn:hover {
-      transform: translateY(-1px);
+      transform: translateY(-1px) translateZ(0);
       box-shadow:
-        0 22px 45px rgba(15, 23, 42, 0.8),
-        0 0 0 1px rgba(129, 140, 248, 0.5);
-      filter: saturate(1.1);
+        0 24px 50px rgba(15, 23, 42, 0.95),
+        0 0 0 1px rgba(129,140,248,0.65);
+      filter: saturate(1.08);
+    }
+    .btn:active {
+      transform: translateY(0);
+      box-shadow:
+        0 12px 30px rgba(15,23,42,0.9),
+        0 0 0 1px rgba(59,130,246,0.9);
     }
     .btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
       transform: none;
       box-shadow:
-        0 10px 25px rgba(15, 23, 42, 0.4),
+        0 10px 25px rgba(15, 23, 42, 0.6),
         0 0 0 1px rgba(148, 163, 184, 0.3);
     }
 
@@ -66,44 +145,44 @@
       border: 1px solid rgba(148, 163, 184, 0.65);
       background:
         radial-gradient(circle at top left, rgba(148,163,184,0.18), transparent 55%),
-        rgba(15,23,42,0.8);
+        rgba(15,23,42,0.9);
       color: #e5e7eb;
       transition: all 0.16s ease-out;
     }
     .btn-alt:hover {
       background:
         radial-gradient(circle at top left, rgba(148,163,184,0.32), transparent 55%),
-        rgba(15,23,42,0.96);
+        rgba(15,23,42,0.98);
       border-color: rgba(148, 163, 184, 0.9);
       transform: translateY(-0.5px);
     }
 
     .input {
       width: 100%;
-      padding: 0.65rem 0.9rem;
+      padding: 0.7rem 0.9rem;
       border-radius: 0.9rem;
       border: 1px solid rgba(148, 163, 184, 0.55);
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.96);
       color: #e5e7eb;
       font-size: 0.875rem;
       outline: none;
-      transition: all 0.14s ease-out;
+      transition: all 0.16s ease-out;
     }
     .input::placeholder {
       color: rgba(148, 163, 184, 0.7);
     }
     .input:focus {
-      border-color: rgba(96, 165, 250, 0.9);
+      border-color: rgba(96, 165, 250, 0.95);
       box-shadow:
-        0 0 0 1px rgba(96, 165, 250, 0.9),
-        0 0 0 8px rgba(37, 99, 235, 0.08);
-      background: rgba(15, 23, 42, 0.96);
+        0 0 0 1px rgba(96, 165, 250, 0.95),
+        0 0 0 9px rgba(37, 99, 235, 0.12);
+      background: rgba(15, 23, 42, 0.98);
     }
     .input-error {
-      border-color: rgba(248, 113, 113, 0.9) !important;
+      border-color: rgba(248, 113, 113, 0.95) !important;
       box-shadow:
-        0 0 0 1px rgba(248, 113, 113, 0.9),
-        0 0 0 6px rgba(248, 113, 113, 0.18);
+        0 0 0 1px rgba(248, 113, 113, 0.95),
+        0 0 0 7px rgba(248, 113, 113, 0.2);
     }
 
     .pill {
@@ -113,26 +192,35 @@
       border-radius: 999px;
       font-size: 0.7rem;
       border: 1px solid rgba(148, 163, 184, 0.55);
-      background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(15,23,42,0.75));
+      background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,0.8));
       color: #cbd5f5;
       gap: 0.35rem;
+      position: relative;
+      overflow: hidden;
     }
     .pill::before {
-      content: '';
+      content: "";
       width: 6px;
       height: 6px;
       border-radius: 999px;
       background: radial-gradient(circle, #38bdf8, #1d4ed8);
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.85);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.95);
+    }
+    .pill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.14), transparent);
+      opacity: 0;
+      transform: translateX(-60%);
+      transition: all 0.55s ease-out;
+    }
+    .pill:hover::after {
+      opacity: 1;
+      transform: translateX(60%);
     }
 
-    .auth-bg-dark {
-      background:
-        radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.22), transparent 60%),
-        radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.28), transparent 60%),
-        linear-gradient(to bottom right, #020617, #020617);
-      color: #e5e7eb;
-    }
+    .auth-bg-dark { color: #e5e7eb; }
     .auth-bg-light {
       background:
         radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.10), transparent 60%),
@@ -145,7 +233,7 @@
       background-color: #f9fafb;
       color: #020617;
       font-weight: 600;
-      box-shadow: 0 10px 30px rgba(15,23,42,0.6);
+      box-shadow: 0 10px 32px rgba(15,23,42,0.68);
     }
     .tab-inactive { color: #9ca3af; }
 
@@ -162,21 +250,21 @@
 
     /* Light theme overrides */
     html:not(.dark) .glass {
-      background: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.93);
       border-color: rgba(148,163,184,0.45) !important;
       box-shadow:
-        0 30px 80px rgba(15,23,42,0.18),
+        0 32px 90px rgba(15,23,42,0.20),
         0 0 0 1px rgba(148,163,184,0.25);
     }
     html:not(.dark) #loginPanel,
     html:not(.dark) #signupPanel {
-      background: rgba(255,255,255,0.96);
+      background: rgba(255,255,255,0.98);
       border-color: rgba(148,163,184,0.55);
       color: #0f172a;
     }
     html:not(.dark) .btn-alt {
       background:
-        radial-gradient(circle at top left, rgba(148,163,184,0.12), transparent 55%),
+        radial-gradient(circle at top left, rgba(148,163,184,0.14), transparent 55%),
         #ffffff;
       color: #0f172a;
       border-color: rgba(148,163,184,0.7);
@@ -199,7 +287,7 @@
     }
     html:not(.dark) .btn {
       box-shadow:
-        0 14px 30px rgba(59,130,246,0.35),
+        0 18px 40px rgba(59,130,246,0.38),
         0 0 0 1px rgba(129,140,248,0.35);
     }
 
@@ -223,21 +311,50 @@
       transition: all 0.18s ease-in;
     }
 
-    /* 모바일 카드 여백 */
     @media (max-width: 768px) {
-      .auth-card-wrapper { padding-bottom: 1.5rem; }
+      .auth-card-wrapper { padding-bottom: 1.6rem; }
     }
   </style>
+
+  <!-- KORUAL META APP (app.js에서 사용하는 글로벌 설정) -->
+  <script>
+    window.KORUAL_META_APP = {
+      app: {
+        id: "korual-auth",
+        name: "KORUAL Control Center – Auth",
+        version: "v1.0",
+        env: "prod",
+      },
+      brand: {
+        name: "KORUAL",
+        accent: "#38bdf8",
+        accentSoft: "rgba(56,189,248,0.18)",
+      },
+      api: {
+        baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
+        secret: "KORUAL-ONLY",
+      },
+      ui: {
+        defaultLang: "ko",
+        defaultTheme: "dark",
+      },
+    };
+  </script>
 </head>
-<body class="min-h-screen auth-bg-dark text-slate-50 transition-colors duration-200">
+
+<body class="korual-bg auth-bg-dark text-slate-50 transition-colors duration-200">
+  <!-- 부드러운 오브젝트 -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
   <!-- Toast container -->
   <div id="toastRoot" class="fixed inset-x-0 bottom-4 flex justify-center pointer-events-none z-30 px-4"></div>
 
   <!-- Top bar -->
-  <header class="max-w-6xl mx-auto px-4 md:px-8 pt-4 pb-3 flex items-center justify-between gap-4">
+  <header class="max-w-6xl mx-auto px-4 md:px-8 pt-4 pb-3 flex items-center justify-between gap-4 relative z-10">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-slate-900/90 text-white grid place-content-center text-lg md:text-xl font-bold shadow-[0_15px_35px_rgba(15,23,42,0.9)] ring-1 ring-slate-700/80">
+      <div class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-slate-950/95 text-white grid place-content-center text-lg md:text-xl font-bold shadow-[0_18px_40px_rgba(15,23,42,0.95)] ring-1 ring-slate-700/90">
         K
       </div>
       <div>
@@ -255,7 +372,7 @@
         <span id="apiStatusDot" class="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.35)]"></span>
         <span id="apiStatusText" class="text-slate-400">Auth API 체크 중…</span>
       </div>
-      <select id="langTop" class="input w-24 md:w-28 py-2 text-[11px] md:text-xs border-slate-700 bg-slate-900/80">
+      <select id="langTop" class="input w-24 md:w-28 py-2 text-[11px] md:text-xs border-slate-700 bg-slate-950/80">
         <option value="ko">한국어</option>
         <option value="en">English</option>
       </select>
@@ -264,11 +381,11 @@
   </header>
 
   <!-- Auth card -->
-  <main class="max-w-6xl mx-auto px-4 md:px-8 auth-card-wrapper">
-    <section class="relative w-full max-w-md md:max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-[0_28px_90px_rgba(15,23,42,0.95)] border border-slate-800/90 glass bg-slate-900 md:grid md:grid-cols-[1.05fr,1.25fr]">
+  <main class="max-w-6xl mx-auto px-4 md:px-8 auth-card-wrapper relative z-10">
+    <section class="relative w-full max-w-md md:max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-[0_32px_90px_rgba(15,23,42,0.98)] border border-slate-800/90 glass bg-slate-950/95 md:grid md:grid-cols-[1.05fr,1.25fr]">
       <!-- outer glow frame -->
-      <div class="pointer-events-none absolute inset-0 border border-sky-500/15 rounded-[1.45rem]"></div>
-      <div class="pointer-events-none absolute -inset-px rounded-[1.6rem] bg-gradient-to-br from-sky-500/10 via-transparent to-violet-500/10 mix-blend-screen opacity-60"></div>
+      <div class="pointer-events-none absolute inset-0 border border-sky-500/16 rounded-[1.45rem]"></div>
+      <div class="pointer-events-none absolute -inset-px rounded-[1.6rem] bg-gradient-to-br from-sky-500/12 via-transparent to-violet-500/14 mix-blend-screen opacity-70"></div>
 
       <!-- 모바일 인포 -->
       <div class="flex md:hidden flex-col gap-5 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 p-6 pb-5 relative z-10">
@@ -322,7 +439,7 @@
 
       <!-- 데스크톱 좌측 인포 -->
       <div class="hidden md:flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/95 p-8 text-slate-50 relative">
-        <div class="absolute inset-x-10 top-16 h-36 bg-gradient-to-r from-sky-500/20 via-cyan-400/10 to-indigo-500/25 blur-3xl opacity-80"></div>
+        <div class="absolute inset-x-10 top-16 h-40 bg-gradient-to-r from-sky-500/24 via-cyan-400/12 to-indigo-500/26 blur-3xl opacity-90"></div>
         <div class="relative space-y-7">
           <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-md">
             <div class="w-10 h-10 rounded-2xl bg-white text-slate-900 grid place-content-center text-xl font-bold">K</div>
@@ -360,7 +477,7 @@
 
         <div class="relative mt-8 space-y-3 text-[11px] text-slate-400">
           <p class="font-medium text-slate-200">테스트용 기본 계정</p>
-          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/80 border border-slate-700/80 shadow-inner">
+          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/85 border border-slate-700/80 shadow-inner">
             <span class="text-slate-400">ID</span>
             <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">KORUAL</code>
             <span class="text-slate-600">/</span>
@@ -375,9 +492,9 @@
       </div>
 
       <!-- 우측 로그인/회원가입 카드 -->
-      <div class="bg-slate-950/95 text-slate-50 px-5 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8 relative">
+      <div class="bg-slate-950/97 text-slate-50 px-5 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8 relative">
         <!-- Loading overlay -->
-        <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3">
+        <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3">
           <div class="w-10 h-10 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin"></div>
           <p class="text-xs text-slate-300">KORUAL 계정 확인 중...</p>
         </div>
@@ -389,14 +506,14 @@
             </p>
             <h1 class="text-lg sm:text-xl font-semibold" data-i18n="headline">KORUAL 계정으로 접속</h1>
           </div>
-          <select id="langAuth" class="input w-24 sm:w-28 py-2 text-[11px] sm:text-xs bg-slate-950/80 border-slate-700/80">
+          <select id="langAuth" class="input w-24 sm:w-28 py-2 text-[11px] sm:text-xs bg-slate-950/90 border-slate-700/80">
             <option value="ko">한국어</option>
             <option value="en">English</option>
           </select>
         </div>
 
         <!-- Tabs -->
-        <div class="inline-flex mb-5 rounded-2xl bg-slate-900/80 border border-slate-700/80 p-1 text-xs">
+        <div class="inline-flex mb-5 rounded-2xl bg-slate-950/80 border border-slate-800/80 p-1 text-xs shadow-[0_14px_35px_rgba(15,23,42,0.9)]">
           <button id="tabLoginBtn" class="flex-1 px-4 py-2 rounded-xl tab-active" data-i18n="tab_login">
             로그인
           </button>
@@ -407,7 +524,7 @@
 
         <div class="grid gap-5 sm:gap-6 relative">
           <!-- Login -->
-          <div id="loginPanel" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/85 px-4 py-4 sm:px-5 sm:py-5 shadow-[0_16px_40px_rgba(15,23,42,0.9)]">
+          <div id="loginPanel" class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/90 px-4 py-4 sm:px-5 sm:py-5 shadow-[0_16px_40px_rgba(15,23,42,0.95)]">
             <div class="flex items-center justify-between gap-2">
               <h2 class="text-base font-semibold" data-i18n="login">로그인</h2>
               <span class="pill text-[11px] text-slate-200" data-i18n="login_badge">
@@ -420,7 +537,7 @@
                 <div class="relative">
                   <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">@</span>
                   <input id="loginUsername"
-                         class="input pl-7 border-slate-700/70 bg-slate-950/80"
+                         class="input pl-7 border-slate-700/70 bg-slate-950/88"
                          placeholder="예: KORUAL" autocomplete="username" />
                 </div>
               </div>
@@ -435,7 +552,7 @@
                   </button>
                 </div>
                 <input id="loginPassword"
-                       class="input pl-3 border-slate-700/70 bg-slate-950/80"
+                       class="input pl-3 border-slate-700/70 bg-slate-950/88"
                        type="password" placeholder="••••••••" autocomplete="current-password" />
               </div>
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -467,7 +584,7 @@
           </div>
 
           <!-- Signup -->
-          <div id="signupPanel" class="hidden space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 sm:px-5 sm:py-5">
+          <div id="signupPanel" class="hidden space-y-4 rounded-2xl border border-slate-800 bg-slate-950/88 px-4 py-4 sm:px-5 sm:py-5">
             <div class="flex items-center justify-between gap-2">
               <h2 class="text-base font-semibold" data-i18n="signup">회원가입</h2>
               <span class="pill text-[11px] text-slate-200" data-i18n="signup_badge">
@@ -477,20 +594,20 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label class="block mb-1 text-sm" data-i18n="full_name">이름</label>
-                <input id="suName" class="input bg-slate-950/80 border-slate-700/70" placeholder="홍길동" />
+                <input id="suName" class="input bg-slate-950/88 border-slate-700/70" placeholder="홍길동" />
               </div>
               <div>
                 <label class="block mb-1 text-sm" data-i18n="email">이메일</label>
-                <input id="suEmail" class="input bg-slate-950/80 border-slate-700/70" placeholder="you@korual.app" />
+                <input id="suEmail" class="input bg-slate-950/88 border-slate-700/70" placeholder="you@korual.app" />
               </div>
               <div>
                 <label class="block mb-1 text-sm" data-i18n="username">아이디</label>
-                <input id="suUser" class="input bg-slate-950/80 border-slate-700/70"
+                <input id="suUser" class="input bg-slate-950/88 border-slate-700/70"
                        placeholder="영문/숫자 조합" autocomplete="username" />
               </div>
               <div>
                 <label class="block mb-1 text-sm" data-i18n="password">비밀번호</label>
-                <input id="suPass" class="input bg-slate-950/80 border-slate-700/70"
+                <input id="suPass" class="input bg-slate-950/88 border-slate-700/70"
                        type="password" placeholder="최소 6자리" autocomplete="new-password" />
                 <p class="password-hint">6자 이상, 영어/숫자 조합 권장</p>
               </div>
@@ -518,7 +635,7 @@
 
   <!-- ID 찾기 모달 -->
   <div id="modalFindId" class="hidden fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm px-4">
-    <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.95)] p-5 relative">
+    <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.98)] p-5 relative">
       <button id="closeFind" class="absolute right-3 top-3 text-slate-500 hover:text-slate-200 text-sm">
         ✕
       </button>
@@ -538,7 +655,7 @@
 
   <!-- 비밀번호 재설정 모달 -->
   <div id="modalResetPw" class="hidden fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm px-4">
-    <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.95)] p-5 relative">
+    <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.98)] p-5 relative">
       <button id="closeReset" class="absolute right-3 top-3 text-slate-500 hover:text-slate-200 text-sm">
         ✕
       </button>
@@ -570,8 +687,7 @@
     </div>
   </div>
 
-  <!-- app.js (앞에서 준 프론트엔드 전체 코드) -->
+  <!-- app.js (하이엔드 프론트엔드 로직) -->
   <script src="app.js"></script>
 </body>
 </html>
-
