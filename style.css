@@ -457,3 +457,130 @@ body.modal-open {
   overflow: hidden;
   padding-right: 8px;
 }
+/* ==========================================================================
+   LOADING SPINNER
+========================================================================== */
+.spinner-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(0,0,0,0.92), rgba(0,0,0,0.92));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.spinner-overlay.hidden {
+  display: none;
+}
+.spinner-core {
+  text-align: center;
+  color: #f5f5f5;
+}
+.spinner-ring {
+  width: 60px;
+  height: 60px;
+  border-radius: 999px;
+  border: 3px solid rgba(255,255,255,0.06);
+  border-top-color: #0ec1aa;
+  border-right-color: #0ec1aa;
+  margin: 0 auto 12px;
+  animation: korual-spin 0.9s linear infinite;
+}
+.spinner-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #0ec1aa;
+  margin: 0 auto 6px;
+  animation: korual-pulse 1.2s ease-in-out infinite;
+}
+.spinner-label {
+  font-size: 13px;
+  color: #ccc;
+}
+@keyframes korual-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes korual-pulse {
+  0%,100% { transform: scale(0.7); opacity: 0.7; }
+  50%     { transform: scale(1);   opacity: 1;   }
+}
+
+/* ==========================================================================
+   TOAST
+========================================================================== */
+.toast-container {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10000;
+}
+.toast {
+  min-width: 220px;
+  max-width: 320px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #f5f5f5;
+  background: rgba(20,22,30,0.96);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.toast-success { border-color: #0ec1aa; }
+.toast-error   { border-color: #ff5c7a; }
+.toast-info    { border-color: #555; }
+.toast.hide {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* ==========================================================================
+   TABLE PAGER (회원/주문)
+========================================================================== */
+.table-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 4px 0;
+  font-size: 12px;
+  color: #888;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pager button {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: #f8f8f8;
+  font-size: 12px;
+}
+body.theme-dark .pager button {
+  border-color: #333;
+  background: #111;
+  color: #ddd;
+}
+.pager button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.pager span {
+  min-width: 70px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   CHART WRAPPER (optional)
+========================================================================== */
+.panel-body canvas {
+  max-width: 100%;
+}
+
+
