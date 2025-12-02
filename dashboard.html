@@ -4,18 +4,39 @@
   <meta charset="utf-8" />
 
   <!-- 즉시 로그인 세션 검증 -->
-  <script>
-    (function () {
-      try {
-        const raw = localStorage.getItem("korual_user");
-        if (!raw) return location.replace("index.html");
-        const user = JSON.parse(raw);
-        if (!user || !user.username) return location.replace("index.html");
-      } catch {
-        return location.replace("index.html");
+ <script>
+  (function () {
+    // 1) 로컬스토리지에서 로그인 정보 가져오기
+    const raw = localStorage.getItem("korual_user");
+
+    // 2) 없으면 바로 로그인 페이지로 튕기기
+    if (!raw) {
+      alert("로그인이 필요합니다. KORUAL 계정으로 다시 접속해 주세요.");
+      window.location.href = "index.html"; // 로그인 페이지 파일 이름에 맞게 수정
+      return;
+    }
+
+    // 3) JSON이 깨졌거나 username이 없으면도 튕기기
+    try {
+      const user = JSON.parse(raw);
+      if (!user || !user.username) {
+        localStorage.removeItem("korual_user");
+        alert("세션 정보가 유효하지 않습니다. 다시 로그인해 주세요.");
+        window.location.href = "index.html";
+        return;
       }
-    })();
-  </script>
+
+      // 4) 전역에서 쓸 수 있게 저장(필요하면 사용)
+      window.__korualUser = user;
+    } catch (e) {
+      localStorage.removeItem("korual_user");
+      alert("세션 정보가 손상되었습니다. 다시 로그인해 주세요.");
+      window.location.href = "index.html";
+      return;
+    }
+  })();
+</script>
+
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL CONTROL CENTER</title>
@@ -580,4 +601,5 @@
 
 </body>
 </html>
+
 
