@@ -32,7 +32,7 @@
    0) 전역 설정 / 상태
 ================================================ */
 
-const CORE_API_BASE = "YOUR_KORUAL_CORE_API_URL_HERE"; // 예: https://script.google.com/macros/s/XXX/exec
+const CORE_API_BASE = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec"; // 예: https://script.google.com/macros/s/XXX/exec
 
 const KorualState = {
   currentSection: "dashboard",
@@ -565,3 +565,4 @@ async function initKorualApp() {
 }
 
 document.addEventListener("DOMContentLoaded", initKorualApp);
+
