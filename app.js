@@ -10,7 +10,7 @@
 ============================== */
 
 // ※ 배포된 Web App URL 로 교체해서 사용
-const API_BASE   = "https://script.google.com/macros/s/여기에_배포_URL_ID/exec";
+const API_BASE   = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 const API_SECRET = "KORUAL-ONLY";
 
 const PAGE_SIZE = 20;
@@ -849,3 +849,4 @@ async function bootstrap() {
 }
 
 document.addEventListener("DOMContentLoaded", bootstrap);
+
