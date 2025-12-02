@@ -1,873 +1,793 @@
-/******************************************************
- * KORUAL CONTROL CENTER – Frontend (Ultra High-End app.js)
- * - Dashboard / Products / Orders / Members / Stock / Logs
- * - Google Apps Script Web App (Ultra High-End code.gs) 연동
- * - META.APP 연동 / 테마 / 모바일 사이드바 / 검색 + 페이징 / 행 수정·삭제 모달
- ******************************************************/
+/*************************************************
+ * KORUAL CONTROL CENTER – Auth Frontend (Ultra High-End app.js)
+ * - 로그인 / 회원가입
+ * - ID 찾기 / PW 재설정
+ * - 5회 실패 잠금 (백엔드 AUTH API 기준)
+ * - 클라이언트 UserAgent + (옵션) IP 전송
+ * - 다크/라이트 테마 + 다국어(i18n) + 토스트
+ *************************************************/
 
-/* ==============================
-   0) META.APP 연동 + 기본 설정
-============================== */
+(() => {
+  const META = window.KORUAL_META_APP || {};
+  const API   = META.api || {};
+  const BRAND = META.brand || {};
 
-// META.APP (meta.app.js) 를 먼저 로드했다면 여기서 바라봄
-const KORUAL_META =
-  typeof window !== "undefined" && window.KORUAL_META_APP
-    ? window.KORUAL_META_APP
-    : {
-        app: {
-          id: "korual-control-center",
-          name: "KORUAL CONTROL CENTER",
-          version: "v4.1",
-          env: "prod",
-        },
-        api: {
-          baseUrl:
-            "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
-          timeoutMs: 12000,
-          secret: "KORUAL-ONLY",
-        },
-        ui: {
-          defaultPageSize: 20,
-        },
-        brand: {
-          accent: "#facc15",
-        },
-        routes: {
-          auth: "index.html",
-          dashboard: "dashboard.html",
-        },
-      };
+  const CONTROL_CENTER_URL = "index.html"; // 로그인 성공 후 이동할 KORUAL CONTROL CENTER URL (필요시 수정)
 
-// API 설정 (백엔드 code.gs APP_META 와 맞춤)
-const API_BASE = KORUAL_META.api.baseUrl;
-const API_SECRET = KORUAL_META.api.secret;
-const PAGE_SIZE = KORUAL_META.ui.defaultPageSize || 20;
-
-// 브랜드 컬러를 CSS 변수로 반영
-(function applyBrandCssVars() {
-  try {
-    const root = document.documentElement;
-    if (!root) return;
-    if (KORUAL_META.brand?.accent) {
-      root.style.setProperty("--korual-accent", KORUAL_META.brand.accent);
-    }
-  } catch (_) {
-    // ignore
-  }
-})();
-
-/* ==============================
-   1) 전역 상태
-============================== */
-
-const STATE = {
-  lastSync: null,
-  entities: {
-    products: { sheet: "PRODUCTS", rows: [], filtered: [], page: 1 },
-    orders: { sheet: "ORDERS", rows: [], filtered: [], page: 1 },
-    members: { sheet: "MEMBERS", rows: [], filtered: [], page: 1 },
-    stock: { sheet: "STOCK", rows: [], filtered: [], page: 1 },
-    logs: { sheet: "LOGS", rows: [], filtered: [], page: 1 },
-  },
-  currentEdit: null,
-};
-
-/**
- * 엔티티별 컬럼/검색/관리 설정
- * - columns: 시트 헤더 순서와 동일하게 맞추는 것이 중요
- * - searchKeys: 검색에 사용할 컬럼들
- * - titleKey: 삭제 모달에 대표 타이틀로 쓸 컬럼
- * - columnCount: 테이블 실제 컬럼 수 (관리 포함)
- * - editable: 수정/삭제 가능 여부
- */
-const ENTITY_CONFIG = {
-  products: {
-    sheet: "PRODUCTS",
-    columns: ["상품코드", "상품명", "옵션", "판매가", "재고", "채널"],
-    searchKeys: ["상품코드", "상품명", "옵션", "채널"],
-    titleKey: "상품명",
-    columnCount: 6,
-    editable: false,
-  },
-  orders: {
-    sheet: "ORDERS",
-    columns: ["회원번호", "날짜", "주문번호", "고객명", "상품명", "수량", "금액", "상태", "채널"],
-    searchKeys: ["회원번호", "주문번호", "고객명", "상품명", "상태", "채널"],
-    titleKey: "주문번호",
-    columnCount: 9,
-    editable: false,
-  },
-  members: {
-    sheet: "MEMBERS",
-    columns: ["회원번호", "이름", "전화번호", "이메일", "가입일", "채널", "등급", "누적매출", "포인트", "최근주문일", "메모"],
-    searchKeys: ["회원번호", "이름", "전화번호", "이메일", "등급", "채널"],
-    titleKey: "이름",
-    columnCount: 12, // + 관리
-    editable: true,
-  },
-  stock: {
-    sheet: "STOCK",
-    columns: ["상품코드", "상품명", "현재 재고", "안전 재고", "상태", "창고", "채널"],
-    searchKeys: ["상품코드", "상품명", "상태", "창고", "채널"],
-    titleKey: "상품명",
-    columnCount: 8, // + 관리
-    editable: true,
-  },
-  logs: {
-    sheet: "LOGS",
-    columns: ["시간", "타입", "메시지", "상세"],
-    searchKeys: ["시간", "타입", "메시지", "상세"],
-    titleKey: "메시지",
-    columnCount: 4,
-    editable: false,
-  },
-};
-
-/* ==============================
-   2) 헬퍼 함수들
-============================== */
-
-const $ = (id) => document.getElementById(id);
-
-function formatNumber(n) {
-  const num = Number(n || 0);
-  return num.toLocaleString("ko-KR");
-}
-
-function formatCurrency(n) {
-  const num = Number(n || 0);
-  if (!num) return "-";
-  return num.toLocaleString("ko-KR") + "원";
-}
-
-function formatDateLabel(dateObj) {
-  try {
-    const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
-    if (isNaN(d.getTime())) return "";
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  } catch {
-    return "";
-  }
-}
-
-function debounce(fn, delay) {
-  let t;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), delay);
-  };
-}
-
-/* ==============================
-   3) 토스트 / 스피너
-============================== */
-
-function showToast(message, type = "info") {
-  const root = $("toastRoot");
-  if (!root) return;
-
-  const el = document.createElement("div");
-  el.className =
-    "toast " +
-    (type === "success"
-      ? "toast-success"
-      : type === "error"
-      ? "toast-error"
-      : "toast-info");
-
-  el.innerHTML = `
-    <span class="mr-1">
-      ${type === "success" ? "✅" : type === "error" ? "⚠️" : "🔔"}
-    </span>
-    <span class="flex-1">${message}</span>
-  `;
-
-  root.appendChild(el);
-
-  setTimeout(() => {
-    el.classList.add("hide");
-    setTimeout(() => {
-      if (el.parentNode) el.parentNode.removeChild(el);
-    }, 280);
-  }, 2600);
-}
-
-function setSpinner(visible) {
-  const sp = $("globalSpinner");
-  if (!sp) return;
-  if (visible) sp.classList.remove("hidden");
-  else sp.classList.add("hidden");
-}
-
-/* ==============================
-   4) API 헬퍼
-============================== */
-
-async function getJson(target) {
-  const url = `${API_BASE}?target=${encodeURIComponent(target)}`;
-
-  const t0 = performance.now();
-  const res = await fetch(url, {
-    method: "GET",
-  });
-  const t1 = performance.now();
-  const elapsed = Math.round(t1 - t0);
-
-  if (target === "ping") {
-    updateApiStatus(res.ok, elapsed);
-  }
-
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok || data.ok === false) {
-    const msg = data.error || data.message || `API 오류: ${target}`;
-    throw new Error(msg);
-  }
-
-  return { data, elapsed };
-}
-
-async function postJson(target, payload = {}) {
-  const body = {
-    ...payload,
-    target,
-    secret: API_SECRET,
+  const STORAGE_KEYS = {
+    THEME: "korual_theme",
+    LANG: "korual_lang",
+    REMEMBER_ID: "korual_remember_id",
+    AUTH_USER: "korual_auth_user"
   };
 
-  const res = await fetch(API_BASE, {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.ok === false) {
-    const msg = data.error || data.message || `API 오류: ${target}`;
-    throw new Error(msg);
-  }
-  return data;
-}
-
-/* ==============================
-   5) API 상태 표시
-============================== */
-
-function updateApiStatus(ok, ms) {
-  const dot = $("apiStatusDot");
-  const txt = $("apiStatusText");
-  const ping = $("apiPing");
-  if (ping && typeof ms === "number") ping.textContent = ms + " ms";
-
-  if (!dot || !txt) return;
-
-  if (ok) {
-    dot.style.background = "#4ade80";
-    dot.style.boxShadow = "0 0 0 6px rgba(74,222,128,0.35)";
-    txt.textContent = "Auth API Online";
-  } else {
-    dot.style.background = "#fb7185";
-    dot.style.boxShadow = "0 0 0 6px rgba(248,113,113,0.4)";
-    txt.textContent = "Auth API Error";
-  }
-}
-
-async function pingApiOnce() {
-  try {
-    await getJson("ping");
-  } catch {
-    updateApiStatus(false, null);
-  }
-}
-
-/* ==============================
-   6) 테마 / 네비 / 사용자
-============================== */
-
-function applyTheme(mode) {
-  const body = document.body;
-  const isDark = mode !== "light";
-  body.classList.toggle("theme-dark", isDark);
-  localStorage.setItem("korual_theme", isDark ? "dark" : "light");
-
-  const btn = $("themeToggle");
-  if (!btn) return;
-  const labelEl = btn.querySelector(".theme-toggle-label");
-  if (!labelEl) return;
-
-  if (isDark) {
-    labelEl.textContent = labelEl.dataset.dark || "Dark";
-  } else {
-    labelEl.textContent = labelEl.dataset.light || "Light";
-  }
-}
-
-function initTheme() {
-  const saved = localStorage.getItem("korual_theme") || "dark";
-  applyTheme(saved);
-  const btn = $("themeToggle");
-  if (!btn) return;
-  btn.addEventListener("click", () => {
-    const current = localStorage.getItem("korual_theme") || "dark";
-    const next = current === "dark" ? "light" : "dark";
-    applyTheme(next);
-  });
-}
-
-function initUserHeader() {
-  try {
-    const raw = localStorage.getItem("korual_user");
-    if (!raw) return;
-    const u = JSON.parse(raw);
-    const name = u.full_name || u.username || "KORUAL";
-    if ($("welcomeUser")) $("welcomeUser").textContent = name;
-  } catch {
-    // ignore
-  }
-
-  const btnLogout = $("btnLogout");
-  if (btnLogout) {
-    btnLogout.addEventListener("click", () => {
-      localStorage.removeItem("korual_user");
-      showToast("로그아웃 되었습니다.", "info");
-      setTimeout(() => {
-        location.replace(KORUAL_META.routes.auth || "index.html");
-      }, 500);
-    });
-  }
-}
-
-function initNav() {
-  const links = document.querySelectorAll(".nav-link");
-  const sections = document.querySelectorAll(".section");
-
-  links.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = btn.dataset.section;
-      if (!target) return;
-
-      links.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      sections.forEach((sec) => {
-        if (sec.id === `section-${target}`) {
-          sec.classList.add("active");
-        } else {
-          sec.classList.remove("active");
-        }
-      });
-    });
-  });
-
-  const goOrders = $("goOrders");
-  if (goOrders) {
-    goOrders.addEventListener("click", () => {
-      const targetBtn = document.querySelector('.nav-link[data-section="orders"]');
-      if (targetBtn) targetBtn.click();
-    });
-  }
-}
-
-function initMobileSidebar() {
-  const btn = $("menuToggle");
-  const sidebar = document.querySelector(".sidebar");
-  const backdrop = $("sidebarBackdrop");
-  if (!btn || !sidebar || !backdrop) return;
-
-  const open = () => sidebar.classList.add("open");
-  const close = () => sidebar.classList.remove("open");
-
-  btn.addEventListener("click", () => {
-    if (sidebar.classList.contains("open")) close();
-    else open();
-  });
-  backdrop.addEventListener("click", close);
-}
-
-/* ==============================
-   7) 대시보드 로딩
-============================== */
-
-async function loadDashboard() {
-  const cardTotalProducts = $("cardTotalProducts");
-  const cardTotalOrders = $("cardTotalOrders");
-  const cardTotalRevenue = $("cardTotalRevenue");
-  const cardTotalMembers = $("cardTotalMembers");
-  const todayOrders = $("todayOrders");
-  const todayRevenue = $("todayRevenue");
-  const todayPending = $("todayPending");
-  const recentBody = $("recentOrdersBody");
-  const todayLabel = $("todayDateLabel");
-
-  try {
-    const { data } = await getJson("dashboard");
-
-    if (cardTotalProducts) cardTotalProducts.textContent = formatNumber(data.totalProducts);
-    if (cardTotalOrders) cardTotalOrders.textContent = formatNumber(data.totalOrders);
-    if (cardTotalRevenue) cardTotalRevenue.textContent = formatCurrency(data.totalRevenue);
-    if (cardTotalMembers) cardTotalMembers.textContent = formatNumber(data.totalMembers);
-
-    if (todayOrders) todayOrders.textContent = formatNumber(data.todayOrders);
-    if (todayRevenue) todayRevenue.textContent = formatCurrency(data.todayRevenue);
-    if (todayPending) todayPending.textContent = formatNumber(data.todayPending);
-
-    if (todayLabel) {
-      const now = new Date();
-      todayLabel.textContent = formatDateLabel(now) + " 기준";
+  const I18N = {
+    ko: {
+      sign_to_korual: "SIGN IN TO KORUAL",
+      headline: "KORUAL 계정으로 접속",
+      tab_login: "로그인",
+      tab_signup: "회원가입",
+      login: "로그인",
+      login_badge: "Control Center 입장",
+      login_btn: "로그인",
+      login_hint: "엔터키로도 로그인 가능",
+      username: "아이디",
+      password: "비밀번호",
+      remember_id: "아이디 기억하기",
+      signup: "회원가입",
+      signup_badge: "Google Sheets 계정 저장",
+      signup_btn: "회원가입",
+      full_name: "이름",
+      email: "이메일"
+    },
+    en: {
+      sign_to_korual: "SIGN IN TO KORUAL",
+      headline: "Access with your KORUAL account",
+      tab_login: "Sign In",
+      tab_signup: "Sign Up",
+      login: "Sign In",
+      login_badge: "Enter Control Center",
+      login_btn: "Sign In",
+      login_hint: "Press Enter to sign in",
+      username: "Username",
+      password: "Password",
+      remember_id: "Remember ID",
+      signup: "Sign Up",
+      signup_badge: "Store account in Google Sheets",
+      signup_btn: "Create Account",
+      full_name: "Full Name",
+      email: "Email"
     }
+  };
 
-    if (recentBody) {
-      const list = Array.isArray(data.recentOrders) ? data.recentOrders : [];
-      if (!list.length) {
-        recentBody.innerHTML = `<tr><td colspan="7" class="empty-state">최근 주문이 없습니다.</td></tr>`;
+  const qs  = (sel, parent = document) => parent.querySelector(sel);
+  const qsa = (sel, parent = document) => Array.from(parent.querySelectorAll(sel));
+
+  const htmlEl     = document.documentElement;
+  const bodyEl     = document.body;
+  const toastRoot  = document.getElementById("toastRoot");
+
+  const apiStatusDot  = document.getElementById("apiStatusDot");
+  const apiStatusText = document.getElementById("apiStatusText");
+
+  const langTop   = document.getElementById("langTop");
+  const langAuth  = document.getElementById("langAuth");
+
+  const toggleThemeBtn = document.getElementById("toggleTheme");
+  const yearSpan       = document.getElementById("year");
+
+  const tabLoginBtn  = document.getElementById("tabLoginBtn");
+  const tabSignupBtn = document.getElementById("tabSignupBtn");
+  const loginPanel   = document.getElementById("loginPanel");
+  const signupPanel  = document.getElementById("signupPanel");
+
+  const loginUsername = document.getElementById("loginUsername");
+  const loginPassword = document.getElementById("loginPassword");
+  const rememberIdChk = document.getElementById("rememberId");
+  const btnLogin      = document.getElementById("btnLogin");
+  const loginMsg      = document.getElementById("loginMsg");
+  const capsIndicator = document.getElementById("capsIndicator");
+  const togglePwdBtn  = document.getElementById("togglePwd");
+
+  const btnFillDemo       = document.getElementById("btnFillDemo");
+  const btnFillDemoMobile = document.getElementById("btnFillDemoMobile");
+
+  const suName  = document.getElementById("suName");
+  const suEmail = document.getElementById("suEmail");
+  const suUser  = document.getElementById("suUser");
+  const suPass  = document.getElementById("suPass");
+  const btnSignup  = document.getElementById("btnSignup");
+  const signupMsg  = document.getElementById("signupMsg");
+
+  const linkFindId = document.getElementById("linkFindId");
+  const linkResetPw = document.getElementById("linkResetPw");
+
+  const modalFindId = document.getElementById("modalFindId");
+  const modalResetPw = document.getElementById("modalResetPw");
+
+  const closeFindBtn  = document.getElementById("closeFind");
+  const closeResetBtn = document.getElementById("closeReset");
+
+  const fiEmail = document.getElementById("fiEmail");
+  const btnFindIdSubmit = document.getElementById("btnFindIdSubmit");
+  const fiResult = document.getElementById("fiResult");
+
+  const rpUser  = document.getElementById("rpUser");
+  const rpEmail = document.getElementById("rpEmail");
+  const rpNewPw = document.getElementById("rpNewPw");
+  const btnResetPwSubmit = document.getElementById("btnResetPwSubmit");
+  const rpMsg = document.getElementById("rpMsg");
+
+  const loadingOverlay = document.getElementById("loadingOverlay");
+
+  let currentLang = I18N[META.ui?.defaultLang] ? META.ui.defaultLang : "ko";
+
+  function applyTheme(theme) {
+    const t = theme === "light" ? "light" : "dark";
+    if (t === "dark") {
+      htmlEl.classList.add("dark");
+      bodyEl.classList.add("auth-bg-dark");
+      bodyEl.classList.remove("auth-bg-light");
+    } else {
+      htmlEl.classList.remove("dark");
+      bodyEl.classList.remove("auth-bg-dark");
+      bodyEl.classList.add("auth-bg-light");
+    }
+    localStorage.setItem(STORAGE_KEYS.THEME, t);
+  }
+
+  function initTheme() {
+    const stored = localStorage.getItem(STORAGE_KEYS.THEME);
+    if (stored) {
+      applyTheme(stored);
+    } else {
+      const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+      applyTheme(prefersDark ? "dark" : "dark");
+    }
+  }
+
+  function syncLangSelects(lang) {
+    if (langTop)  langTop.value = lang;
+    if (langAuth) langAuth.value = lang;
+  }
+
+  function applyI18n(lang) {
+    const pack = I18N[lang] || I18N.ko;
+    qsa("[data-i18n]").forEach(el => {
+      const key = el.getAttribute("data-i18n");
+      const text = pack[key];
+      if (!text) return;
+      if (el.placeholder !== undefined && el.tagName === "INPUT") {
+        el.placeholder = text;
       } else {
-        recentBody.innerHTML = "";
-        list.forEach((o) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${o.order_date || ""}</td>
-            <td>${o.order_no || ""}</td>
-            <td>${o.item_name || ""}</td>
-            <td>${formatNumber(o.qty)}</td>
-            <td>${formatCurrency(o.amount)}</td>
-            <td>${o.channel || ""}</td>
-            <td>${o.status || ""}</td>
-          `;
-          recentBody.appendChild(tr);
-        });
+        el.textContent = text;
       }
-    }
-  } catch (err) {
-    if (recentBody) {
-      recentBody.innerHTML = `<tr><td colspan="7" class="empty-state">대시보드 데이터를 불러오는 중 오류가 발생했습니다.</td></tr>`;
-    }
-    showToast(err.message || "대시보드 로딩 중 오류", "error");
-  }
-}
-
-/* ==============================
-   8) 리스트 로딩 / 렌더링
-============================== */
-
-async function loadEntity(entityKey) {
-  const entityState = STATE.entities[entityKey];
-  if (!entityState) return;
-
-  const cfg = ENTITY_CONFIG[entityKey];
-  if (!cfg) return;
-
-  const target = entityKey;
-  try {
-    const { data } = await getJson(target);
-    const rows = Array.isArray(data.rows) ? data.rows : [];
-
-    const withIndex = rows.map((r, idx) => ({
-      ...r,
-      __rowIndex: idx + 2,
-    }));
-
-    entityState.rows = withIndex;
-    entityState.filtered = [...withIndex];
-    entityState.page = 1;
-
-    renderEntityTable(entityKey);
-  } catch (err) {
-    const tbody = document.querySelector(`tbody[data-entity="${entityKey}"]`);
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="${cfg.columnCount}" class="empty-state">${cfg.sheet} 데이터를 불러오는 중 오류가 발생했습니다.</td></tr>`;
-    }
-    showToast(err.message || `${entityKey} 로딩 중 오류`, "error");
-  }
-}
-
-function renderEntityTable(entityKey) {
-  const cfg = ENTITY_CONFIG[entityKey];
-  const entityState = STATE.entities[entityKey];
-  if (!cfg || !entityState) return;
-
-  const tbody = document.querySelector(`tbody[data-entity="${entityKey}"]`);
-  if (!tbody) return;
-
-  const pager = $(`${entityKey}Pager`);
-  const rows = entityState.filtered || [];
-  const pageSize = PAGE_SIZE;
-  const total = rows.length;
-  const maxPage = Math.max(1, Math.ceil(total / pageSize));
-  const page = Math.min(entityState.page || 1, maxPage);
-
-  entityState.page = page;
-
-  if (!total) {
-    tbody.innerHTML = `<tr><td colspan="${cfg.columnCount}" class="empty-state">데이터가 없습니다.</td></tr>`;
-  } else {
-    const start = (page - 1) * pageSize;
-    const end = start + pageSize;
-    const slice = rows.slice(start, end);
-
-    tbody.innerHTML = "";
-
-    slice.forEach((row) => {
-      const tr = document.createElement("tr");
-
-      cfg.columns.forEach((key) => {
-        const td = document.createElement("td");
-        let val = row[key];
-
-        if (key === "판매가" || key === "금액" || key === "누적매출") {
-          td.textContent = formatCurrency(val);
-        } else if (
-          key === "현재 재고" ||
-          key === "안전 재고" ||
-          key === "수량" ||
-          key === "포인트"
-        ) {
-          td.textContent = formatNumber(val);
-        } else {
-          td.textContent = val != null ? String(val) : "";
-        }
-
-        tr.appendChild(td);
-      });
-
-      if (cfg.editable) {
-        const td = document.createElement("td");
-        td.className = "table-actions";
-
-        const btnEdit = document.createElement("button");
-        btnEdit.type = "button";
-        btnEdit.className = "table-btn";
-        btnEdit.textContent = "수정";
-        btnEdit.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openEditRow(entityKey, row);
-        });
-
-        const btnDel = document.createElement("button");
-        btnDel.type = "button";
-        btnDel.className = "table-btn danger";
-        btnDel.textContent = "삭제";
-        btnDel.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openDeleteRow(entityKey, row);
-        });
-
-        td.appendChild(btnEdit);
-        td.appendChild(btnDel);
-        tr.appendChild(td);
-      }
-
-      tbody.appendChild(tr);
     });
   }
 
-  if (pager) {
-    const prevBtn = pager.querySelector('button[data-page="prev"]');
-    const nextBtn = pager.querySelector('button[data-page="next"]');
-    const label = pager.querySelector("span[data-page-label]");
-
-    if (prevBtn) {
-      prevBtn.disabled = page <= 1;
-      prevBtn.onclick = () => {
-        if (entityState.page > 1) {
-          entityState.page--;
-          renderEntityTable(entityKey);
-        }
-      };
-    }
-    if (nextBtn) {
-      nextBtn.disabled = page >= maxPage;
-      nextBtn.onclick = () => {
-        if (entityState.page < maxPage) {
-          entityState.page++;
-          renderEntityTable(entityKey);
-        }
-      };
-    }
-    if (label) {
-      label.textContent = `${page} / ${maxPage}`;
-    }
+  function setLang(lang) {
+    const target = I18N[lang] ? lang : "ko";
+    currentLang = target;
+    applyI18n(target);
+    syncLangSelects(target);
+    localStorage.setItem(STORAGE_KEYS.LANG, target);
   }
-}
 
-/* ==============================
-   9) 검색 필터
-============================== */
+  function initLang() {
+    const stored = localStorage.getItem(STORAGE_KEYS.LANG);
+    const initial = stored && I18N[stored] ? stored : currentLang;
+    setLang(initial);
+  }
 
-function initSearch() {
-  const bindSearch = (entityKey, inputId) => {
-    const input = $(inputId);
-    const cfg = ENTITY_CONFIG[entityKey];
-    const state = STATE.entities[entityKey];
-    if (!input || !cfg || !state) return;
+  function showToast(message, variant = "info", timeout = 2600) {
+    if (!toastRoot) return;
 
-    const runFilter = () => {
-      const term = input.value.trim().toLowerCase();
-      if (!term) {
-        state.filtered = [...state.rows];
-        state.page = 1;
-        renderEntityTable(entityKey);
-        return;
-      }
+    const el = document.createElement("div");
+    el.className =
+      "pointer-events-auto max-w-sm w-full rounded-2xl border px-4 py-3 text-xs shadow-[0_20px_50px_rgba(15,23,42,0.95)] toast-enter " +
+      (variant === "error"
+        ? "border-rose-500/80 bg-rose-500/10 text-rose-50"
+        : variant === "success"
+        ? "border-emerald-500/80 bg-emerald-500/10 text-emerald-50"
+        : "border-slate-600/80 bg-slate-900/95 text-slate-50");
 
-      const keys = cfg.searchKeys || cfg.columns;
+    el.innerHTML = `
+      <div class="flex items-start gap-2">
+        <span class="mt-0.5 text-base">
+          ${variant === "error" ? "⚠️" : variant === "success" ? "✅" : "🔔"}
+        </span>
+        <p class="flex-1 leading-relaxed">${message}</p>
+      </div>
+    `;
 
-      state.filtered = state.rows.filter((row) =>
-        keys.some((k) =>
-          String(row[k] || "")
-            .toLowerCase()
-            .includes(term)
-        )
-      );
-      state.page = 1;
-      renderEntityTable(entityKey);
+    toastRoot.appendChild(el);
+    requestAnimationFrame(() => {
+      el.classList.remove("toast-enter");
+      el.classList.add("toast-enter-active");
+    });
+
+    setTimeout(() => {
+      el.classList.remove("toast-enter-active");
+      el.classList.add("toast-exit");
+      requestAnimationFrame(() => {
+        el.classList.add("toast-exit-active");
+      });
+      setTimeout(() => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, 200);
+    }, timeout);
+  }
+
+  function setLoading(isLoading) {
+    if (!loadingOverlay) return;
+    loadingOverlay.classList.toggle("hidden", !isLoading);
+  }
+
+  function getClientMeta() {
+    return {
+      client_ip: "",
+      user_agent: navigator.userAgent || ""
+    };
+  }
+
+  async function callAuthApi(mode, payload = {}) {
+    if (!API.baseUrl) {
+      throw new Error("Auth API baseUrl 미설정");
+    }
+
+    const meta = getClientMeta();
+
+    const body = {
+      mode,
+      ...payload,
+      client_ip: meta.client_ip,
+      user_agent: meta.user_agent,
+      api_secret: API.secret || undefined
     };
 
-    input.addEventListener("input", debounce(runFilter, 220));
-  };
+    const res = await fetch(API.baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json;charset=utf-8"
+      },
+      body: JSON.stringify(body)
+    });
 
-  bindSearch("products", "searchProducts");
-  bindSearch("orders", "searchOrders");
-  bindSearch("members", "searchMembers");
-  bindSearch("stock", "searchStock");
-  bindSearch("logs", "searchLogs");
-}
+    let json;
+    try {
+      json = await res.json();
+    } catch (e) {
+      throw new Error("서버 응답 파싱 실패");
+    }
 
-/* ==============================
-   10) 행 수정/삭제 모달
-============================== */
+    if (!res.ok || json.ok === false) {
+      const msg = json && json.message ? json.message : "요청 처리 중 오류가 발생했습니다.";
+      const err = new Error(msg);
+      err.status = res.status;
+      err.raw = json;
+      throw err;
+    }
 
-function openEditRow(entityKey, row) {
-  const cfg = ENTITY_CONFIG[entityKey];
-  if (!cfg) return;
-  if (!window.KORUAL_MODAL || !window.KORUAL_MODAL.openEdit) return;
+    return json;
+  }
 
-  const ordered = {};
-  cfg.columns.forEach((k) => {
-    ordered[k] = row[k] != null ? row[k] : "";
-  });
+  async function checkAuthApiHealth() {
+    if (!apiStatusDot || !apiStatusText || !API.baseUrl) return;
 
-  STATE.currentEdit = {
-    entity: entityKey,
-    sheet: cfg.sheet,
-    rowIndex: row.__rowIndex,
-    originalRow: { ...row },
-  };
+    try {
+      apiStatusDot.className =
+        "h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.35)]";
 
-  window.KORUAL_MODAL.openEdit({
-    entity: entityKey,
-    sheet: cfg.sheet,
-    rowIndex: row.__rowIndex,
-    data: ordered,
-  });
-}
+      apiStatusText.textContent = "Auth API 체크 중…";
 
-function openDeleteRow(entityKey, row) {
-  const cfg = ENTITY_CONFIG[entityKey];
-  if (!cfg) return;
-  if (!window.KORUAL_MODAL || !window.KORUAL_MODAL.openDelete) return;
+      const url = API.baseUrl + "?t=" + Date.now();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-  const titleKey = cfg.titleKey;
-  const titleVal = row[titleKey] || "";
-
-  STATE.currentEdit = {
-    entity: entityKey,
-    sheet: cfg.sheet,
-    rowIndex: row.__rowIndex,
-    originalRow: { ...row },
-  };
-
-  window.KORUAL_MODAL.openDelete({
-    entity: entityKey,
-    sheet: cfg.sheet,
-    rowIndex: row.__rowIndex,
-    title: titleVal,
-  });
-}
-
-function initModalActions() {
-  const btnSave = $("rowEditSave");
-  if (btnSave) {
-    btnSave.addEventListener("click", async () => {
-      if (!STATE.currentEdit) {
-        showToast("수정할 행 정보가 없습니다.", "error");
-        return;
-      }
-
-      const { entity, sheet, rowIndex, originalRow } = STATE.currentEdit;
-      const cfg = ENTITY_CONFIG[entity];
-      if (!cfg) return;
-
-      const wrap = $("rowEditFields");
-      if (!wrap) return;
-      const inputs = wrap.querySelectorAll("input[data-fieldKey]");
-
-      const changes = {};
-      inputs.forEach((inp) => {
-        const key = inp.dataset.fieldKey;
-        const newVal = inp.value;
-        const oldVal = originalRow[key] != null ? String(originalRow[key]) : "";
-        if (String(newVal) !== oldVal) {
-          changes[key] = newVal;
-        }
+      const res = await fetch(url, {
+        method: "GET",
+        signal: controller.signal
       });
 
-      if (!Object.keys(changes).length) {
-        showToast("변경된 내용이 없습니다.", "info");
-        window.KORUAL_MODAL.closeAll();
-        return;
-      }
+      clearTimeout(timeoutId);
 
+      let json = null;
       try {
-        setSpinner(true);
+        json = await res.json();
+      } catch (e) {}
 
-        for (const key of Object.keys(changes)) {
-          const colIndex = cfg.columns.indexOf(key) + 1;
-          if (colIndex <= 0) continue;
-          await postJson("updateCell", {
-            sheet,
-            row: rowIndex,
-            col: colIndex,
-            value: changes[key],
-          });
-        }
-
-        const state = STATE.entities[entity];
-        if (state) {
-          const idx = state.rows.findIndex((r) => r.__rowIndex === rowIndex);
-          if (idx >= 0) {
-            const updated = { ...state.rows[idx], ...changes };
-            state.rows[idx] = updated;
-          }
-
-          const termInputId =
-            entity === "products"
-              ? "searchProducts"
-              : entity === "orders"
-              ? "searchOrders"
-              : entity === "members"
-              ? "searchMembers"
-              : entity === "stock"
-              ? "searchStock"
-              : "searchLogs";
-          const searchEl = $(termInputId);
-          if (searchEl && searchEl.value.trim()) {
-            const keys = cfg.searchKeys || cfg.columns;
-            const term = searchEl.value.trim().toLowerCase();
-            state.filtered = state.rows.filter((row) =>
-              keys.some((k) =>
-                String(row[k] || "")
-                  .toLowerCase()
-                  .includes(term)
-              )
-            );
-          } else {
-            state.filtered = [...state.rows];
-          }
-          renderEntityTable(entity);
-        }
-
-        showToast("저장되었습니다.", "success");
-        window.KORUAL_MODAL.closeAll();
-      } catch (err) {
-        showToast(err.message || "저장 중 오류가 발생했습니다.", "error");
-      } finally {
-        setSpinner(false);
+      if (res.ok && json && json.ok) {
+        apiStatusDot.className =
+          "h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.35)]";
+        apiStatusText.textContent = "Auth API 정상 작동 중";
+      } else {
+        throw new Error();
       }
-    });
-  }
-
-  const btnDelete = $("rowDeleteConfirm");
-  if (btnDelete) {
-    btnDelete.addEventListener("click", async () => {
-      if (!STATE.currentEdit) {
-        showToast("삭제할 행 정보가 없습니다.", "error");
-        return;
-      }
-
-      const { entity, sheet, rowIndex } = STATE.currentEdit;
-      try {
-        setSpinner(true);
-        await postJson("deleteRow", {
-          sheet,
-          row: rowIndex,
-        });
-
-        await loadEntity(entity);
-        showToast("삭제되었습니다.", "success");
-        window.KORUAL_MODAL.closeAll();
-      } catch (err) {
-        showToast(err.message || "삭제 중 오류가 발생했습니다.", "error");
-      } finally {
-        setSpinner(false);
-      }
-    });
-  }
-}
-
-/* ==============================
-   11) 전체 초기화
-============================== */
-
-async function bootstrap() {
-  const yearText = document.querySelector(".footer-inner span");
-  if (yearText) {
-    const nowY = new Date().getFullYear();
-    yearText.textContent = `© ${nowY} KORUAL Control Center · All Systems Automated`;
-  }
-
-  initTheme();
-  initUserHeader();
-  initNav();
-  initMobileSidebar();
-  initSearch();
-  initModalActions();
-
-  pingApiOnce();
-
-  setSpinner(true);
-  try {
-    await Promise.all([
-      loadDashboard(),
-      loadEntity("products"),
-      loadEntity("orders"),
-      loadEntity("members"),
-      loadEntity("stock"),
-      loadEntity("logs"),
-    ]);
-    STATE.lastSync = new Date();
-    if ($("last-sync")) {
-      $("last-sync").textContent = "마지막 동기화: " + formatDateLabel(STATE.lastSync);
+    } catch (e) {
+      apiStatusDot.className =
+        "h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_0_5px_rgba(239,68,68,0.38)]";
+      apiStatusText.textContent = "Auth API 응답 없음";
     }
-  } finally {
-    setSpinner(false);
   }
 
-  const btnRefreshAll = $("btnRefreshAll");
-  if (btnRefreshAll) {
-    btnRefreshAll.addEventListener("click", async () => {
-      setSpinner(true);
-      try {
-        await Promise.all([
-          loadDashboard(),
-          loadEntity("products"),
-          loadEntity("orders"),
-          loadEntity("members"),
-          loadEntity("stock"),
-          loadEntity("logs"),
-        ]);
-        STATE.lastSync = new Date();
-        if ($("last-sync")) {
-          $("last-sync").textContent = "마지막 동기화: " + formatDateLabel(STATE.lastSync);
-        }
-        showToast("모든 데이터가 새로고침되었습니다.", "success");
-      } catch (err) {
-        showToast(err.message || "새로고침 중 오류가 발생했습니다.", "error");
-      } finally {
-        setSpinner(false);
-      }
+  function setInputsError(elArr, isError) {
+    elArr.forEach(el => {
+      if (!el) return;
+      el.classList.toggle("input-error", isError);
     });
   }
-}
 
-document.addEventListener("DOMContentLoaded", bootstrap);
+  async function handleLogin() {
+    if (!loginUsername || !loginPassword || !btnLogin) return;
+
+    const username = loginUsername.value.trim();
+    const password = loginPassword.value;
+
+    loginMsg.textContent = "";
+    setInputsError([loginUsername, loginPassword], false);
+
+    if (!username || !password) {
+      loginMsg.textContent = "아이디와 비밀번호를 모두 입력해주세요.";
+      setInputsError([loginUsername, loginPassword], true);
+      showToast("아이디와 비밀번호를 모두 입력해주세요.", "error");
+      return;
+    }
+
+    btnLogin.disabled = true;
+    setLoading(true);
+
+    try {
+      const res = await callAuthApi("login", {
+        username,
+        password
+      });
+
+      if (!res || !res.ok || !res.user) {
+        throw new Error(res && res.message ? res.message : "로그인 처리 실패");
+      }
+
+      if (rememberIdChk && rememberIdChk.checked) {
+        localStorage.setItem(STORAGE_KEYS.REMEMBER_ID, username);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.REMEMBER_ID);
+      }
+
+      try {
+        localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(res.user));
+      } catch (e) {}
+
+      loginMsg.textContent = "";
+      showToast("로그인 성공: KORUAL CONTROL CENTER로 이동합니다.", "success");
+
+      setTimeout(() => {
+        window.location.href = CONTROL_CENTER_URL;
+      }, 600);
+    } catch (err) {
+      const msg = err.message || "로그인 중 오류가 발생했습니다.";
+      loginMsg.textContent = msg;
+      setInputsError([loginUsername, loginPassword], true);
+      showToast(msg, "error");
+    } finally {
+      btnLogin.disabled = false;
+      setLoading(false);
+    }
+  }
+
+  async function handleSignup() {
+    if (!btnSignup) return;
+
+    const full_name = suName.value.trim();
+    const email     = suEmail.value.trim();
+    const username  = suUser.value.trim();
+    const password  = suPass.value;
+
+    signupMsg.textContent = "";
+    setInputsError([suName, suEmail, suUser, suPass], false);
+
+    if (!full_name || !email || !username || !password) {
+      signupMsg.textContent = "필수 항목을 모두 입력해주세요.";
+      showToast("필수 항목을 모두 입력해주세요.", "error");
+      setInputsError([suName, suEmail, suUser, suPass], true);
+      return;
+    }
+
+    if (password.length < 6) {
+      signupMsg.textContent = "비밀번호는 최소 6자리 이상이어야 합니다.";
+      setInputsError([suPass], true);
+      showToast("비밀번호는 최소 6자리 이상이어야 합니다.", "error");
+      return;
+    }
+
+    btnSignup.disabled = true;
+    setLoading(true);
+
+    try {
+      const res = await callAuthApi("signup", {
+        username,
+        password,
+        full_name,
+        email,
+        role: "staff",
+        created_by: "SELF"
+      });
+
+      if (!res || !res.ok) {
+        throw new Error(res && res.message ? res.message : "회원가입 처리 실패");
+      }
+
+      signupMsg.textContent = "회원가입이 완료되었습니다. 로그인 탭에서 접속해주세요.";
+      showToast("회원가입 성공: 로그인 탭으로 이동해서 접속해주세요.", "success");
+
+      if (tabLoginBtn && tabSignupBtn) {
+        tabLoginBtn.click();
+      }
+      if (loginUsername) loginUsername.value = username;
+      if (loginPassword) loginPassword.value = "";
+      if (rememberIdChk) rememberIdChk.checked = true;
+      localStorage.setItem(STORAGE_KEYS.REMEMBER_ID, username);
+    } catch (err) {
+      const msg = err.message || "회원가입 중 오류가 발생했습니다.";
+      signupMsg.textContent = msg;
+      showToast(msg, "error");
+    } finally {
+      btnSignup.disabled = false;
+      setLoading(false);
+    }
+  }
+
+  function openModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.classList.remove("hidden");
+  }
+
+  function closeModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.classList.add("hidden");
+  }
+
+  async function handleFindId() {
+    const email = fiEmail.value.trim();
+    fiResult.textContent = "";
+    fiEmail.classList.remove("input-error");
+
+    if (!email) {
+      fiEmail.classList.add("input-error");
+      fiResult.textContent = "이메일을 입력해주세요.";
+      showToast("이메일을 입력해주세요.", "error");
+      return;
+    }
+
+    btnFindIdSubmit.disabled = true;
+    setLoading(true);
+
+    try {
+      const res = await callAuthApi("findId", { email });
+      const ids = res.ids || [];
+
+      if (!ids.length) {
+        fiResult.textContent = "해당 이메일로 등록된 아이디가 없습니다.";
+      } else {
+        fiResult.innerHTML = `등록된 아이디: <span class="text-sky-300 font-mono">${ids.join(
+          ", "
+        )}</span>`;
+      }
+    } catch (err) {
+      const msg = err.message || "아이디 조회 중 오류가 발생했습니다.";
+      fiResult.textContent = msg;
+      showToast(msg, "error");
+    } finally {
+      btnFindIdSubmit.disabled = false;
+      setLoading(false);
+    }
+  }
+
+  async function handleResetPw() {
+    const username    = rpUser.value.trim();
+    const email       = rpEmail.value.trim();
+    const newPassword = rpNewPw.value;
+
+    rpMsg.textContent = "";
+    setInputsError([rpUser, rpEmail, rpNewPw], false);
+
+    if (!username || !email || !newPassword) {
+      rpMsg.textContent = "아이디, 이메일, 새 비밀번호를 모두 입력해주세요.";
+      setInputsError([rpUser, rpEmail, rpNewPw], true);
+      showToast("아이디, 이메일, 새 비밀번호를 모두 입력해주세요.", "error");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      rpMsg.textContent = "새 비밀번호는 최소 6자리 이상이어야 합니다.";
+      setInputsError([rpNewPw], true);
+      showToast("새 비밀번호는 최소 6자리 이상이어야 합니다.", "error");
+      return;
+    }
+
+    btnResetPwSubmit.disabled = true;
+    setLoading(true);
+
+    try {
+      const res = await callAuthApi("resetPw", {
+        username,
+        email,
+        new_password: newPassword
+      });
+
+      if (!res || !res.ok) {
+        throw new Error(res && res.message ? res.message : "비밀번호 재설정 실패");
+      }
+
+      rpMsg.textContent = "비밀번호가 재설정되었습니다. 새 비밀번호로 로그인해주세요.";
+      showToast("비밀번호가 재설정되었습니다.", "success");
+    } catch (err) {
+      const msg = err.message || "비밀번호 재설정 중 오류가 발생했습니다.";
+      rpMsg.textContent = msg;
+      showToast(msg, "error");
+    } finally {
+      btnResetPwSubmit.disabled = false;
+      setLoading(false);
+    }
+  }
+
+  function switchToLoginTab() {
+    if (!tabLoginBtn || !tabSignupBtn || !loginPanel || !signupPanel) return;
+
+    tabLoginBtn.classList.add("tab-active");
+    tabLoginBtn.classList.remove("tab-inactive");
+    tabSignupBtn.classList.add("tab-inactive");
+    tabSignupBtn.classList.remove("tab-active");
+
+    tabLoginBtn.setAttribute("aria-selected", "true");
+    tabSignupBtn.setAttribute("aria-selected", "false");
+
+    loginPanel.classList.remove("hidden");
+    signupPanel.classList.add("hidden");
+  }
+
+  function switchToSignupTab() {
+    if (!tabLoginBtn || !tabSignupBtn || !loginPanel || !signupPanel) return;
+
+    tabSignupBtn.classList.add("tab-active");
+    tabSignupBtn.classList.remove("tab-inactive");
+    tabLoginBtn.classList.add("tab-inactive");
+    tabLoginBtn.classList.remove("tab-active");
+
+    tabLoginBtn.setAttribute("aria-selected", "false");
+    tabSignupBtn.setAttribute("aria-selected", "true");
+
+    signupPanel.classList.remove("hidden");
+    loginPanel.classList.add("hidden");
+  }
+
+  function initRememberId() {
+    const storedId = localStorage.getItem(STORAGE_KEYS.REMEMBER_ID);
+    if (storedId && loginUsername) {
+      loginUsername.value = storedId;
+      if (rememberIdChk) rememberIdChk.checked = true;
+    }
+  }
+
+  function initAuthUserInfo() {
+    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+    if (!raw) return;
+    try {
+      const user = JSON.parse(raw);
+      if (user && user.username) {
+        if (loginUsername && !loginUsername.value) {
+          loginUsername.value = user.username;
+        }
+      }
+    } catch (e) {}
+  }
+
+  function initCapsLockIndicator() {
+    if (!loginPassword || !capsIndicator) return;
+
+    function updateIndicator(ev) {
+      if (!ev.getModifierState) return;
+      const caps = ev.getModifierState("CapsLock");
+      capsIndicator.classList.toggle("hidden", !caps);
+    }
+
+    loginPassword.addEventListener("keydown", updateIndicator);
+    loginPassword.addEventListener("keyup", updateIndicator);
+  }
+
+  function initTogglePassword() {
+    if (!togglePwdBtn || !loginPassword) return;
+
+    togglePwdBtn.addEventListener("click", () => {
+      const isPw = loginPassword.type === "password";
+      loginPassword.type = isPw ? "text" : "password";
+      togglePwdBtn.textContent = isPw ? "🙈 비밀번호 숨기기" : "👁 비밀번호 보기";
+      loginPassword.focus();
+    });
+  }
+
+  function initDemoFillButtons() {
+    function fillDemo() {
+      if (loginUsername) loginUsername.value = "KORUAL";
+      if (loginPassword) loginPassword.value = "GUEST";
+      if (loginPassword) loginPassword.focus();
+    }
+    if (btnFillDemo) {
+      btnFillDemo.addEventListener("click", fillDemo);
+    }
+    if (btnFillDemoMobile) {
+      btnFillDemoMobile.addEventListener("click", fillDemo);
+    }
+  }
+
+  function initYear() {
+    if (yearSpan) {
+      yearSpan.textContent = new Date().getFullYear();
+    }
+  }
+
+  function initThemeToggle() {
+    if (!toggleThemeBtn) return;
+    toggleThemeBtn.addEventListener("click", () => {
+      const current = localStorage.getItem(STORAGE_KEYS.THEME) || "dark";
+      const next = current === "dark" ? "light" : "dark";
+      applyTheme(next);
+    });
+  }
+
+  function initLangSelectEvents() {
+    function onChangeLang(e) {
+      setLang(e.target.value);
+    }
+    if (langTop) {
+      langTop.addEventListener("change", onChangeLang);
+    }
+    if (langAuth) {
+      langAuth.addEventListener("change", onChangeLang);
+    }
+  }
+
+  function initAuthEvents() {
+    if (btnLogin) {
+      btnLogin.addEventListener("click", () => {
+        handleLogin();
+      });
+    }
+
+    if (btnSignup) {
+      btnSignup.addEventListener("click", () => {
+        handleSignup();
+      });
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        const isFindOpen  = modalFindId && !modalFindId.classList.contains("hidden");
+        const isResetOpen = modalResetPw && !modalResetPw.classList.contains("hidden");
+
+        if (isFindOpen || isResetOpen) return;
+
+        if (loginPanel && !loginPanel.classList.contains("hidden")) {
+          handleLogin();
+        }
+      }
+    });
+
+    if (tabLoginBtn) {
+      tabLoginBtn.addEventListener("click", () => {
+        switchToLoginTab();
+      });
+    }
+    if (tabSignupBtn) {
+      tabSignupBtn.addEventListener("click", () => {
+        switchToSignupTab();
+      });
+    }
+  }
+
+  function initModalEvents() {
+    if (linkFindId && modalFindId) {
+      linkFindId.addEventListener("click", () => {
+        fiEmail.value = "";
+        fiResult.textContent = "";
+        fiEmail.classList.remove("input-error");
+        openModal(modalFindId);
+        setTimeout(() => fiEmail.focus(), 50);
+      });
+    }
+
+    if (linkResetPw && modalResetPw) {
+      linkResetPw.addEventListener("click", () => {
+        rpUser.value = "";
+        rpEmail.value = "";
+        rpNewPw.value = "";
+        rpMsg.textContent = "";
+        setInputsError([rpUser, rpEmail, rpNewPw], false);
+        openModal(modalResetPw);
+        setTimeout(() => rpUser.focus(), 50);
+      });
+    }
+
+    if (closeFindBtn && modalFindId) {
+      closeFindBtn.addEventListener("click", () => closeModal(modalFindId));
+    }
+    if (closeResetBtn && modalResetPw) {
+      closeResetBtn.addEventListener("click", () => closeModal(modalResetPw));
+    }
+
+    if (modalFindId) {
+      modalFindId.addEventListener("click", e => {
+        if (e.target === modalFindId) {
+          closeModal(modalFindId);
+        }
+      });
+    }
+    if (modalResetPw) {
+      modalResetPw.addEventListener("click", e => {
+        if (e.target === modalResetPw) {
+          closeModal(modalResetPw);
+        }
+      });
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        if (modalFindId && !modalFindId.classList.contains("hidden")) {
+          closeModal(modalFindId);
+        }
+        if (modalResetPw && !modalResetPw.classList.contains("hidden")) {
+          closeModal(modalResetPw);
+        }
+      }
+    });
+
+    if (btnFindIdSubmit) {
+      btnFindIdSubmit.addEventListener("click", () => {
+        handleFindId();
+      });
+    }
+
+    if (btnResetPwSubmit) {
+      btnResetPwSubmit.addEventListener("click", () => {
+        handleResetPw();
+      });
+    }
+  }
+
+  function initPageGuardInfo() {
+    const authRaw = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+    if (authRaw) {
+      try {
+        const authUser = JSON.parse(authRaw);
+        if (authUser && authUser.username) {
+        }
+      } catch (e) {}
+    }
+  }
+
+  function init() {
+    initTheme();
+    initThemeToggle();
+
+    initLang();
+    initLangSelectEvents();
+
+    initYear();
+    initRememberId();
+    initAuthUserInfo();
+    initCapsLockIndicator();
+    initTogglePassword();
+    initDemoFillButtons();
+
+    initAuthEvents();
+    initModalEvents();
+
+    initPageGuardInfo();
+
+    checkAuthApiHealth();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
