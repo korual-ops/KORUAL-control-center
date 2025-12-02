@@ -40,12 +40,20 @@
       <button class="nav-link" data-section="members">🧑‍🤝‍🧑 회원 관리</button>
       <button class="nav-link" data-section="stock">🏬 재고 관리</button>
       <button class="nav-link" data-section="logs">📝 로그</button>
-      <button id="btnExportMembers">회원 CSV 내보내기</button>
-<input type="file" id="fileImportMembers" accept=".csv" />
-<span id="krcTotalPoints"></span>
-<span id="krcAvgPoints"></span>
-<span id="krcVipCount"></span>
-<span id="apiErrorBadge" style="display:none;"></span>
+
+      <!-- CSV / KRC / 에러 뱃지 (이미 사용 중인 부분) -->
+      <button id="btnExportMembers" class="ghost-btn small">회원 CSV 내보내기</button>
+      <input type="file" id="fileImportMembers" accept=".csv" />
+
+      <div class="krc-summary">
+        <div>KRC 총 포인트: <span id="krcTotalPoints">-</span></div>
+        <div>회원당 평균 포인트: <span id="krcAvgPoints">-</span></div>
+        <div>VIP 회원 수(BLK): <span id="krcVipCount">-</span></div>
+      </div>
+
+      <div class="api-error-indicator">
+        API 에러: <span id="apiErrorBadge" style="display:none;">0</span>
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -97,6 +105,7 @@
         <button id="btnLogout" class="ghost-btn logout-btn">로그아웃</button>
       </div>
     </header>
+
     <!-- ============================================================
          1) 대시보드
     ============================================================ -->
@@ -213,7 +222,7 @@
             </tr>
           </thead>
 
-          <tbody id="productsBody">
+          <tbody id="productsBody" data-entity="products" data-sheet="PRODUCTS">
             <tr><td colspan="5" class="empty-state">데이터 없음</td></tr>
           </tbody>
         </table>
@@ -233,7 +242,7 @@
           <p class="section-desc">전체 주문 목록 및 배송 상태 관리</p>
         </div>
 
-        <div class="section-actions">
+      <div class="section-actions">
           <input id="searchOrders" class="input" placeholder="검색 (주문번호 / 고객명 / 상태)" />
         </div>
       </div>
@@ -253,13 +262,14 @@
             </tr>
           </thead>
 
-          <tbody id="ordersBody">
+          <tbody id="ordersBody" data-entity="orders" data-sheet="ORDERS">
             <tr><td colspan="8" class="empty-state">데이터 없음</td></tr>
           </tbody>
         </table>
       </div>
 
     </section>
+
     <!-- ============================================================
          4) 회원 관리
     ============================================================ -->
@@ -294,7 +304,7 @@
             </tr>
           </thead>
 
-          <tbody id="membersBody">
+          <tbody id="membersBody" data-entity="members" data-sheet="MEMBERS">
             <tr><td colspan="11" class="empty-state">데이터 없음</td></tr>
           </tbody>
         </table>
@@ -333,7 +343,7 @@
             </tr>
           </thead>
 
-          <tbody id="stockBody">
+          <tbody id="stockBody" data-entity="stock" data-sheet="STOCK">
             <tr><td colspan="7" class="empty-state">데이터 없음</td></tr>
           </tbody>
         </table>
@@ -368,7 +378,7 @@
             </tr>
           </thead>
 
-          <tbody id="logsBody">
+          <tbody id="logsBody" data-entity="logs" data-sheet="LOGS">
             <tr><td colspan="3" class="empty-state">데이터 없음</td></tr>
           </tbody>
         </table>
@@ -387,11 +397,176 @@
     </footer>
 
   </main>
+</div>
+
+<!-- ============================================================
+     ■ 수정/삭제 공통 모달 레이어 (UI만 세팅)
+     - 실제 동작은 app.js에서 window.KORUAL_MODAL 사용해서 제어
+============================================================ -->
+<div id="korualModalLayer" class="modal-layer" style="display:none;">
+  <div id="korualModalBackdrop" class="modal-backdrop"></div>
+
+  <!-- 수정 모달 -->
+  <div id="rowEditModal" class="modal-panel" data-type="edit">
+    <div class="modal-header">
+      <h3 id="rowEditTitle">행 수정</h3>
+      <button type="button" class="modal-close-btn" data-close-modal>✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta">
+        <span id="rowEditEntityLabel">-</span>
+        <span id="rowEditRowLabel" class="row-label">ROW: -</span>
+      </div>
+
+      <!-- 필드 입력 영역 (동적 생성) -->
+      <div id="rowEditFields" class="modal-fields">
+        <!-- app.js 에서 각 컬럼을 input으로 생성해서 넣을 영역 -->
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="rowEditSave" class="primary-btn">저장</button>
+      <button type="button" class="ghost-btn" data-close-modal>취소</button>
+    </div>
   </div>
 
-  <!-- JS 연결 -->
-  <script src="app.js"></script>
+  <!-- 삭제 모달 -->
+  <div id="rowDeleteModal" class="modal-panel" data-type="delete" style="display:none;">
+    <div class="modal-header">
+      <h3>행 삭제</h3>
+      <button type="button" class="modal-close-btn" data-close-modal>✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="rowDeleteMessage">
+        선택한 행을 삭제하시겠습니까?
+      </p>
+      <div class="modal-meta">
+        <span id="rowDeleteEntityLabel">-</span>
+        <span id="rowDeleteRowLabel" class="row-label">ROW: -</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" id="rowDeleteConfirm" class="primary-btn">삭제</button>
+      <button type="button" class="ghost-btn" data-close-modal>취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- JS 연결 -->
+<script src="app.js"></script>
+
+<!-- 모달 전역 헬퍼 (app.js에서 호출해서 사용) -->
+<script>
+  (function () {
+    const layer      = document.getElementById("korualModalLayer");
+    const backdrop   = document.getElementById("korualModalBackdrop");
+    const editModal  = document.getElementById("rowEditModal");
+    const deleteModal= document.getElementById("rowDeleteModal");
+
+    function closeAll() {
+      if (!layer) return;
+      layer.style.display = "none";
+      if (editModal)  editModal.style.display = "none";
+      if (deleteModal) deleteModal.style.display = "none";
+    }
+
+    // X / 취소 / 백드롭 클릭 시 닫기
+    document.querySelectorAll("[data-close-modal]").forEach(btn => {
+      btn.addEventListener("click", closeAll);
+    });
+    if (backdrop) {
+      backdrop.addEventListener("click", closeAll);
+    }
+
+    // 전역 객체로 노출 – app.js에서 window.KORUAL_MODAL.openEdit(...) 식으로 사용
+    window.KORUAL_MODAL = {
+      closeAll,
+
+      openEdit(payload) {
+        if (!layer || !editModal) return;
+        // payload 예시:
+        // { entity: 'members', sheet: 'MEMBERS', rowIndex: 5, data: {...컬럼:값...} }
+
+        layer.style.display = "block";
+        editModal.style.display = "block";
+        if (deleteModal) deleteModal.style.display = "none";
+
+        // 헤더 텍스트
+        const entityLabelMap = {
+          members: "회원",
+          orders: "주문",
+          products: "상품",
+          stock: "재고",
+          logs: "로그"
+        };
+        const entityName = entityLabelMap[payload.entity] || payload.entity || "-";
+        document.getElementById("rowEditEntityLabel").textContent = `[${entityName}]`;
+        document.getElementById("rowEditRowLabel").textContent    = `ROW: ${payload.rowIndex}`;
+
+        // 필드 렌더링
+        const wrap = document.getElementById("rowEditFields");
+        if (!wrap) return;
+        wrap.innerHTML = "";
+
+        const data = payload.data || {};
+        Object.keys(data).forEach((key) => {
+          const field = document.createElement("div");
+          field.className = "modal-field-row";
+
+          const label = document.createElement("label");
+          label.textContent = key;
+
+          const input = document.createElement("input");
+          input.className = "input";
+          input.value = data[key] ?? "";
+          input.dataset.fieldKey = key;
+
+          field.appendChild(label);
+          field.appendChild(input);
+          wrap.appendChild(field);
+        });
+
+        // 저장 버튼에 payload 정보 잠깐 묶어두기
+        const saveBtn = document.getElementById("rowEditSave");
+        if (saveBtn) {
+          saveBtn.dataset.entity  = payload.entity || "";
+          saveBtn.dataset.sheet   = payload.sheet  || "";
+          saveBtn.dataset.rowIndex= String(payload.rowIndex || "");
+        }
+      },
+
+      openDelete(payload) {
+        if (!layer || !deleteModal) return;
+
+        layer.style.display = "block";
+        deleteModal.style.display = "block";
+        if (editModal) editModal.style.display = "none";
+
+        const entityLabelMap = {
+          members: "회원",
+          orders: "주문",
+          products: "상품",
+          stock: "재고",
+          logs: "로그"
+        };
+        const entityName = entityLabelMap[payload.entity] || payload.entity || "-";
+        document.getElementById("rowDeleteEntityLabel").textContent = `[${entityName}]`;
+        document.getElementById("rowDeleteRowLabel").textContent    = `ROW: ${payload.rowIndex}`;
+
+        const msg = payload.title
+          ? `다음 데이터를 삭제할까요?\n${payload.title}`
+          : "선택한 행을 삭제하시겠습니까?";
+        document.getElementById("rowDeleteMessage").textContent = msg;
+
+        const delBtn = document.getElementById("rowDeleteConfirm");
+        if (delBtn) {
+          delBtn.dataset.entity   = payload.entity || "";
+          delBtn.dataset.sheet    = payload.sheet  || "";
+          delBtn.dataset.rowIndex = String(payload.rowIndex || "");
+        }
+      }
+    };
+  })();
+</script>
 
 </body>
 </html>
-
