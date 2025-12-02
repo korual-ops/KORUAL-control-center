@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL Control Center – Sign In</title>
+  <meta name="theme-color" content="#020617" />
   <link rel="icon" href="data:," />
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,14 +13,8 @@
     :root {
       color-scheme: dark;
     }
-
-    html.dark {
-      color-scheme: dark;
-    }
-
-    html:not(.dark) {
-      color-scheme: light;
-    }
+    html.dark { color-scheme: dark; }
+    html:not(.dark) { color-scheme: light; }
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
@@ -47,7 +42,6 @@
       transition: all 0.18s ease-out;
       border: 0;
     }
-
     .btn:hover {
       transform: translateY(-1px);
       box-shadow:
@@ -55,7 +49,6 @@
         0 0 0 1px rgba(129, 140, 248, 0.5);
       filter: saturate(1.1);
     }
-
     .btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -79,7 +72,6 @@
       color: #e5e7eb;
       transition: all 0.16s ease-out;
     }
-
     .btn-alt:hover {
       background:
         radial-gradient(circle at top left, rgba(148,163,184,0.32), transparent 55%),
@@ -99,11 +91,9 @@
       outline: none;
       transition: all 0.14s ease-out;
     }
-
     .input::placeholder {
       color: rgba(148, 163, 184, 0.7);
     }
-
     .input:focus {
       border-color: rgba(96, 165, 250, 0.9);
       box-shadow:
@@ -111,7 +101,6 @@
         0 0 0 8px rgba(37, 99, 235, 0.08);
       background: rgba(15, 23, 42, 0.96);
     }
-
     .input-error {
       border-color: rgba(248, 113, 113, 0.9) !important;
       box-shadow:
@@ -130,7 +119,6 @@
       color: #cbd5f5;
       gap: 0.35rem;
     }
-
     .pill::before {
       content: '';
       width: 6px;
@@ -140,16 +128,14 @@
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.85);
     }
 
-    /* 배경 (다크/라이트) */
-    html.dark .auth-bg {
+    .auth-bg-dark {
       background:
         radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.22), transparent 60%),
         radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.28), transparent 60%),
         linear-gradient(to bottom right, #020617, #020617);
       color: #e5e7eb;
     }
-
-    html:not(.dark) .auth-bg {
+    .auth-bg-light {
       background:
         radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.10), transparent 60%),
         radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.10), transparent 60%),
@@ -163,24 +149,20 @@
       font-weight: 600;
       box-shadow: 0 10px 30px rgba(15,23,42,0.6);
     }
-
-    .tab-inactive {
-      color: #9ca3af;
-    }
+    .tab-inactive { color: #9ca3af; }
 
     .password-hint {
       font-size: 0.7rem;
       color: #9ca3af;
       margin-top: 0.15rem;
     }
-
     .caps-indicator {
       font-size: 0.7rem;
       color: #f97373;
       margin-left: 0.4rem;
     }
 
-    /* 라이트 테마 오버라이드 */
+    /* Light theme overrides */
     html:not(.dark) .glass {
       background: rgba(255,255,255,0.9);
       border-color: rgba(148,163,184,0.45) !important;
@@ -188,14 +170,12 @@
         0 30px 80px rgba(15,23,42,0.18),
         0 0 0 1px rgba(148,163,184,0.25);
     }
-
     html:not(.dark) #loginPanel,
     html:not(.dark) #signupPanel {
       background: rgba(255,255,255,0.96);
       border-color: rgba(148,163,184,0.55);
       color: #0f172a;
     }
-
     html:not(.dark) .btn-alt {
       background:
         radial-gradient(circle at top left, rgba(148,163,184,0.12), transparent 55%),
@@ -203,44 +183,58 @@
       color: #0f172a;
       border-color: rgba(148,163,184,0.7);
     }
-
     html:not(.dark) .btn-alt:hover {
       background:
         radial-gradient(circle at top left, rgba(148,163,184,0.25), transparent 55%),
         #f9fafb;
     }
-
     html:not(.dark) .input {
       background: #ffffff;
       color: #0f172a;
       border-color: rgba(148,163,184,0.7);
     }
-
-    html:not(.dark) .input::placeholder {
-      color: #9ca3af;
-    }
-
+    html:not(.dark) .input::placeholder { color: #9ca3af; }
     html:not(.dark) .pill {
       background: #eff6ff;
       color: #0f172a;
       border-color: rgba(148,163,184,0.7);
     }
-
     html:not(.dark) .btn {
       box-shadow:
         0 14px 30px rgba(59,130,246,0.35),
         0 0 0 1px rgba(129,140,248,0.35);
     }
 
-    /* 모바일에서 카드 여백 조정 */
+    /* Toast */
+    .toast-enter {
+      opacity: 0;
+      transform: translateY(12px) scale(.95);
+    }
+    .toast-enter-active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: all 0.18s ease-out;
+    }
+    .toast-exit {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .toast-exit-active {
+      opacity: 0;
+      transform: translateY(8px) scale(.96);
+      transition: all 0.18s ease-in;
+    }
+
+    /* 모바일 카드 여백 */
     @media (max-width: 768px) {
-      .auth-card-wrapper {
-        padding-bottom: 1.5rem;
-      }
+      .auth-card-wrapper { padding-bottom: 1.5rem; }
     }
   </style>
 </head>
-<body class="min-h-screen text-slate-50 auth-bg">
+<body class="min-h-screen auth-bg-dark text-slate-50 transition-colors duration-200">
+
+  <!-- Toast container -->
+  <div id="toastRoot" class="fixed inset-x-0 bottom-4 flex justify-center pointer-events-none z-30 px-4"></div>
 
   <!-- Top bar -->
   <header class="max-w-6xl mx-auto px-4 md:px-8 pt-4 pb-3 flex items-center justify-between gap-4">
@@ -257,7 +251,12 @@
         </h1>
       </div>
     </div>
+
     <div class="flex items-center gap-2">
+      <div class="hidden sm:flex items-center gap-2 text-[11px]">
+        <span id="apiStatusDot" class="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.35)]"></span>
+        <span id="apiStatusText" class="text-slate-400">Auth API 체크 중…</span>
+      </div>
       <select id="langTop" class="input w-24 md:w-28 py-2 text-[11px] md:text-xs border-slate-700 bg-slate-900/80">
         <option value="ko">한국어</option>
         <option value="en">English</option>
@@ -269,10 +268,9 @@
   <!-- Auth card -->
   <main class="max-w-6xl mx-auto px-4 md:px-8 auth-card-wrapper">
     <section class="relative w-full max-w-md md:max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-[0_28px_90px_rgba(15,23,42,0.95)] border border-slate-800/90 glass bg-slate-900 md:grid md:grid-cols-[1.05fr,1.25fr]">
-      <!-- Outer glow -->
       <div class="pointer-events-none absolute inset-0 border border-sky-500/10 rounded-[1.45rem]"></div>
 
-      <!-- 모바일 전용 상단 인포 (위에) -->
+      <!-- 모바일 인포 -->
       <div class="flex md:hidden flex-col gap-5 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 p-6 pb-5 relative z-10">
         <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-md">
           <div class="w-9 h-9 rounded-2xl bg-white text-slate-900 grid place-content-center text-lg font-bold">K</div>
@@ -287,7 +285,7 @@
             한 화면에서 보는 <span class="text-sky-400">KORUAL</span> 관제탑
           </h2>
           <p class="text-xs text-slate-300/90">
-            로그인하면 실시간 주문, 회원, 자동화 상태를 백엔드
+            로그인하면 실시간 주문, 회원, 자동화 상태를
             <span class="text-sky-300 font-medium">KORUAL_CONTROL_CENTER</span> 에서 바로 확인합니다.
           </p>
         </div>
@@ -295,15 +293,15 @@
         <div class="grid gap-1.5 text-[11px] text-slate-300/95">
           <div class="flex items-start gap-2">
             <span class="mt-[1px] text-blue-400 text-lg">▌</span>
-            <span>DB 계정 저장소 기반 – KORUAL 에서 바로 계정 관리</span>
+            <span>DB 계정 저장소 기반 – KORUAL 시트에서 바로 계정 관리</span>
           </div>
           <div class="flex items-start gap-2">
             <span class="mt-[1px] text-emerald-400 text-lg">▌</span>
-            <span>추후 주문, 매출, 멤버십 API 연동 시 관제탑 레벨로 확장 가능</span>
+            <span>주문/매출/멤버십 API 연동으로 관제탑 레벨까지 확장 가능</span>
           </div>
           <div class="flex items-start gap-2">
             <span class="mt-[1px] text-violet-400 text-lg">▌</span>
-            <span>어디서나 브라우저로 접속</span>
+            <span>브라우저만 있으면 어디서나 접속</span>
           </div>
         </div>
 
@@ -315,11 +313,14 @@
             <span class="text-slate-600">/</span>
             <span class="text-slate-400">PW</span>
             <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[10px]">GUEST</code>
+            <button id="btnFillDemoMobile" class="ml-2 text-[10px] text-sky-300 underline decoration-dotted">
+              자동 채우기
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- 데스크톱용 좌측 인포 -->
+      <!-- 데스크톱 좌측 인포 -->
       <div class="hidden md:flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/95 p-8 text-slate-50 relative">
         <div class="absolute inset-x-10 top-20 h-32 bg-gradient-to-r from-sky-500/15 via-cyan-400/10 to-indigo-500/15 blur-3xl opacity-70"></div>
         <div class="relative space-y-7">
@@ -344,15 +345,15 @@
           <div class="grid gap-2 text-xs text-slate-300/95">
             <div class="flex items-start gap-2">
               <span class="mt-[1px] text-blue-400 text-lg">▌</span>
-              <span>DB 계정 저장소 기반 – KORUAL 에서 바로 계정 관리</span>
+              <span>Google Sheets 계정 DB 기반 – 계정/권한을 표로 관리</span>
             </div>
             <div class="flex items-start gap-2">
               <span class="mt-[1px] text-emerald-400 text-lg">▌</span>
-              <span>추후 주문, 매출, 멤버십 API 연동 시 관제탑 레벨로 확장 가능</span>
+              <span>ROLE, LAST_LOGIN, MFA 정보까지 함께 저장</span>
             </div>
             <div class="flex items-start gap-2">
               <span class="mt-[1px] text-violet-400 text-lg">▌</span>
-              <span>어디서나 브라우저로 접속</span>
+              <span>이후 주문・매출・멤버십 시트와 연동하여 관제탑 완성</span>
             </div>
           </div>
         </div>
@@ -365,12 +366,15 @@
             <span class="text-slate-600">/</span>
             <span class="text-slate-400">PW</span>
             <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">GUEST</code>
+            <button id="btnFillDemo" class="ml-2 text-[11px] text-sky-300 underline decoration-dotted">
+              자동 채우기
+            </button>
           </div>
           <p>로그인 후에는 자동으로 <span class="text-sky-300">KORUAL_CONTROL_CENTER</span> 로 이동합니다.</p>
         </div>
       </div>
 
-      <!-- 우측(모바일에서는 아래) 로그인/회원가입 카드 -->
+      <!-- 우측 로그인/회원가입 카드 -->
       <div class="bg-slate-950/95 text-slate-50 px-5 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8 relative">
         <!-- Loading overlay -->
         <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3">
@@ -490,7 +494,7 @@
         <!-- Bottom meta -->
         <div class="mt-5 sm:mt-6 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-500">
           <p>© <span id="year"></span> KORUAL CONTROL CENTER · Internal Use Only</p>
-          <p>v1.0 ·KORUAL</p>
+          <p>v1.0 · KORUAL</p>
         </div>
       </div>
     </section>
@@ -563,18 +567,70 @@
     function applyTheme(mode) {
       const root = document.documentElement;
       const final = mode === "light" ? "light" : "dark";
-
       root.classList.toggle("dark", final === "dark");
       localStorage.setItem("korual_theme", final);
 
       const themeBtn = document.getElementById("toggleTheme");
+      const body     = document.body;
+      if (final === "dark") {
+        body.classList.remove("auth-bg-light");
+        body.classList.add("auth-bg-dark");
+      } else {
+        body.classList.remove("auth-bg-dark");
+        body.classList.add("auth-bg-light");
+      }
+
       if (themeBtn) {
         themeBtn.textContent = final === "dark" ? "🌓" : "🌞";
         themeBtn.title = final === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환";
       }
     }
 
+    /******** Toast ********/
+    function showToast(message, type = "info") {
+      const root = document.getElementById("toastRoot");
+      if (!root) return;
+
+      const el = document.createElement("div");
+      el.className =
+        "max-w-md w-full pointer-events-auto rounded-2xl px-4 py-3 text-[13px] flex items-center gap-3 shadow-[0_18px_45px_rgba(15,23,42,0.9)] ring-1 " +
+        (type === "success"
+          ? "bg-emerald-500/95 text-white ring-emerald-400/70"
+          : type === "error"
+          ? "bg-rose-500/95 text-white ring-rose-400/70"
+          : "bg-slate-900/95 text-slate-50 ring-slate-700/80");
+
+      el.innerHTML = `
+        <span class="text-lg">
+          ${type === "success" ? "✅" : type === "error" ? "⚠️" : "🔔"}
+        </span>
+        <span class="flex-1">${message}</span>
+      `;
+
+      el.classList.add("toast-enter");
+      root.appendChild(el);
+
+      // enter animation
+      requestAnimationFrame(() => {
+        el.classList.remove("toast-enter");
+        el.classList.add("toast-enter-active");
+      });
+
+      // exit
+      setTimeout(() => {
+        el.classList.remove("toast-enter-active");
+        el.classList.add("toast-exit");
+        requestAnimationFrame(() => {
+          el.classList.add("toast-exit-active");
+        });
+        setTimeout(() => {
+          root.removeChild(el);
+        }, 180);
+      }, 2600);
+    }
+
     /******** Google Sheets Auth API ********/
+    // 필요하면 여기 URL만 교체
     const GS_API        = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
     const DASHBOARD_URL = "dashboard.html";
 
@@ -598,13 +654,33 @@
       return data;
     }
 
+    async function pingApi() {
+      const dot = document.getElementById("apiStatusDot");
+      const txt = document.getElementById("apiStatusText");
+      if (!dot || !txt) return;
+      try {
+        const res = await fetch(GS_API);
+        const ok  = res.ok;
+        dot.className =
+          "h-2.5 w-2.5 rounded-full " +
+          (ok
+            ? "bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.4)]"
+            : "bg-rose-400 shadow-[0_0_0_5px_rgba(248,113,113,0.4)]");
+        txt.textContent = ok ? "Auth API Online" : "Auth API Error";
+      } catch {
+        dot.className =
+          "h-2.5 w-2.5 rounded-full bg-rose-400 shadow-[0_0_0_5px_rgba(248,113,113,0.4)]";
+        txt.textContent = "Auth API Error";
+      }
+    }
+
     const $ = id => document.getElementById(id);
 
     (function bootstrap() {
       const y = $("year");
       if (y) y.textContent = new Date().getFullYear();
 
-      // Theme
+      // Theme 초기값
       const savedTheme = localStorage.getItem("korual_theme") || "dark";
       applyTheme(savedTheme);
       const themeBtn = $("toggleTheme");
@@ -615,6 +691,9 @@
           applyTheme(next);
         });
       }
+
+      // API 상태 체크
+      pingApi();
 
       // Language
       applyI18n();
@@ -635,6 +714,17 @@
         const rememberCheckbox = $("rememberId");
         if (rememberCheckbox) rememberCheckbox.checked = true;
       }
+
+      // Demo fill buttons
+      const fillDemo = () => {
+        if ($("loginUsername")) $("loginUsername").value = "KORUAL";
+        if ($("loginPassword")) $("loginPassword").value = "GUEST";
+        showToast("테스트 계정이 자동으로 입력되었습니다.", "info");
+      };
+      ["btnFillDemo", "btnFillDemoMobile"].forEach(id => {
+        const btn = $(id);
+        if (btn) btn.addEventListener("click", fillDemo);
+      });
 
       // Tabs
       const loginPanel   = $("loginPanel");
@@ -713,7 +803,9 @@
           full_name: $("suName").value.trim(),
           email: $("suEmail").value.trim(),
           username: $("suUser").value.trim(),
-          password: $("suPass").value
+          password: $("suPass").value,
+          role: "staff",
+          created_by: "SELF"
         };
 
         let hasErr = false;
@@ -731,6 +823,7 @@
         }
         if (hasErr) {
           $("signupMsg").textContent = I18N[LANG].need_id_pw;
+          showToast(I18N[LANG].need_id_pw, "error");
           return;
         }
 
@@ -738,66 +831,73 @@
         try {
           await apiSignup(payload);
           $("signupMsg").textContent = I18N[LANG].signup_done;
+          showToast(I18N[LANG].signup_done, "success");
           setTab("login");
           $("loginUsername").value = payload.username;
         } catch (e) {
-          $("signupMsg").textContent = e.message || I18N[LANG].user_exists;
+          const msg = e.message || I18N[LANG].user_exists;
+          $("signupMsg").textContent = msg;
+          showToast(msg, "error");
         }
       });
 
       // Login
-async function handleLogin() {
-  clearInputErrors();
-  const username = $("loginUsername").value.trim();
-  const password = $("loginPassword").value;
+      async function handleLogin() {
+        clearInputErrors();
+        const username = $("loginUsername").value.trim();
+        const password = $("loginPassword").value;
 
-  if (!username || !password) {
-    $("loginMsg").textContent = I18N[LANG].need_id_pw;
-    if (!username) $("loginUsername").classList.add("input-error");
-    if (!password) $("loginPassword").classList.add("input-error");
-    return;
-  }
+        if (!username || !password) {
+          $("loginMsg").textContent = I18N[LANG].need_id_pw;
+          if (!username) $("loginUsername").classList.add("input-error");
+          if (!password) $("loginPassword").classList.add("input-error");
+          showToast(I18N[LANG].need_id_pw, "error");
+          return;
+        }
 
-  $("loginMsg").textContent = "";
-  $("btnLogin").disabled = true;
-  $("btnLogin").textContent = "Loading...";
-  if (overlay) overlay.classList.remove("hidden");
+        $("loginMsg").textContent = "";
+        $("btnLogin").disabled = true;
+        $("btnLogin").textContent = "Loading...";
+        if (overlay) overlay.classList.remove("hidden");
 
-  // remember ID
-  const remember = $("rememberId")?.checked;
-  if (remember) localStorage.setItem("korual_login_id", username);
-  else localStorage.removeItem("korual_login_id");
+        // remember ID
+        const remember = $("rememberId")?.checked;
+        if (remember) localStorage.setItem("korual_login_id", username);
+        else localStorage.removeItem("korual_login_id");
 
-  try {
-    // 로그인 API 호출
-    const data = await apiLogin(username, password);
+        try {
+          const data = await apiLogin(username, password);
+          const u = data.user || {};
+          const fullName =
+            u.full_name ||
+            data.full_name ||
+            username;
 
-    // 로그인 정보 localStorage 저장 (대시보드에서 사용)
-    const fullName =
-      data.full_name ||
-      (data.user && data.user.full_name) ||
-      username;
+          // localStorage 세션 저장
+          localStorage.setItem(
+            "korual_user",
+            JSON.stringify({
+              username: u.username || username,
+              full_name: fullName,
+              email: u.email || "",
+              role: u.role || "staff",
+              last_login: u.last_login || "",
+              logged_at: new Date().toISOString()
+            })
+          );
 
-    localStorage.setItem(
-      "korual_user",
-      JSON.stringify({
-        username,
-        full_name: fullName,
-        logged_at: new Date().toISOString(),
-      })
-    );
-
-    // 대시보드로 이동
-    window.location.href = "dashboard.html";
-  } catch (e) {
-    $("loginMsg").textContent = e.message || I18N[LANG].login_failed;
-  } finally {
-    $("btnLogin").disabled = false;
-    $("btnLogin").textContent = I18N[LANG].login_btn;
-    if (overlay) overlay.classList.add("hidden");
-  }
-}
-
+          showToast(`어서오세요, ${fullName}님. Control Center로 이동합니다.`, "success");
+          setTimeout(() => { window.location.href = DASHBOARD_URL; }, 600);
+        } catch (e) {
+          const msg = e.message || I18N[LANG].login_failed;
+          $("loginMsg").textContent = msg;
+          showToast(msg, "error");
+        } finally {
+          $("btnLogin").disabled = false;
+          $("btnLogin").textContent = I18N[LANG].login_btn;
+          if (overlay) overlay.classList.add("hidden");
+        }
+      }
 
       $("btnLogin").addEventListener("click", handleLogin);
       ["loginUsername", "loginPassword"].forEach(id => {
@@ -811,4 +911,3 @@ async function handleLogin() {
   </script>
 </body>
 </html>
-
