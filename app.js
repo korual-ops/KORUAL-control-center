@@ -1,670 +1,598 @@
 /*************************************************
- * KORUAL CONTROL CENTER – High-End Frontend app.js
- * - 로그인 / 회원가입
- * - ID 찾기 / PW 재설정
- * - 5회 실패 잠금 (백엔드 code.gs 기준)
- * - 클라이언트 IP + UserAgent 로그
- * - 다크/라이트 테마 + 다국어(i18n) + 토스트
+ * KORUAL CONTROL CENTER – Frontend (app.js, High-End)
+ * - 대시보드 / 상품 / 주문 / 회원 / 재고 / 로그
+ * - Google Apps Script Backend(code.gs)와 연동
+ * - 테마 토글 / 모바일 사이드바 / 검색 / 리프레시
+ * - 행 더블클릭: 수정 모달 / 우클릭: 삭제 모달
  *************************************************/
 
-/******** i18n ********/
-const I18N = {
-  ko: {
-    sign_to_korual: "SIGN IN TO KORUAL",
-    headline: "KORUAL 계정으로 접속",
-    tab_login: "로그인",
-    tab_signup: "회원가입",
-    login: "로그인",
-    login_btn: "로그인",
-    login_badge: "Control Center 입장",
-    login_hint: "엔터키로도 로그인 가능",
-    signup: "회원가입",
-    signup_btn: "회원가입",
-    signup_badge: "Google Sheets 계정 저장",
-    username: "아이디",
-    password: "비밀번호",
-    full_name: "이름",
-    email: "이메일",
-    remember_id: "아이디 기억하기",
-    login_failed: "로그인 실패: 아이디/비밀번호를 확인하세요.",
-    signup_done: "회원가입 완료. 이제 로그인해 주세요.",
-    user_exists: "이미 존재하는 아이디입니다.",
-    need_id_pw: "아이디와 비밀번호를 입력해주세요.",
-    // ID/PW 찾기
-    find_id: "아이디 찾기",
-    reset_pw: "비밀번호 재설정",
-    find_id_desc: "회원가입할 때 사용한 이메일을 입력하면, 해당 이메일로 등록된 아이디 목록을 보여줍니다.",
-    reset_pw_desc: "아이디와 이메일을 확인한 뒤, 새 비밀번호를 설정합니다.",
-    find_id_success_prefix: "다음 아이디가 등록되어 있습니다:",
-    find_id_empty: "해당 이메일로 등록된 계정이 없습니다.",
-    reset_pw_success: "비밀번호가 재설정되었습니다. 새 비밀번호로 로그인해 주세요.",
-    reset_pw_failed: "비밀번호 재설정에 실패했습니다. 정보를 다시 확인해 주세요.",
-    need_email: "이메일을 입력해주세요.",
-    need_reset_fields: "아이디, 이메일, 새 비밀번호를 모두 입력해주세요.",
-    pw_too_short: "새 비밀번호는 최소 6자리 이상이어야 합니다.",
-    server_error: "서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
-    loading_login: "로그인 중...",
-    loading_signup: "가입 처리 중...",
-    loading_search: "조회 중..."
+/* ==============================
+   0) 기본 설정
+============================== */
+
+// TODO: 실제 배포된 Web App URL로 교체해서 사용
+const API_BASE   = "https://script.google.com/macros/s/AKfycbx3s5j7YgqcWLGGGuzdtQy0Ayl3QHtHP7xwhEAv3N-BClUVFN/exec";
+const API_SECRET = "KORUAL-ONLY";
+
+const state = {
+  dashboard: null,
+  products: [],
+  orders: [],
+  members: [],
+  stock: [],
+  logs: []
+};
+
+const TABLE_CONFIG = {
+  products: {
+    sheet: "PRODUCTS",
+    columns: ["상품코드", "상품명", "옵션", "판매가", "재고"]
   },
-  en: {
-    sign_to_korual: "SIGN IN TO KORUAL",
-    headline: "Sign in to KORUAL Control Center",
-    tab_login: "Login",
-    tab_signup: "Sign Up",
-    login: "Login",
-    login_btn: "Login",
-    login_badge: "Enter Control Center",
-    login_hint: "Press Enter to login",
-    signup: "Sign Up",
-    signup_btn: "Sign Up",
-    signup_badge: "Store accounts in Google Sheets",
-    username: "Username",
-    password: "Password",
-    full_name: "Full Name",
-    email: "Email",
-    remember_id: "Remember ID",
-    login_failed: "Login failed: check username/password.",
-    signup_done: "Sign-up completed. Please login.",
-    user_exists: "This username already exists.",
-    need_id_pw: "Please enter username & password.",
-    // ID/PW
-    find_id: "Find ID",
-    reset_pw: "Reset Password",
-    find_id_desc: "Enter the email you used when signing up. All IDs registered with this email will be shown.",
-    reset_pw_desc: "Enter your ID, email, and new password to reset.",
-    find_id_success_prefix: "The following IDs are registered:",
-    find_id_empty: "No accounts found for that email.",
-    reset_pw_success: "Password has been reset. Please login with your new password.",
-    reset_pw_failed: "Failed to reset password. Please check your info.",
-    need_email: "Please enter an email.",
-    need_reset_fields: "Please fill ID, email, and new password.",
-    pw_too_short: "New password must be at least 6 characters.",
-    server_error: "Unable to reach the server. Please try again.",
-    loading_login: "Signing in...",
-    loading_signup: "Signing up...",
-    loading_search: "Searching..."
+  orders: {
+    sheet: "ORDERS",
+    columns: ["회원번호", "날짜", "주문번호", "고객명", "상품명", "수량", "금액", "상태"]
+  },
+  members: {
+    sheet: "MEMBERS",
+    columns: ["회원번호", "이름", "전화번호", "이메일", "가입일", "채널", "등급", "누적매출", "포인트", "최근주문일", "메모"]
+  },
+  stock: {
+    sheet: "STOCK",
+    columns: ["상품코드", "상품명", "현재 재고", "안전 재고", "상태", "창고", "채널"]
+  },
+  logs: {
+    sheet: "LOGS",
+    columns: ["시간", "타입", "메시지"]
   }
 };
 
-let LANG = localStorage.getItem("korual_lang") || "ko";
+const $ = (id) => document.getElementById(id);
 
-/******** Helper ********/
-const $ = id => document.getElementById(id);
 
-function applyI18n() {
-  document.querySelectorAll("[data-i18n]").forEach(el => {
-    const key = el.dataset.i18n;
-    const v = I18N[LANG][key];
-    if (typeof v === "string") el.textContent = v;
-  });
-  const langTop  = $("langTop");
-  const langAuth = $("langAuth");
-  if (langTop)  langTop.value  = LANG;
-  if (langAuth) langAuth.value = LANG;
-}
+/* ==============================
+   1) Toast 유틸
+============================== */
 
-/******** Theme ********/
-function applyTheme(mode) {
-  const root  = document.documentElement;
-  const body  = document.body;
-  const final = mode === "light" ? "light" : "dark";
-
-  root.classList.toggle("dark", final === "dark");
-  localStorage.setItem("korual_theme", final);
-
-  if (final === "dark") {
-    body.classList.remove("auth-bg-light");
-    body.classList.add("auth-bg-dark");
-  } else {
-    body.classList.remove("auth-bg-dark");
-    body.classList.add("auth-bg-light");
-  }
-
-  const themeBtn = $("toggleTheme");
-  if (themeBtn) {
-    themeBtn.textContent = final === "dark" ? "🌓" : "🌞";
-    themeBtn.title = final === "dark"
-      ? "라이트 모드로 전환"
-      : "다크 모드로 전환";
-  }
-}
-
-/******** Toast (하이엔드) ********/
-function ensureToastRoot() {
-  let root = $("toastRoot");
+function showToast(message, type = "info") {
+  let root = document.querySelector(".toast-container");
   if (!root) {
     root = document.createElement("div");
-    root.id = "toastRoot";
     root.className = "toast-container";
     document.body.appendChild(root);
   }
-  return root;
-}
-
-function showToast(message, type = "info") {
-  const root = ensureToastRoot();
-  if (!root) return;
 
   const el = document.createElement("div");
-  let cls = "toast ";
-  if (type === "success") cls += "toast-success";
-  else if (type === "error") cls += "toast-error";
-  else cls += "toast-info";
+  el.className = "toast";
 
-  el.className = cls;
+  if (type === "success") el.classList.add("toast-success");
+  else if (type === "error") el.classList.add("toast-error");
+  else el.classList.add("toast-info");
+
   el.textContent = message;
-
   root.appendChild(el);
 
-  // 자동 사라짐
   setTimeout(() => {
     el.classList.add("hide");
     setTimeout(() => {
-      if (el.parentNode === root) root.removeChild(el);
-    }, 260);
-  }, 2600);
+      root.removeChild(el);
+    }, 280);
+  }, 2400);
 }
 
-/******** 공통 유틸 ********/
-function isValidEmail(email) {
-  if (!email) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+/* ==============================
+   2) API 래퍼
+============================== */
+
+async function apiGet(target) {
+  const url = `${API_BASE}?target=${encodeURIComponent(target)}`;
+  const res = await fetch(url, { method: "GET" });
+  if (!res.ok) {
+    throw new Error(`GET ${target} 실패 (${res.status})`);
+  }
+  const json = await res.json();
+  if (json.ok === false) {
+    throw new Error(json.error || `GET ${target} 응답 오류`);
+  }
+  return json;
 }
 
-function clearInputErrors() {
-  [
-    "loginUsername",
-    "loginPassword",
-    "suUser",
-    "suPass",
-    "suEmail",
-    "fiEmail",
-    "rpUser",
-    "rpEmail",
-    "rpNewPw"
-  ].forEach(id => {
-    const el = $(id);
-    if (el) el.classList.remove("input-error");
-  });
-}
-
-/******** Modal Helper ********/
-function openModal(el) {
-  if (!el) return;
-  el.classList.remove("hidden");
-  el.classList.add("flex");
-}
-
-function closeModal(el) {
-  if (!el) return;
-  el.classList.add("hidden");
-  el.classList.remove("flex");
-}
-
-/******** Loading Overlay ********/
-function setOverlayVisible(isVisible) {
-  const overlay = $("loadingOverlay");
-  if (!overlay) return;
-  overlay.classList.toggle("hidden", !isVisible);
-}
-
-/******** Google Sheets Auth API ********/
-const GS_API        = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
-const DASHBOARD_URL = "dashboard.html";
-
-/******** 클라이언트 IP ********/
-window.__korualClientIp = "";
-try {
-  fetch("https://api.ipify.org?format=json")
-    .then(res => res.json())
-    .then(d => { window.__korualClientIp = d.ip; })
-    .catch(() => {});
-} catch (_) {}
-
-/******** API Wrappers ********/
-async function apiSignup(payload) {
-  const res = await fetch(GS_API, {
+async function apiPost(target, payload) {
+  const res = await fetch(API_BASE, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({
-      mode: "signup",
-      ...payload,
-      client_ip:  window.__korualClientIp || "",
-      user_agent: navigator.userAgent || ""
+      secret: API_SECRET,
+      target,
+      ...payload
     })
   });
-  const data = await res.json().catch(() => ({}));
-  if (!data.ok) throw new Error(data.message || "Signup error");
-  return data;
+
+  if (!res.ok) {
+    throw new Error(`POST ${target} 실패 (${res.status})`);
+  }
+  const json = await res.json();
+  if (json.ok === false) {
+    throw new Error(json.error || `POST ${target} 응답 오류`);
+  }
+  return json;
 }
 
-async function apiLogin(username, password) {
-  const res = await fetch(GS_API, {
-    method: "POST",
-    body: JSON.stringify({
-      mode: "login",
-      username,
-      password,
-      client_ip:  window.__korualClientIp || "",
-      user_agent: navigator.userAgent || ""
-    })
+
+/* ==============================
+   3) 테마 / 사이드바 / 탭
+============================== */
+
+function applyTheme(mode) {
+  const body = document.body;
+  const final = mode === "light" ? "light" : "dark";
+
+  body.classList.toggle("theme-dark", final === "dark");
+  localStorage.setItem("korual_theme", final);
+
+  const toggle = $("themeToggle");
+  const label = toggle?.querySelector(".theme-toggle-label");
+  if (toggle && label) {
+    const lightText = label.dataset.light || "Light";
+    const darkText = label.dataset.dark || "Dark";
+    label.textContent = final === "dark" ? darkText : lightText;
+  }
+}
+
+function initThemeToggle() {
+  const toggle = $("themeToggle");
+  const saved = localStorage.getItem("korual_theme") || "dark";
+  applyTheme(saved);
+
+  if (!toggle) return;
+  toggle.addEventListener("click", () => {
+    const current = localStorage.getItem("korual_theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    applyTheme(next);
   });
-  const data = await res.json().catch(() => ({}));
-  if (!data.ok) throw new Error(data.message || "Login error");
-  return data;
 }
 
-// 아이디 찾기
-async function apiFindId(email) {
-  const res = await fetch(GS_API, {
-    method: "POST",
-    body: JSON.stringify({ mode: "findId", email })
+function initSidebar() {
+  const menuToggle = $("menuToggle");
+  const sidebar = document.querySelector(".sidebar");
+  const backdrop = $("sidebarBackdrop");
+
+  if (!menuToggle || !sidebar || !backdrop) return;
+
+  const open = () => {
+    sidebar.classList.add("open");
+  };
+  const close = () => {
+    sidebar.classList.remove("open");
+  };
+
+  menuToggle.addEventListener("click", () => {
+    if (sidebar.classList.contains("open")) close();
+    else open();
   });
-  return res.json().catch(() => ({ ok: false }));
+
+  backdrop.addEventListener("click", close);
 }
 
-// 비밀번호 재설정
-async function apiResetPw({ username, email, new_password }) {
-  const res = await fetch(GS_API, {
-    method: "POST",
-    body: JSON.stringify({ mode: "resetPw", username, email, new_password })
+function setActiveSection(sectionId) {
+  document.querySelectorAll(".section").forEach((sec) => {
+    sec.classList.toggle("active", sec.id === `section-${sectionId}`);
   });
-  return res.json().catch(() => ({ ok: false }));
+
+  document.querySelectorAll(".nav-link").forEach((btn) => {
+    const s = btn.dataset.section;
+    btn.classList.toggle("active", s === sectionId);
+  });
 }
 
-/******** API 상태 체크 ********/
-async function pingApi() {
-  const dot = $("apiStatusDot");
-  const txt = $("apiStatusText");
-  if (!dot || !txt) return;
+function initNavTabs() {
+  document.querySelectorAll(".nav-link").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const section = btn.dataset.section;
+      if (!section) return;
+      setActiveSection(section);
+    });
+  });
+
+  const goOrders = $("goOrders");
+  if (goOrders) {
+    goOrders.addEventListener("click", () => {
+      setActiveSection("orders");
+    });
+  }
+}
+
+
+/* ==============================
+   4) API 상태 / 유저 정보
+============================== */
+
+async function initApiStatus() {
+  const apiPingSpan = $("apiPing");
+  const apiStatusEl = document.querySelector(".api-status");
+
+  if (!apiPingSpan || !apiStatusEl) return;
 
   try {
-    const res = await fetch(GS_API);
-    const ok  = res.ok;
-    dot.className = "api-status-dot " + (ok ? "" : "api-status-dot-error");
-    txt.textContent = ok ? "Auth API Online" : "Auth API Error";
-  } catch {
-    dot.className = "api-status-dot api-status-dot-error";
-    txt.textContent = "Auth API Error";
+    const start = Date.now();
+    const res = await apiGet("ping");
+    const elapsed = Date.now() - start;
+
+    apiPingSpan.textContent = `${elapsed} ms`;
+    apiStatusEl.classList.remove("error");
+    apiStatusEl.classList.add("ok");
+    apiStatusEl.textContent = "API 연결 양호";
+  } catch (err) {
+    apiPingSpan.textContent = "- ms";
+    apiStatusEl.classList.remove("ok");
+    apiStatusEl.classList.add("error");
+    apiStatusEl.textContent = "API 오류";
+    console.error(err);
   }
 }
 
-/******** Bootstrap ********/
-(function bootstrap() {
-  const y = $("year");
-  if (y) y.textContent = new Date().getFullYear();
+function initUserMeta() {
+  const span = $("welcomeUser");
+  try {
+    const raw = localStorage.getItem("korual_user");
+    if (!raw) return;
+    const u = JSON.parse(raw);
+    const name = u.full_name || u.username || "KORUAL";
+    if (span) span.textContent = name;
+  } catch (e) {
+    // 무시
+  }
+}
 
-  // Theme 초기값
-  const savedTheme = localStorage.getItem("korual_theme") || "dark";
-  applyTheme(savedTheme);
-  const themeBtn = $("toggleTheme");
-  if (themeBtn) {
-    themeBtn.addEventListener("click", () => {
-      const current = localStorage.getItem("korual_theme") || "dark";
-      const next = current === "dark" ? "light" : "dark";
-      applyTheme(next);
-    });
+function initLogout() {
+  const btn = $("btnLogout");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    localStorage.removeItem("korual_user");
+    showToast("로그아웃 되었습니다.", "info");
+    setTimeout(() => {
+      window.location.href = "index.html";
+    }, 400);
+  });
+}
+
+
+/* ==============================
+   5) 렌더러
+============================== */
+
+function formatNumber(value) {
+  if (value == null || value === "") return "-";
+  const n = Number(value);
+  if (isNaN(n)) return String(value);
+  return n.toLocaleString("ko-KR");
+}
+
+function formatCurrency(value) {
+  const n = Number(value);
+  if (isNaN(n)) return "-";
+  return n.toLocaleString("ko-KR") + "원";
+}
+
+function updateLastSync() {
+  const el = $("last-sync");
+  if (!el) return;
+  const now = new Date();
+  const formatted =
+    now.getFullYear() +
+    "-" +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(now.getDate()).padStart(2, "0") +
+    " " +
+    String(now.getHours()).padStart(2, "0") +
+    ":" +
+    String(now.getMinutes()).padStart(2, "0");
+  el.textContent = "마지막 동기화: " + formatted;
+}
+
+function renderDashboard() {
+  const data = state.dashboard;
+  if (!data) return;
+
+  const cardTotalProducts = $("cardTotalProducts");
+  const cardTotalOrders = $("cardTotalOrders");
+  const cardTotalRevenue = $("cardTotalRevenue");
+  const cardTotalMembers = $("cardTotalMembers");
+
+  const todayOrders = $("todayOrders");
+  const todayRevenue = $("todayRevenue");
+  const todayPending = $("todayPending");
+
+  if (cardTotalProducts) cardTotalProducts.textContent = formatNumber(data.totalProducts);
+  if (cardTotalOrders) cardTotalOrders.textContent = formatNumber(data.totalOrders);
+  if (cardTotalRevenue) cardTotalRevenue.textContent = formatCurrency(data.totalRevenue);
+  if (cardTotalMembers) cardTotalMembers.textContent = formatNumber(data.totalMembers);
+
+  if (todayOrders) todayOrders.textContent = formatNumber(data.todayOrders);
+  if (todayRevenue) todayRevenue.textContent = formatCurrency(data.todayRevenue);
+  if (todayPending) todayPending.textContent = formatNumber(data.todayPending);
+
+  const tbody = $("recentOrdersBody");
+  if (!tbody) return;
+
+  const list = Array.isArray(data.recentOrders) ? data.recentOrders : [];
+
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">최근 주문이 없습니다.</td></tr>`;
+    return;
   }
 
-  // API 상태 체크
-  pingApi();
+  tbody.innerHTML = list
+    .map((o) => {
+      return `
+        <tr>
+          <td>${o.order_date || ""}</td>
+          <td>${o.order_no || ""}</td>
+          <td>${o.item_name || ""}</td>
+          <td>${formatNumber(o.qty)}</td>
+          <td>${formatCurrency(o.amount)}</td>
+          <td>${o.channel || ""}</td>
+          <td>${o.status || ""}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
 
-  // Language
-  applyI18n();
-  ["langTop", "langAuth"].forEach(id => {
-    const sel = $(id);
-    if (!sel) return;
-    sel.addEventListener("change", e => {
-      LANG = e.target.value;
-      localStorage.setItem("korual_lang", LANG);
-      applyI18n();
-    });
-  });
+/**
+ * 공통 테이블 렌더러
+ * entity: "products" | "orders" | "members" | "stock" | "logs"
+ */
+function renderEntityTable(entity, rows) {
+  const cfg = TABLE_CONFIG[entity];
+  if (!cfg) return;
 
-  // Remember ID
-  const savedId = localStorage.getItem("korual_login_id") || "";
-  if (savedId && $("loginUsername")) {
-    $("loginUsername").value = savedId;
-    const rememberCheckbox = $("rememberId");
-    if (rememberCheckbox) rememberCheckbox.checked = true;
+  const tbody = document.querySelector(`tbody[data-entity="${entity}"]`);
+  if (!tbody) return;
+
+  const cols = cfg.columns;
+  if (!rows || !rows.length) {
+    tbody.innerHTML = `<tr><td colspan="${cols.length}" class="empty-state">데이터 없음</td></tr>`;
+    return;
   }
 
-  // Demo fill buttons
-  const fillDemo = () => {
-    if ($("loginUsername")) $("loginUsername").value = "KORUAL";
-    if ($("loginPassword")) $("loginPassword").value = "GUEST";
-    showToast("테스트 계정이 자동으로 입력되었습니다.", "info");
-  };
-  ["btnFillDemo", "btnFillDemoMobile"].forEach(id => {
-    const btn = $(id);
-    if (btn) btn.addEventListener("click", fillDemo);
+  tbody.innerHTML = rows
+    .map((row) => {
+      const rowIndex = row._rowIndex || "";
+      const cells = cols
+        .map((key) => {
+          const v = row[key];
+          if (key.indexOf("금액") !== -1 || key.indexOf("매출") !== -1 || key.indexOf("재고") !== -1 || key.indexOf("포인트") !== -1) {
+            return `<td>${formatNumber(v)}</td>`;
+          }
+          return `<td>${v == null ? "" : v}</td>`;
+        })
+        .join("");
+
+      return `<tr data-row-index="${rowIndex}">${cells}</tr>`;
+    })
+    .join("");
+
+  attachRowInteractions(entity, cfg.sheet, rows);
+}
+
+/** 행 더블클릭/우클릭 상호작용 (수정/삭제 모달) */
+function attachRowInteractions(entity, sheet, rows) {
+  const tbody = document.querySelector(`tbody[data-entity="${entity}"]`);
+  if (!tbody || !rows || !rows.length) return;
+
+  const trs = tbody.querySelectorAll("tr[data-row-index]");
+  trs.forEach((tr, idx) => {
+    const rowIndex = Number(tr.dataset.rowIndex || "0");
+    const rowData = rows[idx] || {};
+
+    tr.addEventListener("dblclick", () => {
+      if (!window.KORUAL_MODAL || typeof window.KORUAL_MODAL.openEdit !== "function") return;
+      const safeData = { ...rowData };
+      delete safeData._rowIndex;
+
+      window.KORUAL_MODAL.openEdit({
+        entity,
+        sheet,
+        rowIndex,
+        data: safeData
+      });
+    });
+
+    tr.addEventListener("contextmenu", (evt) => {
+      evt.preventDefault();
+      if (!window.KORUAL_MODAL || typeof window.KORUAL_MODAL.openDelete !== "function") return;
+
+      const title =
+        rowData["상품명"] ||
+        rowData["이름"] ||
+        rowData["주문번호"] ||
+        rowData["회원번호"] ||
+        "";
+
+      window.KORUAL_MODAL.openDelete({
+        entity,
+        sheet,
+        rowIndex,
+        title
+      });
+    });
   });
+}
 
-  // Tabs
-  const loginPanel   = $("loginPanel");
-  const signupPanel  = $("signupPanel");
-  const tabLoginBtn  = $("tabLoginBtn");
-  const tabSignupBtn = $("tabSignupBtn");
 
-  const lastTab = localStorage.getItem("korual_auth_tab") || "login";
+/* ==============================
+   6) 데이터 로딩
+============================== */
 
-  function setTab(active) {
-    if (!loginPanel || !signupPanel || !tabLoginBtn || !tabSignupBtn) return;
+async function loadDashboard() {
+  const data = await apiGet("dashboard");
+  state.dashboard = data;
+  renderDashboard();
+}
 
-    if (active === "signup") {
-      signupPanel.classList.remove("hidden");
-      loginPanel.classList.add("hidden");
-      tabSignupBtn.classList.add("tab-active");
-      tabSignupBtn.classList.remove("tab-inactive");
-      tabLoginBtn.classList.remove("tab-active");
-      tabLoginBtn.classList.add("tab-inactive");
-    } else {
-      loginPanel.classList.remove("hidden");
-      signupPanel.classList.add("hidden");
-      tabLoginBtn.classList.add("tab-active");
-      tabLoginBtn.classList.remove("tab-inactive");
-      tabSignupBtn.classList.remove("tab-active");
-      tabSignupBtn.classList.add("tab-inactive");
+function decorateRowsWithIndex(rawRows) {
+  if (!Array.isArray(rawRows)) return [];
+  // 주의: 중간에 완전히 빈 행이 많으면 인덱스가 다를 수 있음
+  return rawRows.map((row, idx) => ({
+    _rowIndex: idx + 2, // 1행 헤더 기준, 데이터는 2행부터
+    ...row
+  }));
+}
+
+async function loadList(entity) {
+  const cfg = TABLE_CONFIG[entity];
+  if (!cfg) return;
+  const data = await apiGet(entity); // target 이름: products / orders / members / stock / logs
+  const rows = decorateRowsWithIndex(data.rows || []);
+  state[entity] = rows;
+  renderEntityTable(entity, rows);
+}
+
+async function loadAllData() {
+  const refreshBtn = $("btnRefreshAll");
+  try {
+    if (refreshBtn) {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = "Loading...";
     }
-    localStorage.setItem("korual_auth_tab", active);
+
+    await Promise.all([
+      loadDashboard(),
+      loadList("products"),
+      loadList("orders"),
+      loadList("members"),
+      loadList("stock"),
+      loadList("logs"),
+      initApiStatus()
+    ]);
+
+    updateLastSync();
+    showToast("데이터를 새로고침했습니다.", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("데이터 로딩 중 오류가 발생했습니다.", "error");
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = "새로고침";
+    }
   }
+}
 
-  if (tabLoginBtn && tabSignupBtn) {
-    tabLoginBtn.addEventListener("click", () => setTab("login"));
-    tabSignupBtn.addEventListener("click", () => setTab("signup"));
-    setTab(lastTab);
-  }
 
-  // 비밀번호 보기 / Caps Lock
-  const togglePwd      = $("togglePwd");
-  const loginPassword  = $("loginPassword");
-  const capsIndicator  = $("capsIndicator");
+/* ==============================
+   7) 검색 필터
+============================== */
 
-  if (togglePwd && loginPassword) {
-    togglePwd.addEventListener("click", () => {
-      if (loginPassword.type === "password") {
-        loginPassword.type = "text";
-        togglePwd.textContent = "🙈 숨기기";
-      } else {
-        loginPassword.type = "password";
-        togglePwd.textContent = "👁 비밀번호 보기";
-      }
-    });
-  }
+function makeSearchHandler(entity, inputId) {
+  const input = $(inputId);
+  if (!input) return;
 
-  if (loginPassword && capsIndicator) {
-    loginPassword.addEventListener("keyup", e => {
-      const caps = e.getModifierState && e.getModifierState("CapsLock");
-      capsIndicator.classList.toggle("hidden", !caps);
-    });
-  }
+  input.addEventListener("input", () => {
+    const keyword = input.value.trim().toLowerCase();
+    const allRows = state[entity] || [];
 
-  /******** Signup ********/
-  const btnSignup = $("btnSignup");
-  let signingUp = false;
-
-  if (btnSignup) {
-    btnSignup.addEventListener("click", async () => {
-      if (signingUp) return;
-      signingUp = true;
-
-      clearInputErrors();
-      const payload = {
-        full_name: $("suName")  ? $("suName").value.trim()  : "",
-        email:     $("suEmail") ? $("suEmail").value.trim() : "",
-        username:  $("suUser")  ? $("suUser").value.trim()  : "",
-        password:  $("suPass")  ? $("suPass").value         : "",
-        role:      "staff",
-        created_by: "SELF"
-      };
-
-      let hasErr = false;
-      if (!payload.username) {
-        $("suUser")?.classList.add("input-error");
-        hasErr = true;
-      }
-      if (!payload.password || payload.password.length < 6) {
-        $("suPass")?.classList.add("input-error");
-        hasErr = true;
-      }
-      if (!isValidEmail(payload.email)) {
-        $("suEmail")?.classList.add("input-error");
-        hasErr = true;
-      }
-      if (hasErr) {
-        if ($("signupMsg")) $("signupMsg").textContent = I18N[LANG].need_id_pw;
-        showToast(I18N[LANG].need_id_pw, "error");
-        signingUp = false;
-        return;
-      }
-
-      if ($("signupMsg")) $("signupMsg").textContent = I18N[LANG].loading_signup;
-      setOverlayVisible(true);
-      btnSignup.disabled = true;
-
-      try {
-        await apiSignup(payload);
-        if ($("signupMsg")) $("signupMsg").textContent = I18N[LANG].signup_done;
-        showToast(I18N[LANG].signup_done, "success");
-        setTab("login");
-        if ($("loginUsername")) $("loginUsername").value = payload.username;
-      } catch (e) {
-        const msg = e.message || I18N[LANG].user_exists || I18N[LANG].server_error;
-        if ($("signupMsg")) $("signupMsg").textContent = msg;
-        showToast(msg, "error");
-      } finally {
-        signingUp = false;
-        setOverlayVisible(false);
-        btnSignup.disabled = false;
-      }
-    });
-  }
-
-  /******** Login ********/
-  const btnLogin = $("btnLogin");
-  let loggingIn = false;
-
-  async function handleLogin() {
-    if (loggingIn) return;
-    loggingIn = true;
-
-    clearInputErrors();
-    const username = $("loginUsername") ? $("loginUsername").value.trim() : "";
-    const password = $("loginPassword") ? $("loginPassword").value : "";
-
-    if (!username || !password) {
-      if ($("loginMsg")) $("loginMsg").textContent = I18N[LANG].need_id_pw;
-      if (!username) $("loginUsername")?.classList.add("input-error");
-      if (!password) $("loginPassword")?.classList.add("input-error");
-      showToast(I18N[LANG].need_id_pw, "error");
-      loggingIn = false;
+    if (!keyword) {
+      renderEntityTable(entity, allRows);
       return;
     }
 
-    if ($("loginMsg")) $("loginMsg").textContent = "";
-    if (btnLogin) {
-      btnLogin.disabled = true;
-      btnLogin.textContent = I18N[LANG].loading_login;
-    }
-    setOverlayVisible(true);
-
-    // remember ID
-    const remember = $("rememberId")?.checked;
-    if (remember) localStorage.setItem("korual_login_id", username);
-    else localStorage.removeItem("korual_login_id");
-
-    try {
-      const data = await apiLogin(username, password);
-      const u = data.user || {};
-      const fullName =
-        u.full_name ||
-        data.full_name ||
-        username;
-
-      // localStorage 세션 저장
-      localStorage.setItem(
-        "korual_user",
-        JSON.stringify({
-          username:   u.username || username,
-          full_name:  fullName,
-          email:      u.email || "",
-          role:       u.role || "staff",
-          last_login: u.last_login || "",
-          logged_at:  new Date().toISOString()
-        })
-      );
-
-      showToast(`어서오세요, ${fullName}님. Control Center로 이동합니다.`, "success");
-      setTimeout(() => { window.location.href = DASHBOARD_URL; }, 600);
-    } catch (e) {
-      const msg = e.message || I18N[LANG].login_failed || I18N[LANG].server_error;
-      if ($("loginMsg")) $("loginMsg").textContent = msg;
-      showToast(msg, "error");
-    } finally {
-      loggingIn = false;
-      if (btnLogin) {
-        btnLogin.disabled = false;
-        btnLogin.textContent = I18N[LANG].login_btn;
-      }
-      setOverlayVisible(false);
-    }
-  }
-
-  if (btnLogin) btnLogin.addEventListener("click", handleLogin);
-  ["loginUsername", "loginPassword"].forEach(id => {
-    const el = $(id);
-    if (!el) return;
-    el.addEventListener("keydown", e => {
-      if (e.key === "Enter") handleLogin();
+    const filtered = allRows.filter((row) => {
+      return Object.keys(row).some((k) => {
+        if (k === "_rowIndex") return false;
+        const v = row[k];
+        if (v == null) return false;
+        return String(v).toLowerCase().includes(keyword);
+      });
     });
+
+    renderEntityTable(entity, filtered);
   });
+}
 
-  /******** ID / PW 찾기 모달 ********/
-  const modalFind   = $("modalFindId");
-  const modalReset  = $("modalResetPw");
-  const linkFind    = $("linkFindId");
-  const linkReset   = $("linkResetPw");
-  const closeFind   = $("closeFind");
-  const closeReset  = $("closeReset");
-  const fiEmail     = $("fiEmail");
-  const fiResult    = $("fiResult");
-  const fiSubmit    = $("btnFindIdSubmit");
-  const rpUser      = $("rpUser");
-  const rpEmail     = $("rpEmail");
-  const rpNewPw     = $("rpNewPw");
-  const rpMsg       = $("rpMsg");
-  const rpSubmit    = $("btnResetPwSubmit");
+function initSearchFilters() {
+  makeSearchHandler("products", "searchProducts");
+  makeSearchHandler("orders", "searchOrders");
+  makeSearchHandler("members", "searchMembers");
+  makeSearchHandler("stock", "searchStock");
+  makeSearchHandler("logs", "searchLogs");
+}
 
-  if (linkFind && modalFind) {
-    linkFind.addEventListener("click", () => {
-      if (fiEmail) fiEmail.value = "";
-      if (fiResult) fiResult.textContent = "";
-      openModal(modalFind);
-    });
-  }
 
-  if (linkReset && modalReset) {
-    linkReset.addEventListener("click", () => {
-      if (rpUser)  rpUser.value = "";
-      if (rpEmail) rpEmail.value = "";
-      if (rpNewPw) rpNewPw.value = "";
-      if (rpMsg)   rpMsg.textContent = "";
-      openModal(modalReset);
-    });
-  }
+/* ==============================
+   8) 모달 버튼 동작 (삭제만 우선 구현)
+============================== */
 
-  if (closeFind && modalFind) {
-    closeFind.addEventListener("click", () => closeModal(modalFind));
-  }
-  if (closeReset && modalReset) {
-    closeReset.addEventListener("click", () => closeModal(modalReset));
-  }
-
-  // ESC로 모달 닫기
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape") {
-      if (modalFind)  closeModal(modalFind);
-      if (modalReset) closeModal(modalReset);
-    }
-  });
-
-  // 아이디 찾기 제출
-  if (fiSubmit && fiEmail && fiResult) {
-    fiSubmit.addEventListener("click", async () => {
-      clearInputErrors();
-      const email = fiEmail.value.trim();
-      if (!email || !isValidEmail(email)) {
-        fiEmail.classList.add("input-error");
-        fiResult.textContent = I18N[LANG].need_email;
-        showToast(I18N[LANG].need_email, "error");
+function initModalActions() {
+  const deleteBtn = $("rowDeleteConfirm");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      const entity = deleteBtn.dataset.entity;
+      const sheet = deleteBtn.dataset.sheet;
+      const rowIndex = Number(deleteBtn.dataset.rowIndex || "0");
+      if (!entity || !sheet || !rowIndex) {
+        showToast("삭제 정보가 올바르지 않습니다.", "error");
         return;
       }
-      fiResult.textContent = I18N[LANG].loading_search;
+
       try {
-        const res = await apiFindId(email);
-        if (!res.ok) {
-          fiResult.textContent = res.message || I18N[LANG].find_id_empty;
-          showToast(res.message || I18N[LANG].find_id_empty, "error");
-          return;
-        }
-        const ids = res.ids || [];
-        if (!ids.length) {
-          fiResult.textContent = I18N[LANG].find_id_empty;
-          showToast(I18N[LANG].find_id_empty, "info");
-        } else {
-          fiResult.textContent = `${I18N[LANG].find_id_success_prefix} ${ids.join(", ")}`;
-          showToast(I18N[LANG].find_id_success_prefix, "success");
+        await apiPost("deleteRow", {
+          sheet,
+          row: rowIndex
+        });
+        showToast("행이 삭제되었습니다.", "success");
+
+        // 해당 엔티티 다시 로드
+        await loadList(entity);
+
+        if (window.KORUAL_MODAL && typeof window.KORUAL_MODAL.closeAll === "function") {
+          window.KORUAL_MODAL.closeAll();
         }
       } catch (err) {
-        fiResult.textContent = I18N[LANG].find_id_empty;
-        showToast(I18N[LANG].server_error, "error");
+        console.error(err);
+        showToast("행 삭제 중 오류가 발생했습니다.", "error");
       }
     });
   }
 
-  // 비밀번호 재설정 제출
-  if (rpSubmit && rpUser && rpEmail && rpNewPw && rpMsg) {
-    rpSubmit.addEventListener("click", async () => {
-      clearInputErrors();
-      const username    = rpUser.value.trim();
-      const email       = rpEmail.value.trim();
-      const newPassword = rpNewPw.value;
-
-      if (!username || !email || !newPassword) {
-        if (!username) rpUser.classList.add("input-error");
-        if (!email)    rpEmail.classList.add("input-error");
-        if (!newPassword) rpNewPw.classList.add("input-error");
-        rpMsg.textContent = I18N[LANG].need_reset_fields;
-        showToast(I18N[LANG].need_reset_fields, "error");
-        return;
-      }
-
-      if (newPassword.length < 6) {
-        rpNewPw.classList.add("input-error");
-        rpMsg.textContent = I18N[LANG].pw_too_short;
-        showToast(I18N[LANG].pw_too_short, "error");
-        return;
-      }
-
-      rpMsg.textContent = "Updating...";
-      try {
-        const res = await apiResetPw({ username, email, new_password: newPassword });
-        if (!res.ok) {
-          const msg = res.message || I18N[LANG].reset_pw_failed;
-          rpMsg.textContent = msg;
-          showToast(msg, "error");
-          return;
-        }
-        rpMsg.textContent = I18N[LANG].reset_pw_success;
-        showToast(I18N[LANG].reset_pw_success, "success");
-        setTimeout(() => {
-          if (modalReset) closeModal(modalReset);
-        }, 800);
-      } catch (err) {
-        const msg = I18N[LANG].reset_pw_failed;
-        rpMsg.textContent = msg;
-        showToast(I18N[LANG].server_error, "error");
-      }
+  // 수정 저장은 backend에 updateRow API가 없어서,
+  // 차후 updateCell 여러 번 호출 방식으로 구현하는 것이 안전.
+  // 지금은 토스트만 안내하도록 남겨둠.
+  const editSaveBtn = $("rowEditSave");
+  if (editSaveBtn) {
+    editSaveBtn.addEventListener("click", () => {
+      showToast("행 수정 기능은 이후 단계에서 연결 예정입니다.", "info");
     });
   }
+}
+
+
+/* ==============================
+   9) 부트스트랩
+============================== */
+
+(function bootstrap() {
+  initThemeToggle();
+  initSidebar();
+  initNavTabs();
+  initUserMeta();
+  initLogout();
+  initSearchFilters();
+  initModalActions();
+
+  const refreshBtn = $("btnRefreshAll");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      loadAllData();
+    });
+  }
+
+  // 첫 진입 시 데이터 로드
+  loadAllData().catch((err) => {
+    console.error(err);
+  });
 })();
