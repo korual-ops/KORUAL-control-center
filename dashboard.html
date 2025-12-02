@@ -41,10 +41,7 @@
       <button class="nav-link" data-section="stock">🏬 재고 관리</button>
       <button class="nav-link" data-section="logs">📝 로그</button>
 
-      <!-- CSV / KRC / 에러 뱃지 (이미 사용 중인 부분) -->
-      <button id="btnExportMembers" class="ghost-btn small">회원 CSV 내보내기</button>
-      <input type="file" id="fileImportMembers" accept=".csv" />
-
+      <!-- KRC 요약 / 에러 뱃지만 남김 -->
       <div class="krc-summary">
         <div>KRC 총 포인트: <span id="krcTotalPoints">-</span></div>
         <div>회원당 평균 포인트: <span id="krcAvgPoints">-</span></div>
@@ -242,7 +239,7 @@
           <p class="section-desc">전체 주문 목록 및 배송 상태 관리</p>
         </div>
 
-      <div class="section-actions">
+        <div class="section-actions">
           <input id="searchOrders" class="input" placeholder="검색 (주문번호 / 고객명 / 상태)" />
         </div>
       </div>
@@ -281,8 +278,23 @@
           <p class="section-desc">회원 정보, 등급, 누적매출, 최근 주문일을 확인합니다.</p>
         </div>
 
-        <div class="section-actions">
+        <div class="section-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <input id="searchMembers" class="input" placeholder="검색 (회원번호 / 이름 / 이메일 / 전화번호 / 등급)" />
+
+          <!-- 🔥 여기서만 보이는 회원 CSV 내보내기 / 가져오기 -->
+          <button id="btnExportMembers" class="ghost-btn small" type="button">
+            ⬇ 회원 CSV 내보내기
+          </button>
+
+          <label class="ghost-btn small" style="cursor:pointer; position:relative; overflow:hidden;">
+            ⬆ 회원 CSV 가져오기
+            <input
+              type="file"
+              id="fileImportMembers"
+              accept=".csv"
+              style="position:absolute; inset:0; opacity:0; cursor:pointer;"
+            />
+          </label>
         </div>
       </div>
 
@@ -400,8 +412,7 @@
 </div>
 
 <!-- ============================================================
-     ■ 수정/삭제 공통 모달 레이어 (UI만 세팅)
-     - 실제 동작은 app.js에서 window.KORUAL_MODAL 사용해서 제어
+     ■ 수정/삭제 공통 모달 레이어
 ============================================================ -->
 <div id="korualModalLayer" class="modal-layer" style="display:none;">
   <div id="korualModalBackdrop" class="modal-backdrop"></div>
@@ -418,10 +429,7 @@
         <span id="rowEditRowLabel" class="row-label">ROW: -</span>
       </div>
 
-      <!-- 필드 입력 영역 (동적 생성) -->
-      <div id="rowEditFields" class="modal-fields">
-        <!-- app.js 에서 각 컬럼을 input으로 생성해서 넣을 영역 -->
-      </div>
+      <div id="rowEditFields" class="modal-fields"></div>
     </div>
     <div class="modal-footer">
       <button type="button" id="rowEditSave" class="primary-btn">저장</button>
@@ -454,7 +462,7 @@
 <!-- JS 연결 -->
 <script src="app.js"></script>
 
-<!-- 모달 전역 헬퍼 (app.js에서 호출해서 사용) -->
+<!-- 모달 전역 헬퍼 -->
 <script>
   (function () {
     const layer      = document.getElementById("korualModalLayer");
@@ -469,7 +477,6 @@
       if (deleteModal) deleteModal.style.display = "none";
     }
 
-    // X / 취소 / 백드롭 클릭 시 닫기
     document.querySelectorAll("[data-close-modal]").forEach(btn => {
       btn.addEventListener("click", closeAll);
     });
@@ -477,20 +484,16 @@
       backdrop.addEventListener("click", closeAll);
     }
 
-    // 전역 객체로 노출 – app.js에서 window.KORUAL_MODAL.openEdit(...) 식으로 사용
     window.KORUAL_MODAL = {
       closeAll,
 
       openEdit(payload) {
         if (!layer || !editModal) return;
-        // payload 예시:
-        // { entity: 'members', sheet: 'MEMBERS', rowIndex: 5, data: {...컬럼:값...} }
 
         layer.style.display = "block";
         editModal.style.display = "block";
         if (deleteModal) deleteModal.style.display = "none";
 
-        // 헤더 텍스트
         const entityLabelMap = {
           members: "회원",
           orders: "주문",
@@ -502,7 +505,6 @@
         document.getElementById("rowEditEntityLabel").textContent = `[${entityName}]`;
         document.getElementById("rowEditRowLabel").textContent    = `ROW: ${payload.rowIndex}`;
 
-        // 필드 렌더링
         const wrap = document.getElementById("rowEditFields");
         if (!wrap) return;
         wrap.innerHTML = "";
@@ -525,12 +527,11 @@
           wrap.appendChild(field);
         });
 
-        // 저장 버튼에 payload 정보 잠깐 묶어두기
         const saveBtn = document.getElementById("rowEditSave");
         if (saveBtn) {
-          saveBtn.dataset.entity  = payload.entity || "";
-          saveBtn.dataset.sheet   = payload.sheet  || "";
-          saveBtn.dataset.rowIndex= String(payload.rowIndex || "");
+          saveBtn.dataset.entity   = payload.entity || "";
+          saveBtn.dataset.sheet    = payload.sheet  || "";
+          saveBtn.dataset.rowIndex = String(payload.rowIndex || "");
         }
       },
 
