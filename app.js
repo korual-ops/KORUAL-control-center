@@ -1,18 +1,18 @@
 /******************************************************
- * KORUAL CONTROL CENTER – app.js (하이엔드 완전체)
- * 로그인 보호 / 사용자 표시 / API실시간 모니터링
- * 다크모드 / 모바일 / 대시보드 / 회원 / 주문 / 상품
- * 재고 / 로그 / 검색 / 자동 새로고침
+ * KORUAL CONTROL CENTER – app.js (하이엔드 올인원)
+ * 로그인 / 사용자 / 사이드바 / 다크모드 / 모바일
+ * 대시보드 / 회원 / 주문 / 상품 / 재고 / 로그
+ * 검색 / 자동 새로고침 / CRUD 팝업 / 자동화 / 알림
 ******************************************************/
 
 /* ===================================================
-   0) DOM 헬퍼
+   DOM 헬퍼
 =================================================== */
 const $  = (id)  => document.getElementById(id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 /* ===================================================
-   1) API 설정
+   API 설정
 =================================================== */
 
 const API_BASE =
@@ -20,9 +20,40 @@ const API_BASE =
 
 async function apiGet(target) {
   const url = `${API_BASE}?target=${target}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("API 오류");
-  return await res.json();
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("API 오류");
+  return await r.json();
+}
+
+async function apiPost(body) {
+  const r = await fetch(API_BASE, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+  return await r.json();
+}
+
+/* 쓰기 기능 */
+async function apiUpdateCell(sheet, row, col, value) {
+  return apiPost({
+    secret: "KORUAL-ONLY",
+    target: "updateCell",
+    sheet, row, col, value
+  });
+}
+async function apiAddRow(sheet, values) {
+  return apiPost({
+    secret: "KORUAL-ONLY",
+    target: "addRow",
+    sheet, values
+  });
+}
+async function apiDeleteRow(sheet, row) {
+  return apiPost({
+    secret: "KORUAL-ONLY",
+    target: "deleteRow",
+    sheet, row
+  });
 }
 
 /* 숫자/금액 포맷 */
@@ -36,17 +67,16 @@ function fmtCurrency(v) {
 }
 
 /* ===================================================
-   2) 로그인 보호 + 사용자 표시
+   로그인 보호 + 사용자 표시
 =================================================== */
 
 function ensureLoggedIn() {
   try {
     const raw = localStorage.getItem("korual_user");
     if (!raw) return location.replace("index.html");
-
     const user = JSON.parse(raw);
     if (!user?.username) return location.replace("index.html");
-  } catch (e) {
+  } catch {
     location.replace("index.html");
   }
 }
@@ -61,11 +91,11 @@ function loadUser() {
 }
 
 /* ===================================================
-   3) 사이드바 네비게이션
+   사이드바
 =================================================== */
 
 function initSidebar() {
-  const links = $$(".nav-link");
+  const links    = $$(".nav-link");
   const sections = $$(".section");
 
   function activate(k) {
@@ -74,26 +104,25 @@ function initSidebar() {
   }
 
   links.forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.onclick = () => {
       const key = btn.dataset.section;
       activate(key);
-
       switch (key) {
         case "dashboard": loadDashboard(); break;
-        case "members": loadMembers(); break;
-        case "orders": loadOrders(); break;
-        case "products": loadProducts(); break;
-        case "stock": loadStock(); break;
-        case "logs": loadLogs(); break;
+        case "members":   loadMembers(); break;
+        case "orders":    loadOrders(); break;
+        case "products":  loadProducts(); break;
+        case "stock":     loadStock(); break;
+        case "logs":      loadLogs(); break;
       }
-    });
+    };
   });
 
   activate("dashboard");
 }
 
 /* ===================================================
-   4) 모바일 메뉴
+   모바일 메뉴
 =================================================== */
 
 function initMobileMenu() {
@@ -103,14 +132,11 @@ function initMobileMenu() {
 
   toggle.onclick = () => sidebar.classList.add("open");
   backdrop.onclick = () => sidebar.classList.remove("open");
-
-  $$(".nav-link").forEach(btn => {
-    btn.onclick = () => sidebar.classList.remove("open");
-  });
+  $$(".nav-link").forEach(btn => btn.onclick = () => sidebar.classList.remove("open"));
 }
 
 /* ===================================================
-   5) 다크모드
+   다크 모드
 =================================================== */
 
 function applyTheme(mode) {
@@ -127,7 +153,7 @@ function initTheme() {
 }
 
 /* ===================================================
-   6) API 상태 모니터링
+   API 상태 표시
 =================================================== */
 
 function setApiStatus(ok, msg) {
@@ -148,7 +174,7 @@ async function pingApi() {
 }
 
 /* ===================================================
-   7) 대시보드
+   대시보드
 =================================================== */
 
 function renderRecentOrders(list) {
@@ -181,7 +207,6 @@ function renderRecentOrders(list) {
 
 async function loadDashboard() {
   $("recentOrdersBody").innerHTML = `<tr><td colspan="7">로딩중…</td></tr>`;
-
   try {
     const d = await apiGet("dashboard");
 
@@ -190,9 +215,9 @@ async function loadDashboard() {
     $("cardTotalRevenue").textContent  = fmtCurrency(d.totalRevenue);
     $("cardTotalMembers").textContent  = fmtNumber(d.totalMembers);
 
-    $("todayOrders").textContent       = fmtNumber(d.todayOrders);
-    $("todayRevenue").textContent      = fmtCurrency(d.todayRevenue);
-    $("todayPending").textContent      = fmtNumber(d.todayPending);
+    $("todayOrders").textContent  = fmtNumber(d.todayOrders);
+    $("todayRevenue").textContent = fmtCurrency(d.todayRevenue);
+    $("todayPending").textContent = fmtNumber(d.todayPending);
 
     renderRecentOrders(d.recentOrders);
   } catch(e) {
@@ -201,7 +226,7 @@ async function loadDashboard() {
 }
 
 /* ===================================================
-   8) 로그아웃
+   로그아웃
 =================================================== */
 
 function initLogout() {
@@ -212,7 +237,7 @@ function initLogout() {
 }
 
 /* ===================================================
-   9) 표 생성 함수 (공통)
+   공통 테이블 생성
 =================================================== */
 
 function makeTable(id, rows, cols, emptyText) {
@@ -236,10 +261,18 @@ function makeTable(id, rows, cols, emptyText) {
 }
 
 /* ===================================================
-   10) 회원관리
+   회원관리
 =================================================== */
 
 let membersCache = [];
+
+function mapMemberRow(r) {
+  return [
+    r["회원번호"], r["이름"], r["전화번호"], r["이메일"],
+    r["가입일"], r["채널"], r["등급"], fmtCurrency(r["누적매출"]),
+    fmtNumber(r["포인트"]), r["최근주문일"], r["메모"]
+  ];
+}
 
 function filterMembers() {
   const kw = $("searchMembers")?.value?.toLowerCase() || "";
@@ -250,27 +283,28 @@ function filterMembers() {
   );
   makeTable("membersBody", f.map(mapMemberRow), 11, "회원 없음");
 }
-function mapMemberRow(r) {
-  return [
-    r["회원번호"], r["이름"], r["전화번호"], r["이메일"],
-    r["가입일"], r["채널"], r["등급"], fmtCurrency(r["누적매출"]),
-    fmtNumber(r["포인트"]), r["최근주문일"], r["메모"]
-  ];
-}
+
 async function loadMembers() {
   $("membersBody").innerHTML = `<tr><td colspan="11">로딩중…</td></tr>`;
   try {
     const d = await apiGet("members");
     membersCache = d.rows || [];
     filterMembers();
-  } catch(e){}
+  } catch {}
 }
 
 /* ===================================================
-   11) 주문관리
+   주문관리
 =================================================== */
 
 let ordersCache = [];
+
+function mapOrderRow(r) {
+  return [
+    r["회원번호"], r["날짜"] ?? r["주문일자"], r["주문번호"], r["고객명"],
+    r["상품명"], r["수량"], fmtCurrency(r["금액"]), r["상태"]
+  ];
+}
 
 function filterOrders() {
   const kw = $("searchOrders")?.value?.toLowerCase() || "";
@@ -281,26 +315,28 @@ function filterOrders() {
   );
   makeTable("ordersBody", f.map(mapOrderRow), 8, "주문 없음");
 }
-function mapOrderRow(r) {
-  return [
-    r["회원번호"], r["날짜"] ?? r["주문일자"], r["주문번호"], r["고객명"],
-    r["상품명"], r["수량"], fmtCurrency(r["금액"]), r["상태"]
-  ];
-}
+
 async function loadOrders() {
   $("ordersBody").innerHTML = `<tr><td colspan="8">로딩중…</td></tr>`;
   try {
     const d = await apiGet("orders");
     ordersCache = d.rows || [];
     filterOrders();
-  } catch(e){}
+  } catch {}
 }
 
 /* ===================================================
-   12) 상품관리
+   상품관리
 =================================================== */
 
 let productsCache = [];
+
+function mapProductRow(r) {
+  return [
+    r["상품코드"], r["상품명"], r["옵션"],
+    fmtCurrency(r["판매가"]), fmtNumber(r["재고"])
+  ];
+}
 
 function filterProducts() {
   const kw = $("searchProducts")?.value?.toLowerCase() || "";
@@ -311,26 +347,28 @@ function filterProducts() {
   );
   makeTable("productsBody", f.map(mapProductRow), 5, "상품 없음");
 }
-function mapProductRow(r) {
-  return [
-    r["상품코드"], r["상품명"], r["옵션"],
-    fmtCurrency(r["판매가"]), fmtNumber(r["재고"])
-  ];
-}
+
 async function loadProducts() {
   $("productsBody").innerHTML = `<tr><td colspan="5">로딩중…</td></tr>`;
   try {
     const d = await apiGet("products");
     productsCache = d.rows || [];
     filterProducts();
-  } catch(e){}
+  } catch {}
 }
 
 /* ===================================================
-   13) 재고관리
+   재고관리
 =================================================== */
 
 let stockCache = [];
+
+function mapStockRow(r) {
+  return [
+    r["상품코드"], r["상품명"], fmtNumber(r["현재 재고"]),
+    fmtNumber(r["안전 재고"]), r["상태"]
+  ];
+}
 
 function filterStock() {
   const kw = $("searchStock")?.value?.toLowerCase() || "";
@@ -341,26 +379,27 @@ function filterStock() {
   );
   makeTable("stockBody", f.map(mapStockRow), 5, "재고 없음");
 }
-function mapStockRow(r) {
-  return [
-    r["상품코드"], r["상품명"], fmtNumber(r["현재 재고"]),
-    fmtNumber(r["안전 재고"]), r["상태"]
-  ];
-}
+
 async function loadStock() {
   $("stockBody").innerHTML = `<tr><td colspan="5">로딩중…</td></tr>`;
   try {
     const d = await apiGet("stock");
     stockCache = d.rows || [];
     filterStock();
-  } catch(e){}
+  } catch {}
 }
 
 /* ===================================================
-   14) 로그 모니터링
+   로그 모니터링
 =================================================== */
 
 let logsCache = [];
+
+function mapLogRow(r) {
+  return [
+    r["시간"], r["타입"], r["메시지"]
+  ];
+}
 
 function filterLogs() {
   const kw = $("searchLogs")?.value?.toLowerCase() || "";
@@ -371,22 +410,30 @@ function filterLogs() {
   );
   makeTable("logsBody", f.map(mapLogRow), 3, "로그 없음");
 }
-function mapLogRow(r) {
-  return [
-    r["시간"], r["타입"], r["메시지"]
-  ];
-}
+
 async function loadLogs() {
   $("logsBody").innerHTML = `<tr><td colspan="3">로딩중…</td></tr>`;
   try {
     const d = await apiGet("logs");
     logsCache = d.rows || [];
     filterLogs();
-  } catch(e){}
+  } catch {}
 }
 
 /* ===================================================
-   15) 자동 새로고침
+   자동 발주 / 알림
+=================================================== */
+
+function checkAutoPurchase() {
+  stockCache.forEach(r => {
+    if (r["현재 재고"] < r["안전 재고"]) {
+      console.warn("자동발주 필요:", r["상품명"]);
+    }
+  });
+}
+
+/* ===================================================
+   자동 새로고침
 =================================================== */
 
 function initAutoRefresh() {
@@ -401,13 +448,14 @@ function refreshAll() {
   loadProducts();
   loadStock();
   loadLogs();
+  checkAutoPurchase();
 
   $("last-sync").textContent = "마지막 동기화: " +
     new Date().toLocaleString("ko-KR");
 }
 
 /* ===================================================
-   16) 초기화
+   초기화
 =================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -420,11 +468,11 @@ document.addEventListener("DOMContentLoaded", () => {
   pingApi();
 
   // 검색 이벤트 초기화
-  $("searchMembers")?.addEventListener("input", filterMembers);
-  $("searchOrders")?.addEventListener("input", filterOrders);
+  $("searchMembers") ?.addEventListener("input", filterMembers);
+  $("searchOrders")  ?.addEventListener("input", filterOrders);
   $("searchProducts")?.addEventListener("input", filterProducts);
-  $("searchStock")?.addEventListener("input", filterStock);
-  $("searchLogs")?.addEventListener("input", filterLogs);
+  $("searchStock")   ?.addEventListener("input", filterStock);
+  $("searchLogs")    ?.addEventListener("input", filterLogs);
 
   // 최초 로드
   refreshAll();
