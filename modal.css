@@ -1,0 +1,270 @@
+/******************************************************
+ * KORUAL CONTROL CENTER – modal.css
+ * 글라스morphism + 다크럭셔리 스타일 모달
+ ******************************************************/
+
+/* 모달 열릴 때 바디 스크롤 방지 */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* 전체 레이어 */
+.modal-layer[data-modal-layer] {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;        /* JS에서 flex로 변경 */
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* 어두운 배경 */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent),
+              rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* 공통 패널 */
+.modal-panel {
+  position: relative;
+  max-width: 640px;
+  width: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.06), transparent 55%),
+    rgba(7, 10, 14, 0.96);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(0, 0, 0, 0.6);
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #f5f5f5;
+  box-sizing: border-box;
+}
+
+/* 라이트 모드에서 살짝 밝게 */
+body:not(.theme-dark) .modal-panel {
+  background:
+    radial-gradient(circle at top left, rgba(0, 0, 0, 0.02), transparent 55%),
+    rgba(255, 255, 255, 0.98);
+  color: #18212f;
+}
+
+/* 헤더 */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body:not(.theme-dark) .modal-header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 닫기 버튼 */
+.modal-close-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.18s ease, background 0.18s ease, transform 0.12s ease;
+}
+
+.modal-close-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-0.5px);
+}
+
+/* 바디 */
+.modal-body {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  max-height: min(60vh, 460px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* meta 영역 */
+.modal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.modal-meta span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.03), transparent);
+}
+
+body:not(.theme-dark) .modal-meta span {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.02), transparent);
+}
+
+.row-label {
+  font-weight: 500;
+}
+
+/* 필드 래퍼 */
+.modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* 각 필드 한 줄 */
+.modal-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 라벨 */
+.modal-label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+/* 인풋 (기존 input 클래스와 잘 섞이도록 최소 변경) */
+.modal-field-row .input {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(5, 8, 12, 0.9);
+  color: #f5f5f5;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+body:not(.theme-dark) .modal-field-row .input {
+  background: rgba(255, 255, 255, 0.96);
+  color: #121212;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.modal-field-row .input:focus {
+  border-color: rgba(255, 215, 130, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 215, 130, 0.6);
+}
+
+/* 푸터 */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body:not(.theme-dark) .modal-footer {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+/* 기본 버튼 스타일을 이미 갖고 있다면 살짝만 보정 */
+.modal-footer .primary-btn {
+  min-width: 80px;
+  padding-inline: 14px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 215, 130, 0.9);
+  background: linear-gradient(135deg, #f6d47a, #f2b965);
+  color: #1a1206;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.modal-footer .primary-btn:hover {
+  transform: translateY(-0.5px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
+  filter: brightness(1.02);
+}
+
+.modal-footer .ghost-btn {
+  min-width: 70px;
+  padding-inline: 12px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.modal-footer .ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-0.5px);
+}
+
+/* 삭제 모달 강조용 */
+[data-modal-delete] .primary-btn {
+  border-color: rgba(255, 120, 120, 0.9);
+  background: linear-gradient(135deg, #ff6b6b, #ff4848);
+  color: #fff;
+}
+
+[data-modal-delete] .primary-btn:hover {
+  box-shadow: 0 8px 20px rgba(255, 72, 72, 0.6);
+}
+
+/* 작은 화면 대응 */
+@media (max-width: 640px) {
+  .modal-layer[data-modal-layer] {
+    padding: 16px;
+  }
+
+  .modal-panel {
+    max-width: 100%;
+    padding: 14px 14px 12px;
+    border-radius: 14px;
+  }
+
+  .modal-title {
+    font-size: 15px;
+  }
+
+  .modal-meta span {
+    font-size: 10px;
+    padding-block: 2px;
+  }
+}
