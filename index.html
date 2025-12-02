@@ -169,8 +169,7 @@
         0 0 0 1px rgba(148,163,184,0.25);
     }
     html:not(.dark) #loginPanel,
-    html:not(.dark) #signupPanel,
-    html:not(.dark) #recoverPanel {
+    html:not(.dark) #signupPanel {
       background: rgba(255,255,255,0.96);
       border-color: rgba(148,163,184,0.55);
       color: #0f172a;
@@ -267,7 +266,9 @@
   <!-- Auth card -->
   <main class="max-w-6xl mx-auto px-4 md:px-8 auth-card-wrapper">
     <section class="relative w-full max-w-md md:max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-[0_28px_90px_rgba(15,23,42,0.95)] border border-slate-800/90 glass bg-slate-900 md:grid md:grid-cols-[1.05fr,1.25fr]">
-      <div class="pointer-events-none absolute inset-0 border border-sky-500/10 rounded-[1.45rem]"></div>
+      <!-- outer glow frame -->
+      <div class="pointer-events-none absolute inset-0 border border-sky-500/15 rounded-[1.45rem]"></div>
+      <div class="pointer-events-none absolute -inset-px rounded-[1.6rem] bg-gradient-to-br from-sky-500/10 via-transparent to-violet-500/10 mix-blend-screen opacity-60"></div>
 
       <!-- 모바일 인포 -->
       <div class="flex md:hidden flex-col gap-5 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 p-6 pb-5 relative z-10">
@@ -292,7 +293,7 @@
         <div class="grid gap-1.5 text-[11px] text-slate-300/95">
           <div class="flex items-start gap-2">
             <span class="mt-[1px] text-blue-400 text-lg">▌</span>
-            <span>DB 계정 저장소 기반 – KORUAL 시트에서 바로 계정 관리</span>
+            <span>DB 계정 저장소 기반 – KORUAL 시트에서 계정 관리</span>
           </div>
           <div class="flex items-start gap-2">
             <span class="mt-[1px] text-emerald-400 text-lg">▌</span>
@@ -321,7 +322,7 @@
 
       <!-- 데스크톱 좌측 인포 -->
       <div class="hidden md:flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/95 p-8 text-slate-50 relative">
-        <div class="absolute inset-x-10 top-20 h-32 bg-gradient-to-r from-sky-500/15 via-cyan-400/10 to-indigo-500/15 blur-3xl opacity-70"></div>
+        <div class="absolute inset-x-10 top-16 h-36 bg-gradient-to-r from-sky-500/20 via-cyan-400/10 to-indigo-500/25 blur-3xl opacity-80"></div>
         <div class="relative space-y-7">
           <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-md">
             <div class="w-10 h-10 rounded-2xl bg-white text-slate-900 grid place-content-center text-xl font-bold">K</div>
@@ -448,10 +449,10 @@
               <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 mt-1">
                 <p data-i18n="login_hint">엔터키로도 로그인 가능</p>
                 <div class="flex gap-3">
-                  <button id="btnOpenFindId" class="underline decoration-dotted hover:text-sky-300">
+                  <button id="linkFindId" class="underline decoration-dotted hover:text-sky-300">
                     아이디 찾기
                   </button>
-                  <button id="btnOpenResetPw" class="underline decoration-dotted hover:text-sky-300">
+                  <button id="linkResetPw" class="underline decoration-dotted hover:text-sky-300">
                     비밀번호 재설정
                   </button>
                 </div>
@@ -504,62 +505,6 @@
               </p>
             </div>
           </div>
-
-          <!-- Recover (ID/PW 찾기) -->
-          <div id="recoverPanel" class="hidden space-y-4 rounded-2xl border border-slate-800 bg-slate-950/85 px-4 py-4 sm:px-5 sm:py-5">
-            <div class="flex items-center justify-between gap-2">
-              <h2 class="text-base font-semibold">ID / 비밀번호 찾기</h2>
-              <span class="pill text-[11px] text-slate-200">
-                보안 로그 기반 복구
-              </span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- ID 찾기 -->
-              <div class="space-y-3">
-                <p class="text-xs text-slate-400">
-                  가입 시 등록한 이메일로 KORUAL 계정 아이디를 조회합니다.
-                </p>
-                <div>
-                  <label class="block mb-1 text-sm">이메일로 아이디 찾기</label>
-                  <input id="findEmail" class="input bg-slate-950/90 border-slate-700/70" placeholder="you@korual.app" />
-                </div>
-                <button id="btnFindId" class="btn w-full justify-center text-sm">
-                  아이디 조회
-                </button>
-                <p id="findIdResult" class="text-xs text-slate-300 min-h-[1rem]"></p>
-              </div>
-
-              <!-- PW 재설정 -->
-              <div class="space-y-3">
-                <p class="text-xs text-slate-400">
-                  아이디와 이메일이 일치하면 새 비밀번호로 즉시 재설정됩니다.
-                </p>
-                <div class="space-y-2">
-                  <div>
-                    <label class="block mb-1 text-sm">아이디</label>
-                    <input id="resetUser" class="input bg-slate-950/90 border-slate-700/70" placeholder="예: KORUAL" />
-                  </div>
-                  <div>
-                    <label class="block mb-1 text-sm">이메일</label>
-                    <input id="resetEmail" class="input bg-slate-950/90 border-slate-700/70" placeholder="you@korual.app" />
-                  </div>
-                  <div>
-                    <label class="block mb-1 text-sm">새 비밀번호</label>
-                    <input id="resetPass" type="password" class="input bg-slate-950/90 border-slate-700/70" placeholder="최소 6자리" />
-                  </div>
-                </div>
-                <button id="btnResetPw" class="btn w-full justify-center text-sm">
-                  비밀번호 재설정
-                </button>
-                <p id="resetPwResult" class="text-xs text-slate-300 min-h-[1rem]"></p>
-              </div>
-            </div>
-
-            <p class="text-[11px] text-slate-500">
-              복구 시도 내역과 로그인 IP는 <span class="font-semibold text-sky-300">login_logs</span> 시트에 기록됩니다.
-            </p>
-          </div>
         </div>
 
         <!-- Bottom meta -->
@@ -571,542 +516,61 @@
     </section>
   </main>
 
-  <script>
-    /******** i18n ********/
-    const I18N = {
-      ko: {
-        sign_to_korual: "SIGN IN TO KORUAL",
-        headline: "KORUAL 계정으로 접속",
-        tab_login: "로그인",
-        tab_signup: "회원가입",
-        login: "로그인",
-        login_btn: "로그인",
-        login_badge: "Control Center 입장",
-        login_hint: "엔터키로도 로그인 가능",
-        signup: "회원가입",
-        signup_btn: "회원가입",
-        signup_badge: "Google Sheets 계정 저장",
-        username: "아이디",
-        password: "비밀번호",
-        full_name: "이름",
-        email: "이메일",
-        remember_id: "아이디 기억하기",
-        login_failed: "로그인 실패: 아이디/비밀번호를 확인하세요.",
-        signup_done: "회원가입 완료. 이제 로그인해 주세요.",
-        user_exists: "이미 존재하는 아이디입니다.",
-        need_id_pw: "아이디와 비밀번호를 입력해주세요."
-      },
-      en: {
-        sign_to_korual: "SIGN IN TO KORUAL",
-        headline: "Sign in to KORUAL Control Center",
-        tab_login: "Login",
-        tab_signup: "Sign Up",
-        login: "Login",
-        login_btn: "Login",
-        login_badge: "Enter Control Center",
-        login_hint: "Press Enter to login",
-        signup: "Sign Up",
-        signup_btn: "Sign Up",
-        signup_badge: "Store accounts in Google Sheets",
-        username: "Username",
-        password: "Password",
-        full_name: "Full Name",
-        email: "Email",
-        remember_id: "Remember ID",
-        login_failed: "Login failed: check username/password.",
-        signup_done: "Sign-up completed. Please login.",
-        user_exists: "This username already exists.",
-        need_id_pw: "Please enter username & password."
-      }
-    };
+  <!-- ID 찾기 모달 -->
+  <div id="modalFindId" class="hidden fixed inset-0 z-40 items-center justify-center bg-slate-950/70 backdrop-blur-sm px-4">
+    <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.95)] p-5 relative">
+      <button id="closeFind" class="absolute right-3 top-3 text-slate-500 hover:text-slate-200 text-sm">
+        ✕
+      </button>
+      <h3 class="text-sm font-semibold mb-2">아이디 찾기</h3>
+      <p class="text-xs text-slate-400 mb-3">
+        회원가입 시 사용한 이메일을 입력하면, 해당 이메일로 등록된 아이디 목록을 보여줍니다.
+      </p>
+      <label class="block mb-1 text-xs">이메일</label>
+      <input id="fiEmail" class="input bg-slate-950/90 border-slate-700/70 text-sm" placeholder="you@korual.app" />
+      <button id="btnFindIdSubmit" class="btn w-full mt-3 text-sm">아이디 조회</button>
+      <p id="fiResult" class="mt-3 text-xs text-slate-300 min-h-[1rem]"></p>
+      <p class="mt-2 text-[10px] text-slate-500">
+        조회 내역은 <span class="text-sky-300 font-medium">login_logs</span> 시트에 보안 로그로 함께 기록됩니다.
+      </p>
+    </div>
+  </div>
 
-    let LANG = localStorage.getItem("korual_lang") || "ko";
+  <!-- 비밀번호 재설정 모달 -->
+  <div id="modalResetPw" class="hidden fixed inset-0 z-40 items-center justify-center bg-slate-950/70 backdrop-blur-sm px-4">
+    <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.95)] p-5 relative">
+      <button id="closeReset" class="absolute right-3 top-3 text-slate-500 hover:text-slate-200 text-sm">
+        ✕
+      </button>
+      <h3 class="text-sm font-semibold mb-2">비밀번호 재설정</h3>
+      <p class="text-xs text-slate-400 mb-3">
+        아이디와 이메일이 일치하면 새 비밀번호로 즉시 재설정됩니다.
+      </p>
+      <div class="space-y-2">
+        <div>
+          <label class="block mb-1 text-xs">아이디</label>
+          <input id="rpUser" class="input bg-slate-950/90 border-slate-700/70 text-sm" placeholder="예: KORUAL" />
+        </div>
+        <div>
+          <label class="block mb-1 text-xs">이메일</label>
+          <input id="rpEmail" class="input bg-slate-950/90 border-slate-700/70 text-sm" placeholder="you@korual.app" />
+        </div>
+        <div>
+          <label class="block mb-1 text-xs">새 비밀번호</label>
+          <input id="rpNewPw" type="password" class="input bg-slate-950/90 border-slate-700/70 text-sm" placeholder="최소 6자리" />
+        </div>
+      </div>
+      <button id="btnResetPwSubmit" class="btn w-full mt-3 text-sm">
+        비밀번호 재설정
+      </button>
+      <p id="rpMsg" class="mt-3 text-xs text-slate-300 min-h-[1rem]"></p>
+      <p class="mt-2 text-[10px] text-slate-500">
+        재설정 내역과 로그인 IP는 <span class="text-sky-300 font-medium">login_logs</span> 시트에 기록됩니다.
+      </p>
+    </div>
+  </div>
 
-    function applyI18n() {
-      document.querySelectorAll("[data-i18n]").forEach(el => {
-        const key = el.dataset.i18n;
-        const v = I18N[LANG][key];
-        if (typeof v === "string") el.textContent = v;
-      });
-      const langTop  = document.getElementById("langTop");
-      const langAuth = document.getElementById("langAuth");
-      if (langTop)  langTop.value  = LANG;
-      if (langAuth) langAuth.value = LANG;
-    }
-
-    /******** Theme ********/
-    function applyTheme(mode) {
-      const root = document.documentElement;
-      const final = mode === "light" ? "light" : "dark";
-      root.classList.toggle("dark", final === "dark");
-      localStorage.setItem("korual_theme", final);
-
-      const themeBtn = document.getElementById("toggleTheme");
-      const body     = document.body;
-      if (final === "dark") {
-        body.classList.remove("auth-bg-light");
-        body.classList.add("auth-bg-dark");
-      } else {
-        body.classList.remove("auth-bg-dark");
-        body.classList.add("auth-bg-light");
-      }
-
-      if (themeBtn) {
-        themeBtn.textContent = final === "dark" ? "🌓" : "🌞";
-        themeBtn.title = final === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환";
-      }
-    }
-
-    /******** Toast ********/
-    function showToast(message, type = "info") {
-      const root = document.getElementById("toastRoot");
-      if (!root) return;
-
-      const el = document.createElement("div");
-      el.className =
-        "max-w-md w-full pointer-events-auto rounded-2xl px-4 py-3 text-[13px] flex items-center gap-3 shadow-[0_18px_45px_rgba(15,23,42,0.9)] ring-1 " +
-        (type === "success"
-          ? "bg-emerald-500/95 text-white ring-emerald-400/70"
-          : type === "error"
-          ? "bg-rose-500/95 text-white ring-rose-400/70"
-          : "bg-slate-900/95 text-slate-50 ring-slate-700/80");
-
-      el.innerHTML = `
-        <span class="text-lg">
-          ${type === "success" ? "✅" : type === "error" ? "⚠️" : "🔔"}
-        </span>
-        <span class="flex-1">${message}</span>
-      `;
-
-      el.classList.add("toast-enter");
-      root.appendChild(el);
-
-      requestAnimationFrame(() => {
-        el.classList.remove("toast-enter");
-        el.classList.add("toast-enter-active");
-      });
-
-      setTimeout(() => {
-        el.classList.remove("toast-enter-active");
-        el.classList.add("toast-exit");
-        requestAnimationFrame(() => {
-          el.classList.add("toast-exit-active");
-        });
-        setTimeout(() => {
-          root.removeChild(el);
-        }, 180);
-      }, 2600);
-    }
-
-    /******** Google Sheets Auth API ********/
-    const GS_API        = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
-    const DASHBOARD_URL = "dashboard.html";
-
-    // 클라이언트 IP (IP 로그용)
-    window.__korualClientIp = "";
-    fetch("https://api.ipify.org?format=json")
-      .then(res => res.json())
-      .then(d => { window.__korualClientIp = d.ip; })
-      .catch(() => {});
-
-    async function apiSignup(payload) {
-      const res = await fetch(GS_API, {
-        method: "POST",
-        body: JSON.stringify({
-          mode: "signup",
-          ...payload,
-          client_ip:  window.__korualClientIp || "",
-          user_agent: navigator.userAgent || ""
-        })
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.message || "Signup error");
-      return data;
-    }
-
-    async function apiLogin(username, password) {
-      const res = await fetch(GS_API, {
-        method: "POST",
-        body: JSON.stringify({
-          mode: "login",
-          username,
-          password,
-          client_ip:  window.__korualClientIp || "",
-          user_agent: navigator.userAgent || ""
-        })
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.message || "Login error");
-      return data;
-    }
-
-    async function apiFindId(email) {
-      const res = await fetch(GS_API, {
-        method: "POST",
-        body: JSON.stringify({ mode: "findId", email })
-      });
-      return res.json();
-    }
-
-    async function apiResetPw({ username, email, new_password }) {
-      const res = await fetch(GS_API, {
-        method: "POST",
-        body: JSON.stringify({
-          mode: "resetPw",
-          username,
-          email,
-          new_password
-        })
-      });
-      return res.json();
-    }
-
-    async function pingApi() {
-      const dot = document.getElementById("apiStatusDot");
-      const txt = document.getElementById("apiStatusText");
-      if (!dot || !txt) return;
-      try {
-        const res = await fetch(GS_API);
-        const ok  = res.ok;
-        dot.className =
-          "h-2.5 w-2.5 rounded-full " +
-          (ok
-            ? "bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.4)]"
-            : "bg-rose-400 shadow-[0_0_0_5px_rgba(248,113,113,0.4)]");
-        txt.textContent = ok ? "Auth API Online" : "Auth API Error";
-      } catch {
-        dot.className =
-          "h-2.5 w-2.5 rounded-full bg-rose-400 shadow-[0_0_0_5px_rgba(248,113,113,0.4)]";
-        txt.textContent = "Auth API Error";
-      }
-    }
-
-    const $ = id => document.getElementById(id);
-
-    (function bootstrap() {
-      const y = $("year");
-      if (y) y.textContent = new Date().getFullYear();
-
-      // Theme 초기값
-      const savedTheme = localStorage.getItem("korual_theme") || "dark";
-      applyTheme(savedTheme);
-      const themeBtn = $("toggleTheme");
-      if (themeBtn) {
-        themeBtn.addEventListener("click", () => {
-          const current = localStorage.getItem("korual_theme") || "dark";
-          const next = current === "dark" ? "light" : "dark";
-          applyTheme(next);
-        });
-      }
-
-      // API 상태 체크
-      pingApi();
-
-      // Language
-      applyI18n();
-      ["langTop", "langAuth"].forEach(id => {
-        const sel = $(id);
-        if (!sel) return;
-        sel.addEventListener("change", e => {
-          LANG = e.target.value;
-          localStorage.setItem("korual_lang", LANG);
-          applyI18n();
-        });
-      });
-
-      // Remember ID
-      const savedId = localStorage.getItem("korual_login_id") || "";
-      if (savedId && $("loginUsername")) {
-        $("loginUsername").value = savedId;
-        const rememberCheckbox = $("rememberId");
-        if (rememberCheckbox) rememberCheckbox.checked = true;
-      }
-
-      // Demo fill buttons
-      const fillDemo = () => {
-        if ($("loginUsername")) $("loginUsername").value = "KORUAL";
-        if ($("loginPassword")) $("loginPassword").value = "GUEST";
-        showToast("테스트 계정이 자동으로 입력되었습니다.", "info");
-      };
-      ["btnFillDemo", "btnFillDemoMobile"].forEach(id => {
-        const btn = $(id);
-        if (btn) btn.addEventListener("click", fillDemo);
-      });
-
-      // Tabs
-      const loginPanel   = $("loginPanel");
-      const signupPanel  = $("signupPanel");
-      const recoverPanel = $("recoverPanel");
-      const tabLoginBtn  = $("tabLoginBtn");
-      const tabSignupBtn = $("tabSignupBtn");
-
-      const lastTab = localStorage.getItem("korual_auth_tab") || "login";
-
-      function setTab(active) {
-        if (active === "signup") {
-          signupPanel.classList.remove("hidden");
-          loginPanel.classList.add("hidden");
-          recoverPanel.classList.add("hidden");
-          tabSignupBtn.classList.add("tab-active");
-          tabSignupBtn.classList.remove("tab-inactive");
-          tabLoginBtn.classList.remove("tab-active");
-          tabLoginBtn.classList.add("tab-inactive");
-        } else {
-          loginPanel.classList.remove("hidden");
-          signupPanel.classList.add("hidden");
-          recoverPanel.classList.add("hidden");
-          tabLoginBtn.classList.add("tab-active");
-          tabLoginBtn.classList.remove("tab-inactive");
-          tabSignupBtn.classList.remove("tab-active");
-          tabSignupBtn.classList.add("tab-inactive");
-        }
-        localStorage.setItem("korual_auth_tab", active);
-      }
-
-      tabLoginBtn.addEventListener("click", () => setTab("login"));
-      tabSignupBtn.addEventListener("click", () => setTab("signup"));
-      setTab(lastTab);
-
-      // Recover toggles
-      const btnOpenFindId  = $("btnOpenFindId");
-      const btnOpenResetPw = $("btnOpenResetPw");
-
-      function openRecover() {
-        recoverPanel.classList.remove("hidden");
-        // 로그인 패널 아래에 그대로 둠
-        showToast("ID / 비밀번호 복구 패널이 열렸습니다.", "info");
-      }
-
-      if (btnOpenFindId) {
-        btnOpenFindId.addEventListener("click", () => {
-          openRecover();
-          $("findEmail")?.focus();
-        });
-      }
-      if (btnOpenResetPw) {
-        btnOpenResetPw.addEventListener("click", () => {
-          openRecover();
-          $("resetUser")?.focus();
-        });
-      }
-
-      // 비밀번호 보기 / Caps Lock
-      const togglePwd = $("togglePwd");
-      const loginPassword = $("loginPassword");
-      const capsIndicator = $("capsIndicator");
-
-      if (togglePwd) {
-        togglePwd.addEventListener("click", () => {
-          if (!loginPassword) return;
-          if (loginPassword.type === "password") {
-            loginPassword.type = "text";
-            togglePwd.textContent = "🙈 숨기기";
-          } else {
-            loginPassword.type = "password";
-            togglePwd.textContent = "👁 비밀번호 보기";
-          }
-        });
-      }
-
-      if (loginPassword && capsIndicator) {
-        loginPassword.addEventListener("keyup", e => {
-          const caps = e.getModifierState && e.getModifierState("CapsLock");
-          capsIndicator.classList.toggle("hidden", !caps);
-        });
-      }
-
-      const overlay = $("loadingOverlay");
-
-      function isValidEmail(email) {
-        if (!email) return true;
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      }
-
-      function clearInputErrors() {
-        [
-          "loginUsername","loginPassword",
-          "suUser","suPass","suEmail",
-          "findEmail","resetUser","resetEmail","resetPass"
-        ].forEach(id => {
-          const el = $(id);
-          if (el) el.classList.remove("input-error");
-        });
-      }
-
-      // Signup
-      $("btnSignup").addEventListener("click", async () => {
-        clearInputErrors();
-        const payload = {
-          full_name: $("suName").value.trim(),
-          email: $("suEmail").value.trim(),
-          username: $("suUser").value.trim(),
-          password: $("suPass").value,
-          role: "staff",
-          created_by: "SELF"
-        };
-
-        let hasErr = false;
-        if (!payload.username) {
-          $("suUser").classList.add("input-error");
-          hasErr = true;
-        }
-        if (!payload.password || payload.password.length < 6) {
-          $("suPass").classList.add("input-error");
-          hasErr = true;
-        }
-        if (!isValidEmail(payload.email)) {
-          $("suEmail").classList.add("input-error");
-          hasErr = true;
-        }
-        if (hasErr) {
-          $("signupMsg").textContent = I18N[LANG].need_id_pw;
-          showToast(I18N[LANG].need_id_pw, "error");
-          return;
-        }
-
-        $("signupMsg").textContent = "Saving...";
-        try {
-          await apiSignup(payload);
-          $("signupMsg").textContent = I18N[LANG].signup_done;
-          showToast(I18N[LANG].signup_done, "success");
-          setTab("login");
-          $("loginUsername").value = payload.username;
-        } catch (e) {
-          const msg = e.message || I18N[LANG].user_exists;
-          $("signupMsg").textContent = msg;
-          showToast(msg, "error");
-        }
-      });
-
-      // Login
-      async function handleLogin() {
-        clearInputErrors();
-        const username = $("loginUsername").value.trim();
-        const password = $("loginPassword").value;
-
-        if (!username || !password) {
-          $("loginMsg").textContent = I18N[LANG].need_id_pw;
-          if (!username) $("loginUsername").classList.add("input-error");
-          if (!password) $("loginPassword").classList.add("input-error");
-          showToast(I18N[LANG].need_id_pw, "error");
-          return;
-        }
-
-        $("loginMsg").textContent = "";
-        $("btnLogin").disabled = true;
-        $("btnLogin").textContent = "Loading...";
-        if (overlay) overlay.classList.remove("hidden");
-
-        const remember = $("rememberId")?.checked;
-        if (remember) localStorage.setItem("korual_login_id", username);
-        else localStorage.removeItem("korual_login_id");
-
-        try {
-          const data = await apiLogin(username, password);
-          const u = data.user || {};
-          const fullName =
-            u.full_name ||
-            data.full_name ||
-            username;
-
-          localStorage.setItem(
-            "korual_user",
-            JSON.stringify({
-              username: u.username || username,
-              full_name: fullName,
-              email: u.email || "",
-              role: u.role || "staff",
-              last_login: u.last_login || "",
-              logged_at: new Date().toISOString()
-            })
-          );
-
-          showToast(`어서오세요, ${fullName}님. Control Center로 이동합니다.`, "success");
-          setTimeout(() => { window.location.href = DASHBOARD_URL; }, 600);
-        } catch (e) {
-          const msg = e.message || I18N[LANG].login_failed;
-          $("loginMsg").textContent = msg;
-          showToast(msg, "error");
-        } finally {
-          $("btnLogin").disabled = false;
-          $("btnLogin").textContent = I18N[LANG].login_btn;
-          if (overlay) overlay.classList.add("hidden");
-        }
-      }
-
-      $("btnLogin").addEventListener("click", handleLogin);
-      ["loginUsername", "loginPassword"].forEach(id => {
-        const el = $(id);
-        if (!el) return;
-        el.addEventListener("keydown", e => {
-          if (e.key === "Enter") handleLogin();
-        });
-      });
-
-      // ID 찾기
-      $("btnFindId").addEventListener("click", async () => {
-        clearInputErrors();
-        const email = $("findEmail").value.trim();
-        if (!email || !isValidEmail(email)) {
-          $("findEmail").classList.add("input-error");
-          showToast("유효한 이메일을 입력해주세요.", "error");
-          return;
-        }
-        $("findIdResult").textContent = "조회 중...";
-        try {
-          const res = await apiFindId(email);
-          if (!res.ok) {
-            $("findIdResult").textContent = res.message || "조회 실패";
-            showToast(res.message || "조회 실패", "error");
-            return;
-          }
-          if (!res.ids || res.ids.length === 0) {
-            $("findIdResult").textContent = "해당 이메일로 등록된 아이디가 없습니다.";
-            showToast("등록된 아이디가 없습니다.", "error");
-          } else {
-            $("findIdResult").textContent = "등록된 아이디: " + res.ids.join(", ");
-            showToast("아이디가 조회되었습니다.", "success");
-          }
-        } catch (err) {
-          $("findIdResult").textContent = "서버 오류로 조회할 수 없습니다.";
-          showToast("서버 오류로 조회할 수 없습니다.", "error");
-        }
-      });
-
-      // PW 재설정
-      $("btnResetPw").addEventListener("click", async () => {
-        clearInputErrors();
-        const username = $("resetUser").value.trim();
-        const email    = $("resetEmail").value.trim();
-        const newPw    = $("resetPass").value;
-
-        let hasErr = false;
-        if (!username) { $("resetUser").classList.add("input-error"); hasErr = true; }
-        if (!email || !isValidEmail(email)) { $("resetEmail").classList.add("input-error"); hasErr = true; }
-        if (!newPw || newPw.length < 6) { $("resetPass").classList.add("input-error"); hasErr = true; }
-
-        if (hasErr) {
-          $("resetPwResult").textContent = "정보를 정확히 입력해주세요.";
-          showToast("정보를 정확히 입력해주세요.", "error");
-          return;
-        }
-
-        $("resetPwResult").textContent = "처리 중...";
-        try {
-          const res = await apiResetPw({ username, email, new_password: newPw });
-          if (!res.ok) {
-            $("resetPwResult").textContent = res.message || "재설정 실패";
-            showToast(res.message || "재설정 실패", "error");
-            return;
-          }
-          $("resetPwResult").textContent = res.message || "비밀번호가 재설정되었습니다.";
-          showToast("비밀번호가 재설정되었습니다. 새 비밀번호로 로그인하세요.", "success");
-        } catch (err) {
-          $("resetPwResult").textContent = "서버 오류로 재설정할 수 없습니다.";
-          showToast("서버 오류로 재설정할 수 없습니다.", "error");
-        }
-      });
-    })();
-  </script>
+  <!-- app.js (앞에서 준 프론트엔드 전체 코드) -->
+  <script src="app.js"></script>
 </body>
 </html>
