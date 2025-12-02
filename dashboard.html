@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
 
-  <!-- 즉시 로그인 세션 검증 (미로그인 시 index.html로 튕김) -->
+  <!-- 세션 검증: 로그인 안 했으면 index.html 로 튕김 -->
   <script>
     (function () {
       try {
@@ -20,59 +20,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL CONTROL CENTER</title>
 
-  <!-- 기본 스타일 + 모달 스타일 -->
+  <!-- 폰트 (선택) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <!-- Pretendard CDN (선택) -->
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+
+  <!-- High-end 스타일 -->
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="modal.css" />
 </head>
 
 <body class="theme-dark">
-<div class="app-shell app-shell--lux">
+<div class="app-shell">
 
   <!-- ======================================
-       ■ 사이드바
+       사이드바
   ======================================= -->
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-mark">K</div>
-      <div class="brand-text">
-        <div class="brand-title">KORUAL</div>
-        <div class="brand-subtitle">Control Center</div>
-      </div>
+  <aside id="sidebar" class="sidebar">
+    <div>
+      <div class="brand-title">KORUAL</div>
+      <div class="brand-subtitle">CONTROL CENTER</div>
     </div>
 
-    <nav class="nav nav-main">
-      <button class="nav-link active" data-section="dashboard">
-        <span class="nav-icon">📊</span>
-        <span class="nav-label">대시보드</span>
-        <span class="nav-pill">LIVE</span>
+    <nav class="nav">
+      <button class="nav-link active" data-section="dashboard" type="button">
+        <span>📊</span><span>대시보드</span>
       </button>
-      <button class="nav-link" data-section="products">
-        <span class="nav-icon">📦</span>
-        <span class="nav-label">상품 관리</span>
+      <button class="nav-link" data-section="products" type="button">
+        <span>📦</span><span>상품 관리</span>
       </button>
-      <button class="nav-link" data-section="orders">
-        <span class="nav-icon">📮</span>
-        <span class="nav-label">주문 관리</span>
+      <button class="nav-link" data-section="orders" type="button">
+        <span>📮</span><span>주문 관리</span>
       </button>
-      <button class="nav-link" data-section="members">
-        <span class="nav-icon">🧑‍🤝‍🧑</span>
-        <span class="nav-label">회원 관리</span>
+      <button class="nav-link" data-section="members" type="button">
+        <span>🧑‍🤝‍🧑</span><span>회원 관리</span>
       </button>
-      <button class="nav-link" data-section="stock">
-        <span class="nav-icon">🏬</span>
-        <span class="nav-label">재고 관리</span>
+      <button class="nav-link" data-section="stock" type="button">
+        <span>🏬</span><span>재고 관리</span>
       </button>
-      <button class="nav-link" data-section="logs">
-        <span class="nav-icon">📝</span>
-        <span class="nav-label">로그</span>
+      <button class="nav-link" data-section="logs" type="button">
+        <span>📝</span><span>로그 모니터링</span>
       </button>
     </nav>
 
     <div class="sidebar-footer">
-      <div class="sidebar-footer-title">SYSTEM STATUS</div>
-      <div class="sidebar-footer-row">
-        <span class="status-dot" id="apiStatusDot"></span>
-        <span id="apiStatusText">Checking…</span>
+      <div class="api-status" id="apiStatusLabel">
+        API 연결 상태
       </div>
       <div class="api-meta">
         Ping: <span id="apiPing">- ms</span>
@@ -80,11 +79,11 @@
     </div>
   </aside>
 
-  <!-- 모바일일 때 사이드바 뒤 어두운 배경 -->
+  <!-- 모바일일 때 사이드바 뒤 배경 -->
   <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
   <!-- ======================================
-       ■ 메인 컨텐츠
+       메인 컨텐츠
   ======================================= -->
   <main class="content">
 
@@ -98,15 +97,9 @@
         </button>
 
         <div class="topbar-text">
-          <div class="topbar-title-row">
-            <div class="topbar-title">KORUAL CONTROL CENTER</div>
-            <span class="topbar-badge">v1.0 · Internal</span>
-          </div>
+          <div class="topbar-title">KORUAL CONTROL CENTER</div>
           <div class="topbar-meta">
-            <span>
-              반갑습니다, <span id="welcomeUser" class="welcome-user">KORUAL</span>님
-            </span>
-            <span class="divider-dot">·</span>
+            반갑습니다, <span id="welcomeUser">KORUAL</span> 님
             <span class="last-sync" id="last-sync">마지막 동기화: -</span>
           </div>
         </div>
@@ -115,13 +108,13 @@
       <div class="topbar-right">
         <!-- 테마 토글 -->
         <button id="themeToggle" class="theme-toggle" type="button">
-          <span class="theme-toggle-label" data-light="Light" data-dark="Dark">Light</span>
+          <span class="theme-toggle-label" data-light="Light" data-dark="Dark">Dark</span>
           <span class="theme-toggle-track">
             <span class="theme-toggle-thumb"></span>
           </span>
         </button>
 
-        <!-- 새로고침 -->
+        <!-- 전체 리프레시 -->
         <button id="btnRefreshAll" class="primary-btn" type="button">
           🔄 새로고침
         </button>
@@ -139,68 +132,50 @@
     <section id="section-dashboard" class="section active">
 
       <div class="section-header-row">
-        <div class="section-header-main">
+        <div>
           <h2>📊 대시보드</h2>
-          <p class="section-desc">
-            코루알 전 채널 데이터를 한 눈에 보는 실시간 관제 탑입니다.
-          </p>
-        </div>
-        <div class="section-header-meta">
-          <span class="pill pill-soft">Today Overview</span>
+          <p class="section-desc">코루알 전체 운영 데이터를 실시간으로 요약합니다.</p>
         </div>
       </div>
 
       <!-- 요약 카드 -->
       <div class="cards-grid">
-        <div class="card card-kpi">
+        <div class="card">
           <div class="card-label">총 상품 수</div>
           <div class="card-value" id="cardTotalProducts">-</div>
-          <div class="card-sub">등록된 모든 SKU 기준</div>
         </div>
-        <div class="card card-kpi">
+        <div class="card">
           <div class="card-label">총 주문 수</div>
           <div class="card-value" id="cardTotalOrders">-</div>
-          <div class="card-sub">전체 기간 누적 주문</div>
         </div>
-        <div class="card card-kpi">
+        <div class="card">
           <div class="card-label">추정 매출 합계</div>
           <div class="card-value" id="cardTotalRevenue">-</div>
-          <div class="card-sub">원화 기준, 플랫폼 합산</div>
         </div>
-        <div class="card card-kpi">
+        <div class="card">
           <div class="card-label">회원 수</div>
           <div class="card-value" id="cardTotalMembers">-</div>
-          <div class="card-sub">KORUAL MEMBERS 기준</div>
         </div>
       </div>
 
       <!-- 오늘 요약 -->
-      <div class="panel panel-split">
+      <div class="panel">
         <div class="panel-header">
-          <div class="panel-title-wrap">
-            <h3>오늘 요약</h3>
-            <span class="panel-sub">금일 00:00 ~ 현재</span>
-          </div>
+          <h3>오늘 요약</h3>
         </div>
-
         <div class="panel-body">
           <div class="today-metrics">
             <div class="today-metric">
               <span class="today-label">오늘 주문</span>
               <span class="today-value" id="todayOrders">-</span>
-              <span class="today-chip today-chip-orders">Orders</span>
             </div>
-
             <div class="today-metric">
               <span class="today-label">오늘 매출</span>
               <span class="today-value" id="todayRevenue">-</span>
-              <span class="today-chip today-chip-revenue">KRW</span>
             </div>
-
             <div class="today-metric">
               <span class="today-label">준비중 주문</span>
               <span class="today-value" id="todayPending">-</span>
-              <span class="today-chip today-chip-pending">Pending</span>
             </div>
           </div>
         </div>
@@ -209,15 +184,10 @@
       <!-- 최근 주문 -->
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title-wrap">
-            <h3>최근 주문</h3>
-            <span class="panel-sub">가장 최근 주문 20건 기준</span>
-          </div>
-          <div class="panel-actions">
-            <button id="goOrders" class="ghost-btn small" type="button">
-              → 주문 관리 바로가기
-            </button>
-          </div>
+          <h3>최근 주문</h3>
+          <button id="goOrders" class="ghost-btn small" type="button">
+            → 주문 관리로 이동
+          </button>
         </div>
 
         <div class="table-wrapper">
@@ -234,7 +204,7 @@
               </tr>
             </thead>
             <tbody id="recentOrdersBody">
-              <tr><td colspan="7" class="empty-state">로딩중…</td></tr>
+              <tr><td colspan="7" class="empty-state">로딩 중…</td></tr>
             </tbody>
           </table>
         </div>
@@ -242,53 +212,50 @@
 
     </section>
 
-
     <!-- ============================================================
          2) 상품 관리
     ============================================================ -->
     <section id="section-products" class="section">
 
       <div class="section-header-row">
-        <div class="section-header-main">
+        <div>
           <h2>📦 상품 관리</h2>
-          <p class="section-desc">
-            상품 정보, 옵션, 판매가, 재고를 한 번에 확인합니다.
-          </p>
+          <p class="section-desc">상품 정보, 판매가, 재고 상태를 한눈에 확인합니다.</p>
         </div>
-
         <div class="section-actions">
           <input
             id="searchProducts"
             class="input"
-            placeholder="검색 (상품명 / 코드 / 옵션)"
+            type="text"
+            placeholder="상품명 / 코드 / 옵션으로 검색"
           />
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-body panel-body--no-padding">
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>상품코드</th>
-                  <th>상품명</th>
-                  <th>옵션</th>
-                  <th>판매가</th>
-                  <th>재고</th>
-                </tr>
-              </thead>
-
-              <tbody id="productsBody" data-entity="products" data-sheet="PRODUCTS">
-                <tr><td colspan="5" class="empty-state">데이터 없음</td></tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="panel-header">
+          <h3>상품 리스트</h3>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>상품코드</th>
+                <th>상품명</th>
+                <th>옵션</th>
+                <th>판매가</th>
+                <th>재고</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="productsBody" data-entity="products" data-sheet="PRODUCTS">
+              <tr><td colspan="6" class="empty-state">데이터 없음</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
     </section>
-
 
     <!-- ============================================================
          3) 주문 관리
@@ -296,49 +263,47 @@
     <section id="section-orders" class="section">
 
       <div class="section-header-row">
-        <div class="section-header-main">
+        <div>
           <h2>📮 주문 관리</h2>
-          <p class="section-desc">
-            주문 상태, 결제 금액, 고객 정보를 한 번에 보고 관리합니다.
-          </p>
+          <p class="section-desc">전체 주문과 배송 상태를 통합 관리합니다.</p>
         </div>
-
         <div class="section-actions">
           <input
             id="searchOrders"
             class="input"
-            placeholder="검색 (주문번호 / 고객명 / 상태)"
+            type="text"
+            placeholder="주문번호 / 고객명 / 상태로 검색"
           />
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-body panel-body--no-padding">
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>회원번호</th>
-                  <th>날짜</th>
-                  <th>주문번호</th>
-                  <th>고객명</th>
-                  <th>상품명</th>
-                  <th>수량</th>
-                  <th>금액</th>
-                  <th>상태</th>
-                </tr>
-              </thead>
-
-              <tbody id="ordersBody" data-entity="orders" data-sheet="ORDERS">
-                <tr><td colspan="8" class="empty-state">데이터 없음</td></tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="panel-header">
+          <h3>주문 리스트</h3>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>회원번호</th>
+                <th>날짜</th>
+                <th>주문번호</th>
+                <th>고객명</th>
+                <th>상품명</th>
+                <th>수량</th>
+                <th>금액</th>
+                <th>상태</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="ordersBody" data-entity="orders" data-sheet="ORDERS">
+              <tr><td colspan="9" class="empty-state">데이터 없음</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
     </section>
-
 
     <!-- ============================================================
          4) 회원 관리
@@ -346,52 +311,50 @@
     <section id="section-members" class="section">
 
       <div class="section-header-row">
-        <div class="section-header-main">
-          <h2>🧍 회원 관리</h2>
-          <p class="section-desc">
-            회원 등급, 누적 매출, 최근 주문일을 기준으로 VIP를 관리합니다.
-          </p>
+        <div>
+          <h2>🧑‍🤝‍🧑 회원 관리</h2>
+          <p class="section-desc">회원 기본정보, 등급, 누적 매출, 최근 주문을 조회합니다.</p>
         </div>
-
         <div class="section-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <input
             id="searchMembers"
             class="input"
-            placeholder="검색 (회원번호 / 이름 / 이메일 / 전화번호 / 등급)"
+            type="text"
+            placeholder="회원번호 / 이름 / 이메일 / 전화번호 / 등급"
           />
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-body panel-body--no-padding">
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>회원번호</th>
-                  <th>이름</th>
-                  <th>전화번호</th>
-                  <th>이메일</th>
-                  <th>가입일</th>
-                  <th>채널</th>
-                  <th>등급</th>
-                  <th>누적매출</th>
-                  <th>포인트</th>
-                  <th>최근주문일</th>
-                  <th>메모</th>
-                </tr>
-              </thead>
-
-              <tbody id="membersBody" data-entity="members" data-sheet="MEMBERS">
-                <tr><td colspan="11" class="empty-state">데이터 없음</td></tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="panel-header">
+          <h3>회원 리스트</h3>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>회원번호</th>
+                <th>이름</th>
+                <th>전화번호</th>
+                <th>이메일</th>
+                <th>가입일</th>
+                <th>채널</th>
+                <th>등급</th>
+                <th>누적매출</th>
+                <th>포인트</th>
+                <th>최근주문일</th>
+                <th>메모</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="membersBody" data-entity="members" data-sheet="MEMBERS">
+              <tr><td colspan="12" class="empty-state">데이터 없음</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
     </section>
-
 
     <!-- ============================================================
          5) 재고 관리
@@ -399,48 +362,46 @@
     <section id="section-stock" class="section">
 
       <div class="section-header-row">
-        <div class="section-header-main">
-          <h2>🏷️ 재고 관리</h2>
-          <p class="section-desc">
-            창고·채널별 재고 상태를 모니터링하고 안전 재고를 관리합니다.
-          </p>
+        <div>
+          <h2>🏬 재고 관리</h2>
+          <p class="section-desc">실시간 재고, 안전재고, 창고/채널 정보를 확인합니다.</p>
         </div>
-
         <div class="section-actions">
           <input
             id="searchStock"
             class="input"
-            placeholder="검색 (상품코드 / 상품명 / 상태 / 창고)"
+            type="text"
+            placeholder="상품코드 / 상품명 / 상태 / 창고"
           />
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-body panel-body--no-padding">
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>상품코드</th>
-                  <th>상품명</th>
-                  <th>현재 재고</th>
-                  <th>안전 재고</th>
-                  <th>상태</th>
-                  <th>창고</th>
-                  <th>채널</th>
-                </tr>
-              </thead>
-
-              <tbody id="stockBody" data-entity="stock" data-sheet="STOCK">
-                <tr><td colspan="7" class="empty-state">데이터 없음</td></tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="panel-header">
+          <h3>재고 리스트</h3>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>상품코드</th>
+                <th>상품명</th>
+                <th>현재 재고</th>
+                <th>안전 재고</th>
+                <th>상태</th>
+                <th>창고</th>
+                <th>채널</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="stockBody" data-entity="stock" data-sheet="STOCK">
+              <tr><td colspan="8" class="empty-state">데이터 없음</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
     </section>
-
 
     <!-- ============================================================
          6) 로그 모니터링
@@ -448,58 +409,55 @@
     <section id="section-logs" class="section">
 
       <div class="section-header-row">
-        <div class="section-header-main">
-          <h2>📘 로그 모니터링</h2>
-          <p class="section-desc">
-            자동화, 알림, API 호출 로그를 단일 타임라인으로 추적합니다.
-          </p>
+        <div>
+          <h2>📝 로그 모니터링</h2>
+          <p class="section-desc">자동화 기록, 알림 로그, API 호출 로그를 추적합니다.</p>
         </div>
-
         <div class="section-actions">
           <input
             id="searchLogs"
             class="input"
-            placeholder="검색 (시간 / 타입 / 메시지)"
+            type="text"
+            placeholder="시간 / 타입 / 메시지로 검색"
           />
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-body panel-body--no-padding">
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>시간</th>
-                  <th>타입</th>
-                  <th>메시지</th>
-                </tr>
-              </thead>
-
-              <tbody id="logsBody" data-entity="logs" data-sheet="LOGS">
-                <tr><td colspan="3" class="empty-state">데이터 없음</td></tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="panel-header">
+          <h3>로그 리스트</h3>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>시간</th>
+                <th>타입</th>
+                <th>메시지</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="logsBody" data-entity="logs" data-sheet="LOGS">
+              <tr><td colspan="4" class="empty-state">데이터 없음</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
     </section>
 
-    <!-- ============================================================
-          FOOTER
-    ============================================================ -->
+    <!-- FOOTER -->
     <footer class="footer">
       <div class="footer-inner">
         <span>© 2025 KORUAL Control Center · All Systems Automated</span>
       </div>
     </footer>
 
-  </main> <!-- /content -->
-</div> <!-- /app-shell -->
+  </main>
+</div>
 
 <!-- ============================================================
-     ■ 수정/삭제 공통 모달 레이어
+     수정/삭제 공통 모달 레이어
 ============================================================ -->
 <div
   id="korualModalLayer"
@@ -523,7 +481,6 @@
         <span id="rowEditEntityLabel">-</span>
         <span id="rowEditRowLabel" class="row-label">ROW: -</span>
       </div>
-
       <div id="rowEditFields" class="modal-fields"></div>
     </div>
 
@@ -563,11 +520,14 @@
   </div>
 </div>
 
+<!-- 토스트 루트 -->
+<div id="toastRoot" class="toast-container"></div>
+
 <!-- JS 연결 -->
 <script src="app.js"></script>
 <script src="modal.js"></script>
 
-<!-- 모달 전역 헬퍼 (modal.js에서 써도 됨 – 중복되면 제거해도 ok) -->
+<!-- 모달 전역 헬퍼 (modal.js에서 사용) -->
 <script>
   (function () {
     const layer      = document.getElementById("korualModalLayer");
