@@ -1,103 +1,44 @@
 /******************************************************
- * KORUAL CONTROL CENTER – modal.js
- * 공통 행 수정/삭제 모달
- * - window.KORUAL_MODAL.openEdit(...)
- * - window.KORUAL_MODAL.openDelete(...)
- * - 실제 API 호출은 콜백 또는 CustomEvent로 분리
+ * KORUAL CONTROL CENTER – Modal Controller (High-End)
+ * - 행 수정 / 삭제 모달 전용 스크립트
+ * - window.KORUAL_MODAL.{openEdit, openDelete, closeAll} 제공
+ *
+ * ※ index.html 에서 modal.js 를 app.js 보다 "먼저" 로드하면
+ *    app.js 에서 바로 KORUAL_MODAL 을 사용할 수 있습니다.
  ******************************************************/
 
 (function () {
-  const root = document.getElementById("modal-root");
-  if (!root) {
-    console.warn("[KORUAL_MODAL] #modal-root 가 없습니다.");
-    return;
-  }
+  const $ = (id) => document.getElementById(id);
 
-  /* -------------------------------------------------
-     1) 기본 DOM 생성
-  -------------------------------------------------- */
-  root.innerHTML = `
-    <div class="modal-layer" data-modal-layer style="display:none;">
-      <div class="modal-backdrop" data-modal-close></div>
+  const layer       = $("korualModalLayer");
+  const backdrop    = $("korualModalBackdrop");
+  const editModal   = $("rowEditModal");
+  const deleteModal = $("rowDeleteModal");
 
-      <!-- 수정 모달 -->
-      <div class="modal-panel" data-modal-edit>
-        <div class="modal-header">
-          <h3 class="modal-title" data-edit-title>행 수정</h3>
-          <button type="button" class="modal-close-btn" data-modal-close>✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="modal-meta">
-            <span data-edit-entity>[-]</span>
-            <span class="row-label" data-edit-row>ROW: -</span>
-          </div>
-          <div class="modal-fields" data-edit-fields></div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="primary-btn" data-edit-save>저장</button>
-          <button type="button" class="ghost-btn" data-modal-close>취소</button>
-        </div>
-      </div>
+  const editEntityLabel   = $("rowEditEntityLabel");
+  const editRowLabel      = $("rowEditRowLabel");
+  const editFieldsWrap    = $("rowEditFields");
+  const deleteEntityLabel = $("rowDeleteEntityLabel");
+  const deleteRowLabel    = $("rowDeleteRowLabel");
+  const deleteMessage     = $("rowDeleteMessage");
 
-      <!-- 삭제 모달 -->
-      <div class="modal-panel" data-modal-delete style="display:none;">
-        <div class="modal-header">
-          <h3>행 삭제</h3>
-          <button type="button" class="modal-close-btn" data-modal-close>✕</button>
-        </div>
-        <div class="modal-body">
-          <p data-delete-message>선택한 행을 삭제하시겠습니까?</p>
-          <div class="modal-meta">
-            <span data-delete-entity>[-]</span>
-            <span class="row-label" data-delete-row>ROW: -</span>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="primary-btn" data-delete-confirm>삭제</button>
-          <button type="button" class="ghost-btn" data-modal-close>취소</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const layer         = root.querySelector("[data-modal-layer]");
-  const editPanel     = root.querySelector("[data-modal-edit]");
-  const deletePanel   = root.querySelector("[data-modal-delete]");
-  const editFieldsBox = root.querySelector("[data-edit-fields]");
-
-  const editTitleEl   = root.querySelector("[data-edit-title]");
-  const editEntityEl  = root.querySelector("[data-edit-entity]");
-  const editRowEl     = root.querySelector("[data-edit-row]");
-
-  const delMsgEl      = root.querySelector("[data-delete-message]");
-  const delEntityEl   = root.querySelector("[data-delete-entity]");
-  const delRowEl      = root.querySelector("[data-delete-row]");
-
-  const btnEditSave   = root.querySelector("[data-edit-save]");
-  const btnDeleteConf = root.querySelector("[data-delete-confirm]");
-
-  /* -------------------------------------------------
-     2) 내부 상태
-  -------------------------------------------------- */
-  const state = {
-    mode: null,         // "edit" | "delete"
-    entity: null,       // "members" | "orders" ...
-    rowIndex: null,     // 시트 기준 row index
-    originalData: null, // 수정 전 데이터
-    onSave: null,       // 콜백
-    onConfirm: null     // 콜백
-  };
-
-  const ENTITY_LABEL = {
-    members: "회원",
-    orders: "주문",
+  const entityLabelMap = {
+    members:  "회원",
+    orders:   "주문",
     products: "상품",
-    stock: "재고",
-    logs: "로그"
+    stock:    "재고",
+    logs:     "로그",
   };
+
+  let lastActiveElement = null;
+
+  function getEntityName(key) {
+    return entityLabelMap[key] || key || "-";
+  }
 
   function openLayer() {
     if (!layer) return;
+    lastActiveElement = document.activeElement;
     layer.style.display = "flex";
     document.body.classList.add("modal-open");
   }
@@ -105,39 +46,53 @@
   function closeLayer() {
     if (!layer) return;
     layer.style.display = "none";
+    if (editModal) editModal.style.display = "none";
+    if (deleteModal) deleteModal.style.display = "none";
     document.body.classList.remove("modal-open");
-    state.mode = null;
-    state.entity = null;
-    state.rowIndex = null;
-    state.originalData = null;
-    state.onSave = null;
-    state.onConfirm = null;
+
+    if (lastActiveElement && typeof lastActiveElement.focus === "function") {
+      try {
+        lastActiveElement.focus();
+      } catch (e) {
+        // ignore
+      }
+    }
+    lastActiveElement = null;
   }
 
-  /* -------------------------------------------------
-     3) 수정 모달
-  -------------------------------------------------- */
+  function focusFirstInteractive(root) {
+    if (!root) return;
+    const first = root.querySelector(
+      'input, select, textarea, button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (first && typeof first.focus === "function") {
+      first.focus();
+    }
+  }
+
   function openEdit(payload) {
-    if (!layer || !editPanel) return;
+    if (!layer || !editModal || !editFieldsWrap) return;
 
-    state.mode       = "edit";
-    state.entity     = payload.entity || null;
-    state.rowIndex   = payload.rowIndex ?? null;
-    state.originalData = payload.data || {};
-    state.onSave     = typeof payload.onSave === "function" ? payload.onSave : null;
+    const entity = payload.entity || "";
+    const rowIdx = payload.rowIndex != null ? payload.rowIndex : "-";
+    const data   = payload.data || {};
 
-    const entityName = ENTITY_LABEL[state.entity] || state.entity || "-";
+    openLayer();
 
-    editTitleEl.textContent  = payload.title || "행 수정";
-    editEntityEl.textContent = `[${entityName}]`;
-    editRowEl.textContent    = `ROW: ${state.rowIndex ?? "-"}`;
+    editModal.style.display = "block";
+    if (deleteModal) deleteModal.style.display = "none";
 
-    // 필드 렌더링
-    editFieldsBox.innerHTML = "";
-    const data = state.originalData;
+    if (editEntityLabel) {
+      editEntityLabel.textContent = `[${getEntityName(entity)}]`;
+    }
+    if (editRowLabel) {
+      editRowLabel.textContent = `ROW: ${rowIdx}`;
+    }
+
+    editFieldsWrap.innerHTML = "";
 
     Object.keys(data).forEach((key) => {
-      const val = data[key] ?? "";
+      const fieldVal = data[key] == null ? "" : data[key];
 
       const row = document.createElement("div");
       row.className = "modal-field-row";
@@ -147,162 +102,107 @@
       label.textContent = key;
 
       const input = document.createElement("input");
-      input.className = "input";
+      input.className = "input modal-input";
       input.dataset.fieldKey = key;
-      input.value = String(val);
+      input.value = fieldVal;
 
       row.appendChild(label);
       row.appendChild(input);
-      editFieldsBox.appendChild(row);
+      editFieldsWrap.appendChild(row);
     });
 
-    // 패널 표시 전환
-    editPanel.style.display   = "block";
-    deletePanel.style.display = "none";
-    openLayer();
-  }
-
-  function collectEditData() {
-    const result = { ...(state.originalData || {}) };
-
-    editFieldsBox.querySelectorAll("input[data-field-key]").forEach((input) => {
-      const key = input.dataset.fieldKey;
-      result[key] = input.value;
-    });
-
-    return result;
-  }
-
-  btnEditSave.addEventListener("click", () => {
-    if (state.mode !== "edit") return;
-
-    const newData = collectEditData();
-    const detail = {
-      entity: state.entity,
-      rowIndex: state.rowIndex,
-      before: state.originalData,
-      after: newData
-    };
-
-    // 1순위: 콜백
-    if (state.onSave) {
-      state.onSave(detail);
-    } else {
-      // 2순위: 커스텀 이벤트 (app.js에서 리스닝해서 API 연동)
-      window.dispatchEvent(
-        new CustomEvent("korual:row-edit-save", { detail })
-      );
+    const saveBtn = $("rowEditSave");
+    if (saveBtn) {
+      saveBtn.dataset.entity   = entity;
+      saveBtn.dataset.sheet    = payload.sheet || "";
+      saveBtn.dataset.rowIndex = String(rowIdx || "");
     }
 
-    closeLayer();
-  });
+    focusFirstInteractive(editModal);
+  }
 
-  /* -------------------------------------------------
-     4) 삭제 모달
-  -------------------------------------------------- */
   function openDelete(payload) {
-    if (!layer || !deletePanel) return;
+    if (!layer || !deleteModal || !deleteMessage) return;
 
-    state.mode       = "delete";
-    state.entity     = payload.entity || null;
-    state.rowIndex   = payload.rowIndex ?? null;
-    state.onConfirm  = typeof payload.onConfirm === "function" ? payload.onConfirm : null;
+    const entity = payload.entity || "";
+    const rowIdx = payload.rowIndex != null ? payload.rowIndex : "-";
+    const title  = payload.title || "";
 
-    const entityName = ENTITY_LABEL[state.entity] || state.entity || "-";
-
-    delEntityEl.textContent = `[${entityName}]`;
-    delRowEl.textContent    = `ROW: ${state.rowIndex ?? "-"}`;
-
-    const msg =
-      payload.title
-        ? `다음 데이터를 삭제할까요?\n${payload.title}`
-        : "선택한 행을 삭제하시겠습니까?";
-    delMsgEl.textContent = msg;
-
-    deletePanel.style.display = "block";
-    editPanel.style.display   = "none";
     openLayer();
+
+    deleteModal.style.display = "block";
+    if (editModal) editModal.style.display = "none";
+
+    if (deleteEntityLabel) {
+      deleteEntityLabel.textContent = `[${getEntityName(entity)}]`;
+    }
+    if (deleteRowLabel) {
+      deleteRowLabel.textContent = `ROW: ${rowIdx}`;
+    }
+
+    const msg = title
+      ? `다음 데이터를 삭제할까요?\n${title}`
+      : "선택한 행을 삭제하시겠습니까?";
+    deleteMessage.textContent = msg;
+
+    const btn = $("rowDeleteConfirm");
+    if (btn) {
+      btn.dataset.entity   = entity;
+      btn.dataset.sheet    = payload.sheet || "";
+      btn.dataset.rowIndex = String(rowIdx || "");
+    }
+
+    focusFirstInteractive(deleteModal);
   }
 
-  btnDeleteConf.addEventListener("click", () => {
-    if (state.mode !== "delete") return;
+  // 공통 닫기 버튼
+  function bindCloseButtons() {
+    if (!layer) return;
+    const closeBtns = layer.querySelectorAll("[data-close-modal]");
+    closeBtns.forEach((btn) => {
+      btn.addEventListener("click", closeLayer);
+    });
+  }
 
-    const detail = {
-      entity: state.entity,
-      rowIndex: state.rowIndex
-    };
+  // 외부(배경) 클릭 시 닫기
+  function bindBackdrop() {
+    if (!backdrop) return;
+    backdrop.addEventListener("click", closeLayer);
+  }
 
-    if (state.onConfirm) {
-      state.onConfirm(detail);
-    } else {
-      window.dispatchEvent(
-        new CustomEvent("korual:row-delete-confirm", { detail })
-      );
-    }
-
-    closeLayer();
-  });
-
-  /* -------------------------------------------------
-     5) 공통 닫기 버튼 & ESC
-  -------------------------------------------------- */
-  root.querySelectorAll("[data-modal-close]").forEach((el) => {
-    el.addEventListener("click", closeLayer);
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      if (layer && layer.style.display === "flex") {
-        closeLayer();
+  // ESC 키로 닫기
+  function bindEscKey() {
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (!layer) return;
+        if (layer.style.display === "flex") {
+          closeLayer();
+        }
       }
-    }
+    });
+  }
+
+  // 모달 내부 클릭 시 버블 방지 (옵션)
+  function preventInnerClose() {
+    [editModal, deleteModal].forEach((panel) => {
+      if (!panel) return;
+      panel.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    bindCloseButtons();
+    bindBackdrop();
+    bindEscKey();
+    preventInnerClose();
   });
 
-  /* -------------------------------------------------
-     6) 전역 API 노출
-  -------------------------------------------------- */
+  // 전역 노출
   window.KORUAL_MODAL = {
     openEdit,
     openDelete,
-    close: closeLayer
+    closeAll: closeLayer,
   };
-
-  console.log("[KORUAL_MODAL] modal.js 초기화 완료");
 })();
-// 예: 회원 테이블 렌더링 후
-function attachMemberRowHandlers() {
-  const rows = document.querySelectorAll("#membersBody tr");
-  rows.forEach((tr, idx) => {
-    tr.addEventListener("dblclick", () => {
-      const data = membersCache[idx]; // 이미 가지고 있는 원본 데이터
-
-      window.KORUAL_MODAL.openEdit({
-        entity: "members",
-        rowIndex: idx + 2, // 시트에서 헤더 제외하고 row 번호 맞춰서
-        data,
-        title: `${data["이름"]} (${data["회원번호"]})`,
-        onSave(detail) {
-          console.log("수정 결과:", detail);
-          // 여기에 Apps Script API update 호출 넣으면 됨
-          // apiPost("updateRow", detail) 같은 형태로
-        }
-      });
-    });
-  });
-}
-window.KORUAL_MODAL.openDelete({
-  entity: "orders",
-  rowIndex: rowNumber,
-  title: `주문번호: ${order["주문번호"]}`,
-  onConfirm(detail) {
-    console.log("삭제 확정:", detail);
-    // 여기서 deleteRow API 호출
-  }
-});
-window.addEventListener("korual:row-edit-save", (e) => {
-  console.log("edit event:", e.detail);
-});
-
-window.addEventListener("korual:row-delete-confirm", (e) => {
-  console.log("delete event:", e.detail);
-});
