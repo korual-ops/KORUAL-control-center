@@ -1,563 +1,488 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8" />
+/******************************************************
+ * KORUAL CONTROL CENTER – app.js (통합 / CSV 제거)
+ * 로그인 보호 / 대시보드 / 회원 / 주문 / 상품 / 재고 / 로그
+ * 검색 / 모달 / 자동 새로고침 / 테마 / 모바일
+ ******************************************************/
 
-  <!-- 즉시 로그인 세션 검증 -->
-  <script>
-    (function () {
-      try {
-        const raw = localStorage.getItem("korual_user");
-        if (!raw) return location.replace("index.html");
-        const user = JSON.parse(raw);
-        if (!user || !user.username) return location.replace("index.html");
-      } catch {
-        return location.replace("index.html");
+/* ===================================================
+   0) DOM 유틸
+=================================================== */
+const $  = (id)  => document.getElementById(id);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+/* ===================================================
+   1) API 설정
+=================================================== */
+
+const API_BASE =
+  "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
+
+async function apiGet(target) {
+  const url = `${API_BASE}?target=${target}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("API 오류");
+  return await res.json();
+}
+
+function fmtNumber(v) {
+  if (v == null || isNaN(v)) return "-";
+  return Number(v).toLocaleString("ko-KR");
+}
+function fmtCurrency(v) {
+  if (v == null || isNaN(v)) return "-";
+  return Number(v).toLocaleString("ko-KR") + "원";
+}
+
+/* ===================================================
+   2) 로그인 보호 + 사용자 표시
+=================================================== */
+function ensureLoggedIn() {
+  try {
+    const raw = localStorage.getItem("korual_user");
+    if (!raw) return location.replace("index.html");
+
+    const user = JSON.parse(raw);
+    if (!user?.username) return location.replace("index.html");
+  } catch {
+    location.replace("index.html");
+  }
+}
+
+function loadUser() {
+  try {
+    const raw = localStorage.getItem("korual_user");
+    if (!raw) return;
+    const user = JSON.parse(raw);
+    $("welcomeUser").textContent = user.full_name || user.username;
+  } catch {}
+}
+
+/* ===================================================
+   3) 사이드바 네비
+=================================================== */
+function initSidebar() {
+  const links = $$(".nav-link");
+  const sections = $$(".section");
+
+  function activate(k) {
+    links.forEach(btn => btn.classList.toggle("active", btn.dataset.section === k));
+    sections.forEach(sec => sec.classList.toggle("active", sec.id === "section-" + k));
+  }
+
+  links.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.section;
+      activate(key);
+
+      switch (key) {
+        case "dashboard": loadDashboard(); break;
+        case "members": loadMembers(); break;
+        case "orders": loadOrders(); break;
+        case "products": loadProducts(); break;
+        case "stock": loadStock(); break;
+        case "logs": loadLogs(); break;
       }
-    })();
-  </script>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KORUAL CONTROL CENTER</title>
-
-  <link rel="stylesheet" href="style.css" />
-</head>
-
-<body>
-<div class="app-shell">
-
-  <!-- ======================================
-       ■ 사이드바
-  ======================================= -->
-  <aside class="sidebar">
-    <div class="brand-title">KORUAL</div>
-    <div class="brand-subtitle">Control Center</div>
-
-    <nav class="nav">
-      <button class="nav-link active" data-section="dashboard">📊 대시보드</button>
-      <button class="nav-link" data-section="products">📦 상품 관리</button>
-      <button class="nav-link" data-section="orders">📮 주문 관리</button>
-      <button class="nav-link" data-section="members">🧑‍🤝‍🧑 회원 관리</button>
-      <button class="nav-link" data-section="stock">🏬 재고 관리</button>
-      <button class="nav-link" data-section="logs">📝 로그</button>
-
-    <div class="sidebar-footer">
-      <div class="api-status">● API 연결 상태</div>
-      <div class="api-meta">
-        Ping: <span id="apiPing">- ms</span>
-      </div>
-    </div>
-  </aside>
-
-  <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
-
-  <!-- ======================================
-       ■ 메인 컨텐츠
-  ======================================= -->
-  <main class="content">
-
-    <!-- 상단바 -->
-    <header class="topbar">
-      <div class="topbar-left">
-
-        <!-- 모바일 -->
-        <button id="menuToggle" class="mobile-menu-btn">
-          <span></span><span></span><span></span>
-        </button>
-
-        <div class="topbar-text">
-          <div class="topbar-title">KORUAL CONTROL CENTER</div>
-          <div class="topbar-meta">
-            반갑습니다, <span id="welcomeUser">KORUAL</span>님
-            <span class="last-sync" id="last-sync">마지막 동기화: -</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="topbar-right">
-        <!-- 테마 -->
-        <button id="themeToggle" class="theme-toggle">
-          <span class="theme-toggle-label" data-light="Light" data-dark="Dark">Light</span>
-          <span class="theme-toggle-track">
-            <span class="theme-toggle-thumb"></span>
-          </span>
-        </button>
-
-        <!-- 새로고침 -->
-        <button id="btnRefreshAll" class="primary-btn">🔄 새로고침</button>
-
-        <!-- 로그아웃 -->
-        <button id="btnLogout" class="ghost-btn logout-btn">로그아웃</button>
-      </div>
-    </header>
-
-    <!-- ============================================================
-         1) 대시보드
-    ============================================================ -->
-    <section id="section-dashboard" class="section active">
-
-      <div class="section-header-row">
-        <div>
-          <h2>📊 대시보드</h2>
-          <p class="section-desc">전체 운영 데이터를 실시간으로 요약합니다.</p>
-        </div>
-      </div>
-
-      <!-- 요약 카드 -->
-      <div class="cards-grid">
-        <div class="card">
-          <div class="card-label">총 상품 수</div>
-          <div class="card-value" id="cardTotalProducts">-</div>
-        </div>
-        <div class="card">
-          <div class="card-label">총 주문 수</div>
-          <div class="card-value" id="cardTotalOrders">-</div>
-        </div>
-        <div class="card">
-          <div class="card-label">추정 매출 합계</div>
-          <div class="card-value" id="cardTotalRevenue">-</div>
-        </div>
-        <div class="card">
-          <div class="card-label">회원 수</div>
-          <div class="card-value" id="cardTotalMembers">-</div>
-        </div>
-      </div>
-
-      <!-- 오늘 요약 -->
-      <div class="panel">
-        <div class="panel-header"><h3>오늘 요약</h3></div>
-
-        <div class="panel-body">
-          <div class="today-metrics">
-
-            <div class="today-metric">
-              <span class="today-label">오늘 주문</span>
-              <span class="today-value" id="todayOrders">-</span>
-            </div>
-
-            <div class="today-metric">
-              <span class="today-label">오늘 매출</span>
-              <span class="today-value" id="todayRevenue">-</span>
-            </div>
-
-            <div class="today-metric">
-              <span class="today-label">준비중 주문</span>
-              <span class="today-value" id="todayPending">-</span>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      <!-- 최근 주문 -->
-      <div class="panel">
-        <div class="panel-header">
-          <h3>최근 주문</h3>
-          <button id="goOrders" class="ghost-btn small">→ 주문 관리</button>
-        </div>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>주문일자</th>
-                <th>주문번호</th>
-                <th>상품명</th>
-                <th>수량</th>
-                <th>금액</th>
-                <th>채널</th>
-                <th>상태</th>
-              </tr>
-            </thead>
-            <tbody id="recentOrdersBody">
-              <tr><td colspan="7" class="empty-state">로딩중…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </section>
-
-
-    <!-- ============================================================
-         2) 상품 관리
-    ============================================================ -->
-    <section id="section-products" class="section">
-
-      <div class="section-header-row">
-        <div>
-          <h2>📦 상품 관리</h2>
-          <p class="section-desc">상품 정보 및 판매가/재고를 확인합니다.</p>
-        </div>
-
-        <div class="section-actions">
-          <input id="searchProducts" class="input" placeholder="검색 (상품명 / 코드 / 옵션)" />
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>상품코드</th>
-              <th>상품명</th>
-              <th>옵션</th>
-              <th>판매가</th>
-              <th>재고</th>
-            </tr>
-          </thead>
-
-          <tbody id="productsBody" data-entity="products" data-sheet="PRODUCTS">
-            <tr><td colspan="5" class="empty-state">데이터 없음</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-    </section>
-
-
-    <!-- ============================================================
-         3) 주문 관리
-    ============================================================ -->
-    <section id="section-orders" class="section">
-
-      <div class="section-header-row">
-        <div>
-          <h2>📮 주문 관리</h2>
-          <p class="section-desc">전체 주문 목록 및 배송 상태 관리</p>
-        </div>
-
-        <div class="section-actions">
-          <input id="searchOrders" class="input" placeholder="검색 (주문번호 / 고객명 / 상태)" />
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>회원번호</th>
-              <th>날짜</th>
-              <th>주문번호</th>
-              <th>고객명</th>
-              <th>상품명</th>
-              <th>수량</th>
-              <th>금액</th>
-              <th>상태</th>
-            </tr>
-          </thead>
-
-          <tbody id="ordersBody" data-entity="orders" data-sheet="ORDERS">
-            <tr><td colspan="8" class="empty-state">데이터 없음</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-    </section>
-
-    <!-- ============================================================
-         4) 회원 관리
-    ============================================================ -->
-    <section id="section-members" class="section">
-
-      <div class="section-header-row">
-        <div>
-          <h2>🧍 회원 관리</h2>
-          <p class="section-desc">회원 정보, 등급, 누적매출, 최근 주문일을 확인합니다.</p>
-        </div>
-
-        <div class="section-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <input id="searchMembers" class="input" placeholder="검색 (회원번호 / 이름 / 이메일 / 전화번호 / 등급)" />
-
-          <!-- 🔥 여기서만 보이는 회원 CSV 내보내기 / 가져오기 -->
-          <button id="btnExportMembers" class="ghost-btn small" type="button">
-            ⬇ 회원 CSV 내보내기
-          </button>
-
-          <label class="ghost-btn small" style="cursor:pointer; position:relative; overflow:hidden;">
-            ⬆ 회원 CSV 가져오기
-            <input
-              type="file"
-              id="fileImportMembers"
-              accept=".csv"
-              style="position:absolute; inset:0; opacity:0; cursor:pointer;"
-            />
-          </label>
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>회원번호</th>
-              <th>이름</th>
-              <th>전화번호</th>
-              <th>이메일</th>
-              <th>가입일</th>
-              <th>채널</th>
-              <th>등급</th>
-              <th>누적매출</th>
-              <th>포인트</th>
-              <th>최근주문일</th>
-              <th>메모</th>
-            </tr>
-          </thead>
-
-          <tbody id="membersBody" data-entity="members" data-sheet="MEMBERS">
-            <tr><td colspan="11" class="empty-state">데이터 없음</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-    </section>
-
-
-    <!-- ============================================================
-         5) 재고 관리
-    ============================================================ -->
-    <section id="section-stock" class="section">
-
-      <div class="section-header-row">
-        <div>
-          <h2>🏷️ 재고 관리</h2>
-          <p class="section-desc">입고/출고 없이도 자동 카운팅된 재고를 확인합니다.</p>
-        </div>
-
-        <div class="section-actions">
-          <input id="searchStock" class="input" placeholder="검색 (상품코드 / 상품명 / 상태 / 창고)" />
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>상품코드</th>
-              <th>상품명</th>
-              <th>현재 재고</th>
-              <th>안전 재고</th>
-              <th>상태</th>
-              <th>창고</th>
-              <th>채널</th>
-            </tr>
-          </thead>
-
-          <tbody id="stockBody" data-entity="stock" data-sheet="STOCK">
-            <tr><td colspan="7" class="empty-state">데이터 없음</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-    </section>
-
-
-    <!-- ============================================================
-         6) 로그 모니터링
-    ============================================================ -->
-    <section id="section-logs" class="section">
-
-      <div class="section-header-row">
-        <div>
-          <h2>📘 로그 모니터링</h2>
-          <p class="section-desc">자동화 기록, 알림 로그, API 호출 로그를 확인합니다.</p>
-        </div>
-
-        <div class="section-actions">
-          <input id="searchLogs" class="input" placeholder="검색 (시간 / 타입 / 메시지)" />
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>시간</th>
-              <th>타입</th>
-              <th>메시지</th>
-            </tr>
-          </thead>
-
-          <tbody id="logsBody" data-entity="logs" data-sheet="LOGS">
-            <tr><td colspan="3" class="empty-state">데이터 없음</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-    </section>
-
-
-    <!-- ============================================================
-          FOOTER (선택)
-    ============================================================ -->
-    <footer class="footer">
-      <div class="footer-inner">
-        <span>© 2025 KORUAL Control Center · All Systems Automated</span>
-      </div>
-    </footer>
-
-  </main>
-</div>
-
-<!-- ============================================================
-     ■ 수정/삭제 공통 모달 레이어
-============================================================ -->
-<div id="korualModalLayer" class="modal-layer" style="display:none;">
-  <div id="korualModalBackdrop" class="modal-backdrop"></div>
-
-  <!-- 수정 모달 -->
-  <div id="rowEditModal" class="modal-panel" data-type="edit">
-    <div class="modal-header">
-      <h3 id="rowEditTitle">행 수정</h3>
-      <button type="button" class="modal-close-btn" data-close-modal>✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-meta">
-        <span id="rowEditEntityLabel">-</span>
-        <span id="rowEditRowLabel" class="row-label">ROW: -</span>
-      </div>
-
-      <div id="rowEditFields" class="modal-fields"></div>
-    </div>
-    <div class="modal-footer">
-      <button type="button" id="rowEditSave" class="primary-btn">저장</button>
-      <button type="button" class="ghost-btn" data-close-modal>취소</button>
-    </div>
-  </div>
-
-  <!-- 삭제 모달 -->
-  <div id="rowDeleteModal" class="modal-panel" data-type="delete" style="display:none;">
-    <div class="modal-header">
-      <h3>행 삭제</h3>
-      <button type="button" class="modal-close-btn" data-close-modal>✕</button>
-    </div>
-    <div class="modal-body">
-      <p id="rowDeleteMessage">
-        선택한 행을 삭제하시겠습니까?
-      </p>
-      <div class="modal-meta">
-        <span id="rowDeleteEntityLabel">-</span>
-        <span id="rowDeleteRowLabel" class="row-label">ROW: -</span>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button type="button" id="rowDeleteConfirm" class="primary-btn">삭제</button>
-      <button type="button" class="ghost-btn" data-close-modal>취소</button>
-    </div>
-  </div>
-</div>
-
-<!-- JS 연결 -->
-<script src="app.js"></script>
-
-<!-- 모달 전역 헬퍼 -->
-<script>
-  (function () {
-    const layer      = document.getElementById("korualModalLayer");
-    const backdrop   = document.getElementById("korualModalBackdrop");
-    const editModal  = document.getElementById("rowEditModal");
-    const deleteModal= document.getElementById("rowDeleteModal");
-
-    function closeAll() {
-      if (!layer) return;
-      layer.style.display = "none";
-      if (editModal)  editModal.style.display = "none";
-      if (deleteModal) deleteModal.style.display = "none";
-    }
-
-    document.querySelectorAll("[data-close-modal]").forEach(btn => {
-      btn.addEventListener("click", closeAll);
     });
-    if (backdrop) {
-      backdrop.addEventListener("click", closeAll);
-    }
+  });
 
-    window.KORUAL_MODAL = {
-      closeAll,
+  activate("dashboard");
+}
 
-      openEdit(payload) {
-        if (!layer || !editModal) return;
+/* ===================================================
+   4) 모바일 메뉴
+=================================================== */
+function initMobileMenu() {
+  const sidebar = document.querySelector(".sidebar");
+  const backdrop = $("sidebarBackdrop");
+  const toggle = $("menuToggle");
 
-        layer.style.display = "block";
-        editModal.style.display = "block";
-        if (deleteModal) deleteModal.style.display = "none";
+  toggle.onclick = () => sidebar.classList.add("open");
+  backdrop.onclick = () => sidebar.classList.remove("open");
 
-        const entityLabelMap = {
-          members: "회원",
-          orders: "주문",
-          products: "상품",
-          stock: "재고",
-          logs: "로그"
-        };
-        const entityName = entityLabelMap[payload.entity] || payload.entity || "-";
-        document.getElementById("rowEditEntityLabel").textContent = `[${entityName}]`;
-        document.getElementById("rowEditRowLabel").textContent    = `ROW: ${payload.rowIndex}`;
+  $$(".nav-link").forEach(btn => {
+    btn.onclick = () => sidebar.classList.remove("open");
+  });
+}
 
-        const wrap = document.getElementById("rowEditFields");
-        if (!wrap) return;
-        wrap.innerHTML = "";
+/* ===================================================
+   5) 테마
+=================================================== */
+function applyTheme(mode) {
+  document.body.classList.toggle("theme-dark", mode === "dark");
+  localStorage.setItem("korual-theme", mode);
+}
 
-        const data = payload.data || {};
-        Object.keys(data).forEach((key) => {
-          const field = document.createElement("div");
-          field.className = "modal-field-row";
+function initTheme() {
+  applyTheme(localStorage.getItem("korual-theme") || "light");
 
-          const label = document.createElement("label");
-          label.textContent = key;
+  $("themeToggle").onclick = () => {
+    const cur = localStorage.getItem("korual-theme") || "light";
+    applyTheme(cur === "light" ? "dark" : "light");
+  };
+}
 
-          const input = document.createElement("input");
-          input.className = "input";
-          input.value = data[key] ?? "";
-          input.dataset.fieldKey = key;
+/* ===================================================
+   6) API 상태 / Ping 표시
+=================================================== */
 
-          field.appendChild(label);
-          field.appendChild(input);
-          wrap.appendChild(field);
-        });
+function setApiStatus(ok, msg) {
+  const el = document.querySelector(".api-status");
+  if (!el) return;
+  el.classList.toggle("ok", ok);
+  el.classList.toggle("error", !ok);
+  el.textContent = msg;
+}
 
-        const saveBtn = document.getElementById("rowEditSave");
-        if (saveBtn) {
-          saveBtn.dataset.entity   = payload.entity || "";
-          saveBtn.dataset.sheet    = payload.sheet  || "";
-          saveBtn.dataset.rowIndex = String(payload.rowIndex || "");
-        }
-      },
+async function pingApi() {
+  const start = performance.now();
+  try {
+    await apiGet("ping");
+    const ms = Math.round(performance.now() - start);
+    $("apiPing").textContent = ms + " ms";
+    setApiStatus(true, "● API 연결 정상");
+  } catch {
+    setApiStatus(false, "● API 오류");
+  }
+}
 
-      openDelete(payload) {
-        if (!layer || !deleteModal) return;
+/* ===================================================
+   7) 대시보드
+=================================================== */
 
-        layer.style.display = "block";
-        deleteModal.style.display = "block";
-        if (editModal) editModal.style.display = "none";
+function renderRecentOrders(list) {
+  const tbody = $("recentOrdersBody");
+  tbody.innerHTML = "";
 
-        const entityLabelMap = {
-          members: "회원",
-          orders: "주문",
-          products: "상품",
-          stock: "재고",
-          logs: "로그"
-        };
-        const entityName = entityLabelMap[payload.entity] || payload.entity || "-";
-        document.getElementById("rowDeleteEntityLabel").textContent = `[${entityName}]`;
-        document.getElementById("rowDeleteRowLabel").textContent    = `ROW: ${payload.rowIndex}`;
+  if (!list?.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">최근 주문 없음</td></tr>`;
+    return;
+  }
 
-        const msg = payload.title
-          ? `다음 데이터를 삭제할까요?\n${payload.title}`
-          : "선택한 행을 삭제하시겠습니까?";
-        document.getElementById("rowDeleteMessage").textContent = msg;
+  list.forEach(r => {
+    const tr = document.createElement("tr");
+    [
+      r.order_date,
+      r.order_no,
+      r.item_name,
+      r.qty,
+      fmtCurrency(r.amount),
+      r.channel,
+      r.status
+    ].forEach(v => {
+      const td = document.createElement("td");
+      td.textContent = v ?? "-";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
 
-        const delBtn = document.getElementById("rowDeleteConfirm");
-        if (delBtn) {
-          delBtn.dataset.entity   = payload.entity || "";
-          delBtn.dataset.sheet    = payload.sheet  || "";
-          delBtn.dataset.rowIndex = String(payload.rowIndex || "");
-        }
-      }
-    };
-  })();
-</script>
+async function loadDashboard() {
+  $("recentOrdersBody").innerHTML = `<tr><td colspan="7">로딩중…</td></tr>`;
 
-</body>
-</html>
+  try {
+    const d = await apiGet("dashboard");
 
+    // 카드
+    $("cardTotalProducts").textContent = fmtNumber(d.totalProducts);
+    $("cardTotalOrders").textContent   = fmtNumber(d.totalOrders);
+    $("cardTotalRevenue").textContent  = fmtCurrency(d.totalRevenue);
+    $("cardTotalMembers").textContent  = fmtNumber(d.totalMembers);
 
+    // 오늘
+    $("todayOrders").textContent  = fmtNumber(d.todayOrders);
+    $("todayRevenue").textContent = fmtCurrency(d.todayRevenue);
+    $("todayPending").textContent = fmtNumber(d.todayPending);
+
+    // 최근 주문
+    renderRecentOrders(d.recentOrders);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+/* ===================================================
+   8) 로그아웃
+=================================================== */
+function initLogout() {
+  $("btnLogout").onclick = () => {
+    localStorage.removeItem("korual_user");
+    location.replace("index.html");
+  };
+}
+
+/* ===================================================
+   9) 표 렌더 함수 (공통)
+=================================================== */
+function makeTable(id, rows, cols, emptyText) {
+  const tbody = $(id);
+  tbody.innerHTML = "";
+
+  if (!rows?.length) {
+    tbody.innerHTML = `<tr><td colspan="${cols}" class="empty-state">${emptyText}</td></tr>`;
+    return;
+  }
+
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    r.forEach(v => {
+      const td = document.createElement("td");
+      td.textContent = v ?? "-";
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+/* ===================================================
+   10) 회원 관리
+=================================================== */
+
+let membersCache = [];
+
+function mapMemberRow(r) {
+  return [
+    r["회원번호"], r["이름"], r["전화번호"], r["이메일"],
+    r["가입일"], r["채널"], r["등급"], fmtCurrency(r["누적매출"]),
+    fmtNumber(r["포인트"]), r["최근주문일"], r["메모"]
+  ];
+}
+
+function filterMembers() {
+  const kw = $("searchMembers")?.value?.toLowerCase() || "";
+  if (!kw) return makeTable("membersBody", membersCache.map(mapMemberRow), 11, "회원 없음");
+
+  const f = membersCache.filter(obj =>
+    Object.values(obj).some(v => String(v ?? "").toLowerCase().includes(kw))
+  );
+  makeTable("membersBody", f.map(mapMemberRow), 11, "회원 없음");
+}
+
+async function loadMembers() {
+  $("membersBody").innerHTML = `<tr><td colspan="11">로딩중…</td></tr>`;
+  try {
+    const d = await apiGet("members");
+    membersCache = d.rows || [];
+    filterMembers();
+  } catch(e){}
+}
+
+/* ===================================================
+   11) 주문 관리
+=================================================== */
+
+let ordersCache = [];
+
+function mapOrderRow(r) {
+  return [
+    r["회원번호"], r["날짜"] ?? r["주문일자"], r["주문번호"], r["고객명"],
+    r["상품명"], r["수량"], fmtCurrency(r["금액"]), r["상태"]
+  ];
+}
+
+function filterOrders() {
+  const kw = $("searchOrders")?.value?.toLowerCase() || "";
+  if (!kw) return makeTable("ordersBody", ordersCache.map(mapOrderRow), 8, "주문 없음");
+
+  const f = ordersCache.filter(obj =>
+    Object.values(obj).some(v => String(v ?? "").toLowerCase().includes(kw))
+  );
+  makeTable("ordersBody", f.map(mapOrderRow), 8, "주문 없음");
+}
+
+async function loadOrders() {
+  $("ordersBody").innerHTML = `<tr><td colspan="8">로딩중…</td></tr>`;
+  try {
+    const d = await apiGet("orders");
+    ordersCache = d.rows || [];
+    filterOrders();
+  } catch(e){}
+}
+
+/* ===================================================
+   12) 상품 관리
+=================================================== */
+
+let productsCache = [];
+
+function mapProductRow(r) {
+  return [
+    r["상품코드"], r["상품명"], r["옵션"],
+    fmtCurrency(r["판매가"]), fmtNumber(r["재고"])
+  ];
+}
+
+function filterProducts() {
+  const kw = $("searchProducts")?.value?.toLowerCase() || "";
+  if (!kw) return makeTable("productsBody", productsCache.map(mapProductRow), 5, "상품 없음");
+
+  const f = productsCache.filter(obj =>
+    Object.values(obj).some(v => String(v ?? "").toLowerCase().includes(kw))
+  );
+  makeTable("productsBody", f.map(mapProductRow), 5, "상품 없음");
+}
+
+async function loadProducts() {
+  $("productsBody").innerHTML = `<tr><td colspan="5">로딩중…</td></tr>`;
+  try {
+    const d = await apiGet("products");
+    productsCache = d.rows || [];
+    filterProducts();
+  } catch(e){}
+}
+
+/* ===================================================
+   13) 재고 관리
+=================================================== */
+
+let stockCache = [];
+
+function mapStockRow(r) {
+  return [
+    r["상품코드"], r["상품명"], fmtNumber(r["현재 재고"]),
+    fmtNumber(r["안전 재고"]), r["상태"], r["창고"], r["채널"]
+  ];
+}
+
+function filterStock() {
+  const kw = $("searchStock")?.value?.toLowerCase() || "";
+  if (!kw) return makeTable("stockBody", stockCache.map(mapStockRow), 7, "재고 없음");
+
+  const f = stockCache.filter(obj =>
+    Object.values(obj).some(v => String(v ?? "").toLowerCase().includes(kw))
+  );
+  makeTable("stockBody", f.map(mapStockRow), 7, "재고 없음");
+}
+
+async function loadStock() {
+  $("stockBody").innerHTML = `<tr><td colspan="7">로딩중…</td></tr>`;
+  try {
+    const d = await apiGet("stock");
+    stockCache = d.rows || [];
+    filterStock();
+  } catch(e){}
+}
+
+/* ===================================================
+   14) 로그 모니터링
+=================================================== */
+
+let logsCache = [];
+
+function mapLogRow(r) {
+  return [r["시간"], r["타입"], r["메시지"]];
+}
+
+function filterLogs() {
+  const kw = $("searchLogs")?.value?.toLowerCase() || "";
+  if (!kw) return makeTable("logsBody", logsCache.map(mapLogRow), 3, "로그 없음");
+
+  const f = logsCache.filter(obj =>
+    Object.values(obj).some(v => String(v ?? "").toLowerCase().includes(kw))
+  );
+  makeTable("logsBody", f.map(mapLogRow), 3, "로그 없음");
+}
+
+async function loadLogs() {
+  $("logsBody").innerHTML = `<tr><td colspan="3">로딩중…</td></tr>`;
+  try {
+    const d = await apiGet("logs");
+    logsCache = d.rows || [];
+    filterLogs();
+  } catch(e){}
+}
+
+/* ===================================================
+   15) 자동 새로고침
+=================================================== */
+
+function initAutoRefresh() {
+  $("btnRefreshAll").onclick = refreshAll;
+  setInterval(refreshAll, 60000);
+}
+
+function refreshAll() {
+  loadDashboard();
+  loadMembers();
+  loadOrders();
+  loadProducts();
+  loadStock();
+  loadLogs();
+
+  $("last-sync").textContent = "마지막 동기화: " +
+    new Date().toLocaleString("ko-KR");
+}
+
+/* ===================================================
+   16) 행 수정 / 삭제 이벤트 (UI만)
+=================================================== */
+
+function initTableRowEvents() {
+  document.body.addEventListener("dblclick", (e) => {
+    const cell = e.target.closest("td");
+    if (!cell) return;
+
+    const row = cell.parentElement;
+    const tbody = row.parentElement;
+    const entity = tbody.dataset.entity;
+    const sheet  = tbody.dataset.sheet;
+    const rowIndex = row.rowIndex;
+
+    const headers = Array.from(row.parentElement.parentElement.querySelectorAll("thead th"))
+      .map(th => th.textContent.trim());
+
+    const values = Array.from(row.querySelectorAll("td"))
+      .map(td => td.textContent.trim());
+
+    const data = {};
+    headers.forEach((k, i) => data[k] = values[i]);
+
+    window.KORUAL_MODAL?.openEdit({
+      entity, sheet, rowIndex, data
+    });
+  });
+
+  document.body.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+
+    const cell = e.target.closest("td");
+    if (!cell) return;
+
+    const row = cell.parentElement;
+    const tbody = row.parentElement;
+    const entity = tbody.dataset.entity;
+    const sheet  = tbody.dataset.sheet;
+    const rowIndex = row.rowIndex;
+
+    const title = row.innerText.split("\n")[0].slice(0, 30);
+
+    window.KORUAL_MODAL?.openDelete({
+      entity, sheet, rowIndex, title
+    });
+  });
+}
+
+/* ===================================================
+   17) 초기화
+=================================================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+  ensureLoggedIn();
+  loadUser();
+  initSidebar();
+  initMobileMenu();
+  initTheme();
+  initLogout();
+
+  // 검색 이벤트
+  $("searchMembers")?.addEventListener("input", filterMembers);
+  $("searchOrders")?.addEventListener("input", filterOrders);
+  $("searchProducts")?.addEventListener("input", filterProducts);
+  $("searchStock")?.addEventListener("input", filterStock);
+  $("searchLogs")?.addEventListener("input", filterLogs);
+
+  pingApi();
+  refreshAll();
+  initAutoRefresh();
+  initTableRowEvents();
+});
