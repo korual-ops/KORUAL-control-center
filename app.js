@@ -12,7 +12,7 @@
   const API   = META.api || {};
   const BRAND = META.brand || {};
 
-  const CONTROL_CENTER_URL = "index.html"; // 로그인 성공 후 이동할 KORUAL CONTROL CENTER URL (필요시 수정)
+  const CONTROL_CENTER_URL = "dashboard.html"; // 로그인 성공 후 이동할 KORUAL CONTROL CENTER URL (필요시 수정)
 
   const STORAGE_KEYS = {
     THEME: "korual_theme",
@@ -791,3 +791,4 @@
     init();
   }
 })();
+
