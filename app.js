@@ -1,17 +1,7 @@
 /*************************************************
  * KORUAL CONTROL CENTER – Ultra High-End app.js
  * - 로그인(index.html) + 대시보드(dashboard.html) 통합 프론트엔드
- * - Apps Script Backend (code.gs v5.0) 연동
- *
- * 1) 로그인 페이지
- *   - API ping 상태 표시
- *   - 테스트 계정 로그인 (KORUAL / GUEST)
- *   - 로컬 스토리지 세션 관리 (korual_user)
- *
- * 2) 대시보드 페이지
- *   - API ping 상태 표시
- *   - 대시보드 카드/오늘 요약/최근 주문 렌더링
- *   - 상품/주문/회원/재고/로그 리스트 + 검색 + 페이지네이션
+ * - Apps Script Backend 연동 (login + dashboard + lists)
  *************************************************/
 
 (function () {
@@ -21,7 +11,7 @@
    * 0) 공통 설정 / 유틸
    *************************************************/
 
-  // 로그인 index.html에서 넣어둔 메타 or 대시보드용 기본값
+  // index.html 또는 dashboard.html 에서 세팅한 메타 우선 사용
   var META = (window.KORUAL_META_APP && window.KORUAL_META_APP.api)
     ? window.KORUAL_META_APP
     : {
@@ -32,7 +22,6 @@
           env: "prod"
         },
         api: {
-          // 로그인 index.html에 써둔 Apps Script URL과 동일하게 맞춰주세요.
           baseUrl:
             "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
           secret: "KORUAL-ONLY"
@@ -100,9 +89,7 @@
         el.style.opacity = "0";
         el.style.transform = "translateY(4px)";
         setTimeout(function () {
-          if (el && el.parentNode) {
-            el.parentNode.removeChild(el);
-          }
+          if (el && el.parentNode) el.parentNode.removeChild(el);
         }, 200);
       }
     }, timeoutMs);
@@ -121,7 +108,6 @@
     if (stored === "light") {
       html.classList.remove("dark");
     } else {
-      // 기본은 dark
       html.classList.add("dark");
     }
   }
@@ -233,9 +219,7 @@
       dot.style.background = "#fbbf24";
       dot.style.boxShadow = "0 0 0 5px rgba(251,191,36,0.35)";
     }
-    if (text) {
-      text.textContent = "API 체크 중…";
-    }
+    if (text) text.textContent = "API 체크 중…";
   }
 
   function updateApiStatusOk(ms) {
@@ -245,9 +229,7 @@
       dot.style.background = "#22c55e";
       dot.style.boxShadow = "0 0 0 5px rgba(34,197,94,0.35)";
     }
-    if (text) {
-      text.textContent = "정상 (" + Math.round(ms) + " ms)";
-    }
+    if (text) text.textContent = "정상 (" + Math.round(ms) + " ms)";
     var pingEl = document.getElementById("apiPing");
     if (pingEl) pingEl.textContent = Math.round(ms) + " ms";
   }
@@ -259,9 +241,7 @@
       dot.style.background = "#f97373";
       dot.style.boxShadow = "0 0 0 5px rgba(248,113,113,0.35)";
     }
-    if (text) {
-      text.textContent = msg || "오류";
-    }
+    if (text) text.textContent = msg || "오류";
   }
 
   function pingApi() {
@@ -280,18 +260,16 @@
   }
 
   /*************************************************
-   * 6) 로그인 페이지 초기화
+   * 6) 로그인 페이지 초기화 (API 연동 버전)
    *************************************************/
   function initAuthPage() {
     // Footer 연도
     var yearEl = document.getElementById("year");
-    if (yearEl) {
-      yearEl.textContent = new Date().getFullYear();
-    }
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    pingApi(); // 상단 API 상태
+    pingApi();
 
-    // 언어 셀렉트 동기화 (간단 버전)
+    // 언어 셀렉트 동기화
     var langTop = document.getElementById("langTop");
     var langAuth = document.getElementById("langAuth");
     function syncLang(sel, other) {
@@ -306,7 +284,7 @@
     syncLang(langTop, langAuth);
     syncLang(langAuth, langTop);
 
-    // 저장된 언어/아이디 불러오기
+    // 저장된 언어
     try {
       var savedLang = localStorage.getItem("korual_lang");
       if (savedLang && langTop && langAuth) {
@@ -334,7 +312,7 @@
       }
     } catch (e) {}
 
-    // 데모 자동 채우기
+    // 데모 자동 채우기 (STAFF 시트에서도 KORUAL/GUEST 만들어두면 그대로 사용 가능)
     function fillDemo() {
       if (loginUsername) loginUsername.value = "KORUAL";
       if (loginPassword) loginPassword.value = "GUEST";
@@ -352,22 +330,19 @@
       });
     }
 
-    // Caps Lock 감지
+    // Caps Lock 표시
     function handleCaps(e) {
       if (!capsIndicator) return;
       var capsOn = e.getModifierState && e.getModifierState("CapsLock");
-      if (capsOn) {
-        capsIndicator.classList.remove("hidden");
-      } else {
-        capsIndicator.classList.add("hidden");
-      }
+      if (capsOn) capsIndicator.classList.remove("hidden");
+      else capsIndicator.classList.add("hidden");
     }
     if (loginPassword) {
       loginPassword.addEventListener("keydown", handleCaps);
       loginPassword.addEventListener("keyup", handleCaps);
     }
 
-    // 비밀번호 보기 토글
+    // 비밀번호 보기
     if (togglePwd && loginPassword) {
       togglePwd.addEventListener("click", function () {
         var type = loginPassword.getAttribute("type");
@@ -381,8 +356,8 @@
       });
     }
 
-    // 로그인 함수
     var isLoggingIn = false;
+
     function doLogin() {
       if (!loginUsername || !loginPassword || !btnLogin) return;
       if (isLoggingIn) return;
@@ -396,42 +371,61 @@
         return;
       }
 
-      // 테스트 버전: 고정 계정
-      if (id !== "KORUAL" || pw !== "GUEST") {
-        loginMsg.textContent =
-          "현재 데모 환경에서는 ID: KORUAL / PW: GUEST 계정만 사용 가능합니다.";
-        loginPassword.classList.add("input-error");
-        showToast("테스트 계정 정보(KORUAL / GUEST)를 사용해주세요.", "error");
-        return;
-      }
-
       loginMsg.textContent = "";
       loginPassword.classList.remove("input-error");
       isLoggingIn = true;
       btnLogin.disabled = true;
       btnLogin.textContent = "로그인 중…";
+      showSpinner();
 
-      setTimeout(function () {
-        // 세션 저장
-        var user = {
-          username: id,
-          loggedInAt: new Date().toISOString(),
-          app: META.app
-        };
-        try {
-          localStorage.setItem("korual_user", JSON.stringify(user));
-          if (rememberId && rememberId.checked) {
-            localStorage.setItem("korual_saved_id", id);
-          } else {
-            localStorage.removeItem("korual_saved_id");
+      apiPost("login", { username: id, password: pw })
+        .then(function (data) {
+          if (!data || data.ok !== true) {
+            var msg =
+              (data && data.message) ||
+              "아이디 또는 비밀번호가 올바르지 않습니다.";
+            loginMsg.textContent = msg;
+            showToast(msg, "error");
+            loginPassword.classList.add("input-error");
+            return;
           }
-        } catch (e) {}
 
-        showToast("KORUAL CONTROL CENTER에 로그인되었습니다.", "success", 1800);
+          // 백엔드에서 내려준 user 사용
+          var userInfo = data.user || { username: id };
+          var user = {
+            username: userInfo.username || id,
+            displayName: userInfo.displayName || id,
+            role: userInfo.role || "USER",
+            loggedInAt: new Date().toISOString(),
+            app: META.app
+          };
 
-        // 대시보드로 이동
-        window.location.href = "dashboard.html";
-      }, 600);
+          try {
+            localStorage.setItem("korual_user", JSON.stringify(user));
+            if (rememberId && rememberId.checked) {
+              localStorage.setItem("korual_saved_id", id);
+            } else {
+              localStorage.removeItem("korual_saved_id");
+            }
+          } catch (e) {}
+
+          showToast("KORUAL CONTROL CENTER에 로그인되었습니다.", "success", 1800);
+
+          setTimeout(function () {
+            window.location.href = "dashboard.html";
+          }, 600);
+        })
+        .catch(function () {
+          var msg = "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+          loginMsg.textContent = msg;
+          showToast(msg, "error");
+        })
+        .finally(function () {
+          isLoggingIn = false;
+          btnLogin.disabled = false;
+          btnLogin.textContent = "로그인";
+          hideSpinner();
+        });
     }
 
     if (btnLogin) {
@@ -440,7 +434,6 @@
       });
     }
 
-    // 엔터키로 로그인
     [loginUsername, loginPassword].forEach(function (input) {
       if (!input) return;
       input.addEventListener("keydown", function (e) {
@@ -451,63 +444,27 @@
       });
     });
 
-    // 아이디 찾기 / 비번 재설정 모달 (Stub)
-    var linkFindId = document.getElementById("linkFindId");
-    var modalFindId = document.getElementById("modalFindId");
-    var closeFind = document.getElementById("closeFind");
+    // 아이디 찾기 / 비번 재설정 모달은 데모 메세지만
     var btnFindIdSubmit = document.getElementById("btnFindIdSubmit");
     var fiResult = document.getElementById("fiResult");
-
-    function openModal(el) {
-      if (el) el.classList.remove("hidden");
-    }
-    function closeModal(el) {
-      if (el) el.classList.add("hidden");
-    }
-
-    if (linkFindId && modalFindId) {
-      linkFindId.addEventListener("click", function () {
-        openModal(modalFindId);
-      });
-    }
-    if (closeFind && modalFindId) {
-      closeFind.addEventListener("click", function () {
-        closeModal(modalFindId);
-      });
-    }
     if (btnFindIdSubmit && fiResult) {
       btnFindIdSubmit.addEventListener("click", function () {
         fiResult.textContent =
-          "현재 데모 환경에서는 고정 계정(KORUAL)만 사용합니다.";
+          "현재 데모 환경에서는 STAFF 시트에 등록된 계정만 사용합니다.";
       });
     }
-
-    var linkResetPw = document.getElementById("linkResetPw");
-    var modalResetPw = document.getElementById("modalResetPw");
-    var closeReset = document.getElementById("closeReset");
     var btnResetPwSubmit = document.getElementById("btnResetPwSubmit");
     var rpMsg = document.getElementById("rpMsg");
-
-    if (linkResetPw && modalResetPw) {
-      linkResetPw.addEventListener("click", function () {
-        openModal(modalResetPw);
-      });
-    }
-    if (closeReset && modalResetPw) {
-      closeReset.addEventListener("click", function () {
-        closeModal(modalResetPw);
-      });
-    }
     if (btnResetPwSubmit && rpMsg) {
       btnResetPwSubmit.addEventListener("click", function () {
         rpMsg.textContent =
-          "데모 환경에서는 비밀번호 재설정 없이 KORUAL / GUEST 계정을 그대로 사용합니다.";
+          "데모 환경에서는 비밀번호 재설정 없이 STAFF 시트 비밀번호를 그대로 사용합니다.";
       });
     }
   }
 
   /*************************************************
-   * 7) 대시보드 – 데이터 상태
+   * 7) 대시보드 – 상태
    *************************************************/
   var listState = {
     products: { page: 1, size: 50, q: "", total: 0, pageCount: 1 },
@@ -544,9 +501,7 @@
     var todayDateLabel = document.getElementById("todayDateLabel");
     var recentOrdersBody = document.getElementById("recentOrdersBody");
 
-    if (todayDateLabel) {
-      todayDateLabel.textContent = nowYmd();
-    }
+    if (todayDateLabel) todayDateLabel.textContent = nowYmd();
 
     showSpinner();
     return apiGet("dashboard")
@@ -578,8 +533,8 @@
                   "<td>" + (o.order_date || "") + "</td>" +
                   "<td>" + (o.order_no || "") + "</td>" +
                   "<td>" + (o.item_name || "") + "</td>" +
-                  "<td>" + formatNumber(o.qty) + "</td>" +
-                  "<td>" + formatCurrency(o.amount) + "</td>" +
+                  "<td class=\"text-right\">" + formatNumber(o.qty) + "</td>" +
+                  "<td class=\"text-right\">" + formatCurrency(o.amount) + "</td>" +
                   "<td>" + (o.channel || "") + "</td>" +
                   "<td>" + (o.status || "") + "</td>" +
                   "</tr>"
@@ -599,9 +554,8 @@
   }
 
   /*************************************************
-   * 9) 공통 리스트 로더 (products/orders/members/stock/logs)
+   * 9) 공통 리스트 로더
    *************************************************/
-
   function loadList(entity) {
     var state = listState[entity];
     if (!state) return;
@@ -620,7 +574,6 @@
         : "logs";
 
     var tbody = document.getElementById(tbodyId);
-    var pager = document.getElementById(pagerId);
 
     if (tbody) {
       tbody.innerHTML =
@@ -664,8 +617,8 @@
                 "<td>" + (r["상품코드"] || "") + "</td>" +
                 "<td>" + (r["상품명"] || "") + "</td>" +
                 "<td>" + (r["옵션"] || "") + "</td>" +
-                "<td>" + formatCurrency(r["판매가"]) + "</td>" +
-                "<td>" + formatNumber(r["재고"]) + "</td>" +
+                "<td class=\"text-right\">" + formatCurrency(r["판매가"]) + "</td>" +
+                "<td class=\"text-right\">" + formatNumber(r["재고"]) + "</td>" +
                 "<td>" + (r["채널"] || "") + "</td>" +
                 "</tr>"
               );
@@ -681,8 +634,8 @@
                 "<td>" + (r["주문번호"] || "") + "</td>" +
                 "<td>" + (r["고객명"] || "") + "</td>" +
                 "<td>" + (r["상품명"] || "") + "</td>" +
-                "<td>" + formatNumber(r["수량"]) + "</td>" +
-                "<td>" + formatCurrency(r["금액"]) + "</td>" +
+                "<td class=\"text-right\">" + formatNumber(r["수량"]) + "</td>" +
+                "<td class=\"text-right\">" + formatCurrency(r["금액"]) + "</td>" +
                 "<td>" + (r["상태"] || "") + "</td>" +
                 "<td>" + (r["채널"] || "") + "</td>" +
                 "</tr>"
@@ -701,11 +654,11 @@
                 "<td>" + (r["가입일"] || "") + "</td>" +
                 "<td>" + (r["채널"] || "") + "</td>" +
                 "<td>" + (r["등급"] || "") + "</td>" +
-                "<td>" + formatCurrency(r["누적매출"]) + "</td>" +
-                "<td>" + formatNumber(r["포인트"]) + "</td>" +
+                "<td class=\"text-right\">" + formatCurrency(r["누적매출"]) + "</td>" +
+                "<td class=\"text-right\">" + formatNumber(r["포인트"]) + "</td>" +
                 "<td>" + (r["최근주문일"] || "") + "</td>" +
                 "<td>" + (r["메모"] || "") + "</td>" +
-                "<td>-</td>" + // 추후 편집/삭제 버튼 자리
+                "<td>-</td>" +
                 "</tr>"
               );
             })
@@ -717,8 +670,8 @@
                 "<tr>" +
                 "<td>" + (r["상품코드"] || "") + "</td>" +
                 "<td>" + (r["상품명"] || "") + "</td>" +
-                "<td>" + formatNumber(r["현재재고"] || r["현재 재고"]) + "</td>" +
-                "<td>" + formatNumber(r["안전재고"] || r["안전 재고"]) + "</td>" +
+                "<td class=\"text-right\">" + formatNumber(r["현재재고"] || r["현재 재고"]) + "</td>" +
+                "<td class=\"text-right\">" + formatNumber(r["안전재고"] || r["안전 재고"]) + "</td>" +
                 "<td>" + (r["상태"] || "") + "</td>" +
                 "<td>" + (r["창고"] || "") + "</td>" +
                 "<td>" + (r["채널"] || "") + "</td>" +
@@ -764,12 +717,8 @@
       label.textContent =
         (state.page || 1) + " / " + (state.pageCount || 1) + " (총 " + state.total + "행)";
     }
-    if (btnPrev) {
-      btnPrev.disabled = state.page <= 1;
-    }
-    if (btnNext) {
-      btnNext.disabled = state.page >= state.pageCount;
-    }
+    if (btnPrev) btnPrev.disabled = state.page <= 1;
+    if (btnNext) btnNext.disabled = state.page >= state.pageCount;
   }
 
   function initPagerControls(entity) {
@@ -834,7 +783,8 @@
     } catch (e) {}
     var welcomeUser = document.getElementById("welcomeUser");
     if (welcomeUser) {
-      welcomeUser.textContent = (user && user.username) || "KORUAL";
+      welcomeUser.textContent =
+        (user && (user.displayName || user.username)) || "KORUAL";
     }
 
     pingApi();
@@ -852,14 +802,10 @@
         });
         btn.classList.add("active");
 
-        // 섹션 전환
         var id = "section-" + target;
         $all(".section").forEach(function (sec) {
-          if (sec.id === id) {
-            sec.classList.add("active");
-          } else {
-            sec.classList.remove("active");
-          }
+          if (sec.id === id) sec.classList.add("active");
+          else sec.classList.remove("active");
         });
       });
     });
@@ -916,11 +862,9 @@
       });
     }
 
-    // "→ 주문 관리 바로가기"
     var goOrders = document.getElementById("goOrders");
     if (goOrders) {
       goOrders.addEventListener("click", function () {
-        // 사이드바의 "주문 관리" 버튼 클릭과 동일하게 동작
         var btn = document.querySelector('.nav-link[data-section="orders"]');
         if (btn) btn.click();
       });
@@ -956,7 +900,6 @@
         hideSpinner();
       });
 
-    // 모달 저장/삭제 버튼은 추후에 Apps Script POST(updateCell/deleteRow)로 확장 예정
     var rowEditSave = document.getElementById("rowEditSave");
     if (rowEditSave) {
       rowEditSave.addEventListener("click", function () {
@@ -977,12 +920,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     initThemeToggles();
 
-    if (isAuthPage) {
-      initAuthPage();
-    }
-    if (isDashboardPage) {
-      initDashboardPage();
-    }
+    if (isAuthPage) initAuthPage();
+    if (isDashboardPage) initDashboardPage();
   });
 })();
-
