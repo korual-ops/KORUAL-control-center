@@ -19,6 +19,20 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL CONTROL CENTER – Dashboard</title>
+<script>
+  window.KORUAL_META_APP = {
+    app: {
+      id: "korual-control-center",
+      name: "KORUAL CONTROL CENTER",
+      version: "v1.0-live",
+      env: "prod"
+    },
+    api: {
+      baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
+      secret: "KORUAL-ONLY"
+    }
+  };
+</script>
 
   <!-- Tailwind (하이엔드용) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -1004,4 +1018,6 @@
     })();
   </script>
 </body>
+  <script src="app.js"></script>
 </html>
+
