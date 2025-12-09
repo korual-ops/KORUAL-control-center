@@ -1,15 +1,32 @@
 <!doctype html>
-<html lang="ko" class="dark">
+<html lang="ko">
 <head>
   <meta charset="utf-8" />
+
+  <!-- 이미 로그인된 경우 바로 대시보드로 -->
+  <script>
+    (function () {
+      try {
+        const raw = localStorage.getItem("korual_user");
+        if (!raw) return;
+        const user = JSON.parse(raw);
+        if (user && user.username) {
+          location.replace("dashboard.html");
+        }
+      } catch (e) {
+        // 무시하고 로그인 화면 유지
+      }
+    })();
+  </script>
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1, viewport-fit=cover"
   />
-  <title>KORUAL CONTROL CENTER – Dashboard</title>
+  <title>KORUAL Control Center – Sign In</title>
 
   <!-- Meta -->
-  <meta name="description" content="KORUAL CONTROL CENTER – 24h 자동화 커머스 관제탑" />
+  <meta name="description" content="KORUAL CONTROL CENTER – 24h 자동화 커머스 관제탑 로그인" />
   <meta name="theme-color" content="#020617" />
   <link rel="icon" href="data:," />
 
@@ -20,7 +37,7 @@
     :root {
       color-scheme: dark;
       --korual-accent: #38bdf8;
-      --korual-accent-soft: rgba(56, 189, 248, 0.18);
+      --korual-accent-soft: rgba(56, 189, 248, 0.2);
       --korual-bg: #020617;
     }
 
@@ -28,15 +45,12 @@
     html:not(.dark) { color-scheme: light; }
 
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard",
-        "Segoe UI", sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif;
       min-height: 100vh;
+      overflow-x: hidden;
       background-color: var(--korual-bg);
-      color: #e5e7eb;
-      overflow: hidden;
     }
 
-    /* 전체 배경 – 레이더/관제탑 느낌 */
     .korual-bg {
       position: relative;
       min-height: 100vh;
@@ -45,6 +59,7 @@
         radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.30), transparent 65%),
         radial-gradient(900px 900px at 50% 120%, rgba(15,23,42,0.8), transparent 60%),
         linear-gradient(to bottom right, #020617, #020617);
+      color: #e5e7eb;
       isolation: isolate;
     }
 
@@ -67,16 +82,16 @@
       position: fixed;
       inset: 0;
       margin: auto;
-      width: min(720px, 80vw);
-      height: min(720px, 80vw);
+      width: min(640px, 90vw);
+      height: min(640px, 90vw);
       border-radius: 999px;
       border: 1px solid rgba(148,163,184,0.18);
       box-shadow:
         0 0 0 1px rgba(15,23,42,0.9),
-        0 0 160px rgba(56,189,248,0.23);
+        0 0 120px rgba(56,189,248,0.23);
       background:
         radial-gradient(circle at center, rgba(15,23,42,0.4), transparent 60%);
-      opacity: 0.12;
+      opacity: 0.16;
       pointer-events: none;
       z-index: -2;
     }
@@ -105,31 +120,42 @@
       position: fixed;
       border-radius: 999px;
       filter: blur(26px);
-      opacity: 0.8;
+      opacity: 0.75;
       mix-blend-mode: screen;
       pointer-events: none;
       z-index: -1;
     }
     .orb-1 {
       width: 220px; height: 220px;
-      top: 8%; left: 6%;
+      top: 6%; left: 8%;
       background: radial-gradient(circle at 30% 30%, rgba(56,189,248,.75), transparent 60%);
       animation: floatOrb1 16s ease-in-out infinite alternate;
     }
     .orb-2 {
       width: 260px; height: 260px;
-      bottom: 4%; right: 8%;
+      bottom: 4%; right: 10%;
       background: radial-gradient(circle at 70% 60%, rgba(129,140,248,.85), transparent 60%);
       animation: floatOrb2 18s ease-in-out infinite alternate;
+    }
+    .orb-3 {
+      width: 280px; height: 280px;
+      bottom: 40%; left: -40px;
+      background: radial-gradient(circle at 40% 40%, rgba(52,211,153,.8), transparent 65%);
+      opacity: 0.42;
+      animation: floatOrb3 20s ease-in-out infinite alternate;
     }
 
     @keyframes floatOrb1 {
       0%   { transform: translate3d(0, 0, 0); }
-      100% { transform: translate3d(18px, 32px, 0); }
+      100% { transform: translate3d(20px, 40px, 0); }
     }
     @keyframes floatOrb2 {
       0%   { transform: translate3d(0, 0, 0); }
-      100% { transform: translate3d(-26px, -26px, 0); }
+      100% { transform: translate3d(-30px, -30px, 0); }
+    }
+    @keyframes floatOrb3 {
+      0%   { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(10px, -30px, 0); }
     }
 
     .glass {
@@ -137,480 +163,779 @@
       -webkit-backdrop-filter: blur(26px);
     }
 
-    .btn-ghost {
+    .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 0.45rem 0.9rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      border: 1px solid rgba(148,163,184,0.5);
+      padding: 0.7rem 1.15rem;
+      border-radius: 0.95rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #fff;
       background:
-        radial-gradient(circle at top left, rgba(148,163,184,0.12), transparent 55%),
+        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.23), transparent 55%),
+        linear-gradient(135deg, #2563eb, #0ea5e9);
+      box-shadow:
+        0 20px 48px rgba(15, 23, 42, 0.95),
+        0 0 0 1px rgba(148, 163, 184, 0.18);
+      transition: all 0.18s ease-out;
+      border: 0;
+      transform: translateZ(0);
+    }
+    .btn:hover {
+      transform: translateY(-1px) translateZ(0);
+      box-shadow:
+        0 26px 58px rgba(15, 23, 42, 0.98),
+        0 0 0 1px rgba(129,140,248,0.65);
+      filter: saturate(1.08);
+    }
+    .btn:active {
+      transform: translateY(0);
+      box-shadow:
+        0 14px 32px rgba(15,23,42,0.9),
+        0 0 0 1px rgba(59,130,246,0.9);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow:
+        0 12px 28px rgba(15, 23, 42, 0.7),
+        0 0 0 1px rgba(148, 163, 184, 0.3);
+    }
+
+    .btn-alt {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.55rem 0.95rem;
+      border-radius: 0.9rem;
+      font-size: 0.8rem;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background:
+        radial-gradient(circle at top left, rgba(148,163,184,0.18), transparent 55%),
         rgba(15,23,42,0.92);
       color: #e5e7eb;
       transition: all 0.16s ease-out;
     }
-    .btn-ghost:hover {
-      border-color: rgba(148,163,184,0.9);
+    .btn-alt:hover {
       background:
-        radial-gradient(circle at top left, rgba(148,163,184,0.26), transparent 55%),
-        rgba(15,23,42,0.98);
+        radial-gradient(circle at top left, rgba(148,163,184,0.32), transparent 55%),
+        rgba(15,23,42,0.99);
+      border-color: rgba(148, 163, 184, 0.95);
       transform: translateY(-0.5px);
     }
-    .btn-ghost:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
 
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.55rem 1.1rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      color: #ffffff;
-      background:
-        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.18), transparent 55%),
-        linear-gradient(135deg, #2563eb, #0ea5e9);
-      box-shadow:
-        0 18px 46px rgba(15,23,42,0.96),
-        0 0 0 1px rgba(129,140,248,0.45);
-      border: 0;
-      transition: all 0.18s ease-out;
-    }
-    .btn-primary:hover {
-      filter: saturate(1.06);
-      box-shadow:
-        0 22px 52px rgba(15,23,42,0.98),
-        0 0 0 1px rgba(129,140,248,0.8);
-      transform: translateY(-1px);
-    }
-
-    .sidebar-nav .nav-link {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.9rem;
-      font-size: 0.78rem;
-      color: #9ca3af;
-      border: 1px solid transparent;
-      cursor: pointer;
-      transition: all 0.16s ease-out;
-      white-space: nowrap;
-    }
-    .sidebar-nav .nav-link span.icon {
-      width: 1.3rem;
-      height: 1.3rem;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15,23,42,0.9);
-      font-size: 0.85rem;
-    }
-    .sidebar-nav .nav-link:hover {
-      color: #e5e7eb;
-      border-color: rgba(148,163,184,0.6);
-      background:
-        radial-gradient(circle at top left, rgba(148,163,184,0.18), transparent 55%),
-        rgba(15,23,42,0.94);
-    }
-    .sidebar-nav .nav-link.active {
-      color: #0f172a;
-      background:
-        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.22), transparent 55%),
-        linear-gradient(135deg, #38bdf8, #22c55e);
-      border-color: transparent;
-      box-shadow:
-        0 18px 40px rgba(15,23,42,0.98),
-        0 0 0 1px rgba(8,47,73,0.85);
-    }
-    .sidebar-nav .nav-link.active span.icon {
-      background: rgba(15,23,42,0.08);
-      color: #020617;
-    }
-
-    .korual-table {
+    .input {
       width: 100%;
-      font-size: 0.75rem;
-      border-collapse: collapse;
-      border-spacing: 0;
-    }
-    .korual-table thead {
-      background: linear-gradient(to right, rgba(15,23,42,0.98), rgba(15,23,42,0.92));
-    }
-    .korual-table th,
-    .korual-table td {
-      padding: 0.45rem 0.55rem;
-      border-bottom: 1px solid rgba(30,41,59,0.8);
-      white-space: nowrap;
-    }
-    .korual-table th {
-      text-align: left;
-      font-size: 0.7rem;
-      font-weight: 500;
-      color: #9ca3af;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-    }
-    .korual-table tbody tr:nth-child(even) {
-      background-color: rgba(15,23,42,0.82);
-    }
-    .korual-table tbody tr:hover {
-      background-color: rgba(30,64,175,0.45);
-    }
-
-    .filter-bar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-      padding: 0.55rem 0.7rem;
-      border-radius: 0.95rem;
-      border: 1px solid rgba(30,64,175,0.55);
-      background:
-        radial-gradient(circle at top left, rgba(37,99,235,0.18), transparent 55%),
-        rgba(15,23,42,0.96);
-    }
-    .filter-input {
-      border-radius: 0.75rem;
-      border: 1px solid rgba(148,163,184,0.6);
-      background: rgba(15,23,42,0.98);
-      padding: 0.35rem 0.6rem;
-      font-size: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      border-radius: 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.55);
+      background: rgba(15, 23, 42, 0.97);
       color: #e5e7eb;
+      font-size: 0.875rem;
       outline: none;
-      min-width: 0;
+      transition: all 0.16s ease-out;
     }
-    .filter-input::placeholder {
-      color: #64748b;
+    .input::placeholder {
+      color: rgba(148, 163, 184, 0.7);
     }
-    .filter-input:focus {
-      border-color: rgba(96,165,250,0.98);
+    .input:focus {
+      border-color: rgba(96, 165, 250, 0.98);
       box-shadow:
-        0 0 0 1px rgba(96,165,250,0.98),
-        0 0 0 6px rgba(37,99,235,0.18);
+        0 0 0 1px rgba(96, 165, 250, 0.98),
+        0 0 0 9px rgba(37, 99, 235, 0.13);
+      background: rgba(15, 23, 42, 0.99);
+    }
+    .input-error {
+      border-color: rgba(248, 113, 113, 0.98) !important;
+      box-shadow:
+        0 0 0 1px rgba(248, 113, 113, 0.98),
+        0 0 0 7px rgba(248, 113, 113, 0.22);
     }
 
-    .korual-loading {
-      display: flex;
-      flex-direction: column;
+    .pill {
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      min-height: calc(100vh - 140px);
-      gap: 1rem;
-    }
-    .korual-spinner {
-      width: 2.4rem;
-      height: 2.4rem;
+      padding: 0.35rem 0.9rem;
       border-radius: 999px;
-      border: 2px solid rgba(51,65,85,0.9);
-      border-top-color: #38bdf8;
-      animation: spin 0.9s linear infinite;
+      font-size: 0.7rem;
+      border: 1px solid rgba(148, 163, 184, 0.55);
+      background: linear-gradient(135deg, rgba(15,23,42,0.97), rgba(15,23,42,0.82));
+      color: #cbd5f5;
+      gap: 0.35rem;
+      position: relative;
+      overflow: hidden;
     }
-    .korual-loading-text {
-      font-size: 0.8rem;
-      color: #9ca3af;
+    .pill::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #38bdf8, #1d4ed8);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.96);
     }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    #korual-toast {
-      pointer-events: auto;
-      min-width: 220px;
-      max-width: 360px;
-      padding: 0.5rem 0.9rem;
-      border-radius: 0.85rem;
-      font-size: 0.78rem;
-      box-shadow:
-        0 22px 55px rgba(15,23,42,0.95),
-        0 0 0 1px rgba(15,23,42,0.9);
+    .pill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent, rgba(255,255,255,0.16), transparent);
       opacity: 0;
-      transform: translateY(12px) scale(.96);
-      transition: all 0.18s ease-out;
+      transform: translateX(-60%);
+      transition: all 0.55s ease-out;
     }
-    #korual-toast.visible {
+    .pill:hover::after {
       opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-    .korual-toast-info {
-      background:
-        radial-gradient(circle at top left, rgba(59,130,246,0.25), transparent 55%),
-        rgba(15,23,42,0.98);
-      color: #e5e7eb;
-    }
-    .korual-toast-success {
-      background:
-        radial-gradient(circle at top left, rgba(52,211,153,0.4), transparent 55%),
-        rgba(15,23,42,0.98);
-      color: #e5e7eb;
-    }
-    .korual-toast-error {
-      background:
-        radial-gradient(circle at top left, rgba(248,113,113,0.4), transparent 55%),
-        rgba(15,23,42,0.98);
-      color: #fee2e2;
+      transform: translateX(60%);
     }
 
-    html:not(.dark) body {
-      background: radial-gradient(circle at top left, #eff6ff, #f9fafb);
-      color: #0f172a;
+    .password-hint {
+      font-size: 0.7rem;
+      color: #9ca3af;
+      margin-top: 0.15rem;
     }
-    html:not(.dark) .korual-bg {
+    .caps-indicator {
+      font-size: 0.7rem;
+      color: #f97373;
+      margin-left: 0.4rem;
+    }
+
+    .auth-bg-dark { color: #e5e7eb; }
+    .auth-bg-light {
       background:
         radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.10), transparent 60%),
         radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.10), transparent 60%),
         linear-gradient(to bottom right, #e5f0ff, #f9fafb);
-    }
-    html:not(.dark) .glass {
-      background: rgba(255,255,255,0.96);
-      border-color: rgba(148,163,184,0.38);
-      box-shadow:
-        0 32px 80px rgba(15,23,42,0.18),
-        0 0 0 1px rgba(148,163,184,0.22);
-    }
-    html:not(.dark) .sidebar-nav .nav-link {
-      color: #6b7280;
-      background: rgba(248,250,252,0.86);
-      border-color: rgba(226,232,240,0.86);
-    }
-    html:not(.dark) .sidebar-nav .nav-link:hover {
       color: #0f172a;
-      background: #f9fafb;
-      border-color: rgba(148,163,184,0.9);
     }
-    html:not(.dark) .sidebar-nav .nav-link span.icon {
-      background: #e5e7eb;
+
+    .tab-active {
+      background-color: #f9fafb;
       color: #020617;
+      font-weight: 600;
+      box-shadow: 0 10px 32px rgba(15,23,42,0.7);
     }
-    html:not(.dark) .sidebar-nav .nav-link.active {
-      color: #020617;
+    .tab-inactive { color: #9ca3af; }
+
+    html:not(.dark) .glass {
+      background: rgba(255,255,255,0.94);
+      border-color: rgba(148,163,184,0.48) !important;
+      box-shadow:
+        0 34px 96px rgba(15,23,42,0.20),
+        0 0 0 1px rgba(148,163,184,0.25);
     }
-    html:not(.dark) .filter-input {
+    html:not(.dark) #loginPanel,
+    html:not(.dark) #signupPanel {
+      background: rgba(255,255,255,0.99);
+      border-color: rgba(148,163,184,0.55);
+      color: #0f172a;
+    }
+    html:not(.dark) .btn-alt {
+      background:
+        radial-gradient(circle at top left, rgba(148,163,184,0.14), transparent 55%),
+        #ffffff;
+      color: #0f172a;
+      border-color: rgba(148,163,184,0.7);
+    }
+    html:not(.dark) .btn-alt:hover {
+      background:
+        radial-gradient(circle at top left, rgba(148,163,184,0.25), transparent 55%),
+        #f9fafb;
+    }
+    html:not(.dark) .input {
       background: #ffffff;
       color: #0f172a;
       border-color: rgba(148,163,184,0.7);
     }
-    html:not(.dark) .korual-table thead {
-      background: #f9fafb;
+    html:not(.dark) .input::placeholder { color: #9ca3af; }
+    html:not(.dark) .pill {
+      background: #eff6ff;
+      color: #0f172a;
+      border-color: rgba(148,163,184,0.7);
     }
-    html:not(.dark) .korual-table tbody tr:nth-child(even) {
-      background-color: #f1f5f9;
+    html:not(.dark) .btn {
+      box-shadow:
+        0 20px 46px rgba(59,130,246,0.36),
+        0 0 0 1px rgba(129,140,248,0.35);
     }
-    html:not(.dark) .korual-table tbody tr:hover {
-      background-color: #e5f0ff;
+
+    .toast-enter {
+      opacity: 0;
+      transform: translateY(12px) scale(.95);
+    }
+    .toast-enter-active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: all 0.18s ease-out;
+    }
+    .toast-exit {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .toast-exit-active {
+      opacity: 0;
+      transform: translateY(8px) scale(.96);
+      transition: all 0.18s ease-in;
+    }
+
+    @media (max-width: 768px) {
+      .auth-card-wrapper { padding-bottom: 1.8rem; }
     }
   </style>
 
-  <!-- 전역 메타 (필요하면 app.js에서 사용 가능) -->
+  <!-- KORUAL META APP (로그인용) -->
   <script>
-    window.KORUAL_CONTROL_CENTER = {
+    window.KORUAL_META_APP = {
       app: {
-        id: "korual-core-dashboard",
-        name: "KORUAL CONTROL CENTER",
-        version: "v3.1-ultra",
+        id: "korual-auth",
+        name: "KORUAL Control Center – Auth",
+        version: "v1.1-ultra",
         env: "prod",
       },
+      brand: {
+        name: "KORUAL",
+        accent: "#38bdf8",
+        accentSoft: "rgba(56,189,248,0.18)",
+      },
       api: {
-        // code.gs Web App URL (v5.x)
-        baseUrl: "https://script.google.com/macros/s/REPLACE_WITH_CORE_API_URL/exec",
+        baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
         secret: "KORUAL-ONLY",
+      },
+      ui: {
+        defaultLang: "ko",
+        defaultTheme: "dark",
       },
     };
   </script>
 </head>
 
-<body class="korual-bg">
-  <!-- 레이더 / ORB 배경 -->
+<body class="korual-bg auth-bg-dark text-slate-50 transition-colors duration-200">
   <div class="radar-ring">
     <div class="radar-sweep"></div>
   </div>
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
   <!-- Toast container -->
-  <div class="fixed inset-x-0 bottom-4 flex justify-center pointer-events-none z-30 px-4">
-    <div id="korual-toast"></div>
-  </div>
+  <div id="toastRoot" class="fixed inset-x-0 bottom-4 flex justify-center pointer-events-none z-30 px-4"></div>
 
-  <!-- 전체 레이아웃 -->
-  <div class="relative z-10 flex flex-col h-screen">
-    <!-- 상단 바 -->
-    <header class="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 border-b border-slate-800/80 bg-slate-950/80 glass">
-      <div class="flex items-center gap-3">
+  <!-- Top bar -->
+  <header class="max-w-6xl mx-auto px-4 md:px-8 pt-4 pb-3 flex items-center justify-between gap-4 relative z-10">
+    <div class="flex items-center gap-3">
+      <div
+        class="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-slate-950/95 text-white grid place-content-center text-lg md:text-xl font-bold shadow-[0_18px_40px_rgba(15,23,42,0.95)] ring-1 ring-slate-700/90"
+        aria-hidden="true"
+      >
+        K
+      </div>
+      <div>
+        <p class="text-[10px] md:text-[11px] uppercase tracking-[0.3em] text-slate-400">
+          Korual Control Center
+        </p>
+        <h1 class="text-lg md:text-2xl font-semibold leading-tight">
+          24h 자동화 커머스 레이더
+        </h1>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <div class="hidden sm:flex items-center gap-2 text-[11px]" aria-live="polite">
+        <span
+          id="apiStatusDot"
+          class="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.35)]"
+        ></span>
+        <span id="apiStatusText" class="text-slate-400">Auth API 체크 중…</span>
+      </div>
+      <label class="sr-only" for="langTop">언어 선택</label>
+      <select
+        id="langTop"
+        class="input w-24 md:w-28 py-2 text-[11px] md:text-xs border-slate-700 bg-slate-950/80"
+      >
+        <option value="ko">한국어</option>
+        <option value="en">English</option>
+      </select>
+      <button
+        id="toggleTheme"
+        class="btn-alt text-base md:text-lg"
+        type="button"
+        title="Theme"
+        aria-label="테마 전환"
+      >
+        🌓
+      </button>
+    </div>
+  </header>
+
+  <!-- Auth card -->
+  <main class="max-w-6xl mx-auto px-4 md:px-8 auth-card-wrapper relative z-10">
+    <section
+      aria-label="KORUAL 로그인"
+      class="relative w-full max-w-md md:max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-[0_32px_90px_rgba(15,23,42,0.98)] border border-slate-800/90 glass bg-slate-950/95 md:grid md:grid-cols-[1.05fr,1.25fr]"
+    >
+      <div class="pointer-events-none absolute inset-0 border border-sky-500/16 rounded-[1.45rem]"></div>
+      <div class="pointer-events-none absolute -inset-px rounded-[1.6rem] bg-gradient-to-br from-sky-500/12 via-transparent to-violet-500/14 mix-blend-screen opacity-70"></div>
+
+      <!-- 모바일 인포 -->
+      <div class="flex md:hidden flex-col gap-5 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900/95 p-6 pb-5 relative z-10">
+        <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-md">
+          <div class="w-9 h-9 rounded-2xl bg-white text-slate-900 grid place-content-center text-lg font-bold">
+            K
+          </div>
+          <div>
+            <p class="text-[10px] uppercase tracking-[0.3em] text-slate-300">Korual Control Center</p>
+            <p class="text-xs text-slate-100/90">24h 자동화 커머스 레이더</p>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <h2 class="text-2xl font-semibold leading-snug">
+            한 화면에서 보는 <span class="text-sky-400">KORUAL</span> 관제탑
+          </h2>
+          <p class="text-xs text-slate-300/90">
+            로그인하면 실시간 주문, 회원, 자동화 상태를
+            <span class="text-sky-300 font-medium">KORUAL_CONTROL_CENTER</span> 에서 바로 확인합니다.
+          </p>
+        </div>
+
+        <div class="grid gap-1.5 text-[11px] text-slate-300/95">
+          <div class="flex items-start gap-2">
+            <span class="mt-[1px] text-blue-400 text-lg">▌</span>
+            <span>DB 계정 저장소 기반 – KORUAL 시트에서 계정 관리</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="mt-[1px] text-emerald-400 text-lg">▌</span>
+            <span>주문/매출/멤버십 API 연동으로 관제탑 레벨까지 확장 가능</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="mt-[1px] text-violet-400 text-lg">▌</span>
+            <span>브라우저만 있으면 어디서나 접속</span>
+          </div>
+        </div>
+
+        <div class="mt-3 space-y-1 text-[10px] text-slate-400">
+          <p class="font-medium text-slate-200">테스트용 기본 계정</p>
+          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/80 border border-slate-700/80 shadow-inner">
+            <span class="text-slate-400">ID</span>
+            <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[10px]">KORUAL</code>
+            <span class="text-slate-600">/</span>
+            <span class="text-slate-400">PW</span>
+            <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[10px]">GUEST</code>
+            <button
+              id="btnFillDemoMobile"
+              class="ml-2 text-[10px] text-sky-300 underline decoration-dotted"
+              type="button"
+            >
+              자동 채우기
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 데스크톱 좌측 인포 -->
+      <div class="hidden md:flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/95 p-8 text-slate-50 relative">
+        <div class="absolute inset-x-10 top-16 h-40 bg-gradient-to-r from-sky-500/24 via-cyan-400/12 to-indigo-500/26 blur-3xl opacity-90"></div>
+        <div class="relative space-y-7">
+          <div class="inline-flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2 border border-white/10 shadow-md">
+            <div class="w-10 h-10 rounded-2xl bg-white text-slate-900 grid place-content-center text-xl font-bold">
+              K
+            </div>
+            <div>
+              <p class="text-[11px] uppercase tracking-[0.3em] text-slate-300">Korual Control Center</p>
+              <p class="text-sm text-slate-100/90">24h 자동화 커머스 레이더</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <h2 class="text-3xl font-semibold leading-snug">
+              한 화면에서 보는 <span class="text-sky-400">KORUAL</span> 관제탑
+            </h2>
+            <p class="text-sm text-slate-300/90">
+              로그인하면 실시간 주문, 회원, 자동화 상태를
+              백엔드 <span class="text-sky-300 font-medium">KORUAL_CONTROL_CENTER</span> 에서 바로 확인합니다.
+            </p>
+          </div>
+
+          <div class="grid gap-2 text-xs text-slate-300/95">
+            <div class="flex items-start gap-2">
+              <span class="mt-[1px] text-blue-400 text-lg">▌</span>
+              <span>Google Sheets 계정 DB 기반 – 계정/권한을 표로 관리</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="mt-[1px] text-emerald-400 text-lg">▌</span>
+              <span>ROLE, LAST_LOGIN, MFA 정보까지 함께 저장</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="mt-[1px] text-violet-400 text-lg">▌</span>
+              <span>이후 주문・매출・멤버십 시트와 연동하여 관제탑 완성</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative mt-8 space-y-3 text-[11px] text-slate-400">
+          <p class="font-medium text-slate-200">테스트용 기본 계정</p>
+          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900/85 border border-slate-700/80 shadow-inner">
+            <span class="text-slate-400">ID</span>
+            <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">KORUAL</code>
+            <span class="text-slate-600">/</span>
+            <span class="text-slate-400">PW</span>
+            <code class="px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-100 text-[11px]">GUEST</code>
+            <button
+              id="btnFillDemo"
+              class="ml-2 text-[11px] text-sky-300 underline decoration-dotted"
+              type="button"
+            >
+              자동 채우기
+            </button>
+          </div>
+          <p>
+            로그인 후에는 자동으로 <span class="text-sky-300">KORUAL_CONTROL_CENTER</span> (dashboard.html) 로 이동합니다.
+          </p>
+        </div>
+      </div>
+
+      <!-- 우측 로그인/회원가입 카드 -->
+      <div class="bg-slate-950/97 text-slate-50 px-5 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8 relative">
+        <!-- Loading overlay -->
         <div
-          class="w-9 h-9 rounded-2xl bg-slate-950 text-white grid place-content-center text-lg font-bold shadow-[0_18px_40px_rgba(15,23,42,0.95)] ring-1 ring-slate-700/90"
+          id="loadingOverlay"
+          class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3"
           aria-hidden="true"
         >
-          K
+          <div class="w-10 h-10 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin"></div>
+          <p class="text-xs text-slate-300">KORUAL 계정 확인 중...</p>
         </div>
-        <div>
-          <p class="text-[10px] uppercase tracking-[0.32em] text-slate-400">
-            Korual Control Center
-          </p>
-          <div class="flex items-center gap-2 text-xs">
-            <span class="font-semibold">24h 자동화 커머스 레이더</span>
-            <span class="px-1.5 py-0.5 rounded-full text-[10px] border border-emerald-400/70 text-emerald-200 bg-emerald-400/10">
-              LIVE
-            </span>
+
+        <div class="flex items-center justify-between mb-6 sm:mb-7 relative">
+          <div class="space-y-1">
+            <p
+              class="text-[10px] sm:text-[11px] uppercase tracking-[0.22em] text-slate-400"
+              data-i18n="sign_to_korual"
+            >
+              SIGN IN TO KORUAL
+            </p>
+            <h2 class="text-lg sm:text-xl font-semibold" data-i18n="headline">
+              KORUAL 계정으로 접속
+            </h2>
+          </div>
+          <label class="sr-only" for="langAuth">언어 선택</label>
+          <select
+            id="langAuth"
+            class="input w-24 sm:w-28 py-2 text-[11px] sm:text-xs bg-slate-950/90 border-slate-700/80"
+          >
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+
+        <!-- Tabs -->
+        <div class="inline-flex mb-5 rounded-2xl bg-slate-950/80 border border-slate-800/80 p-1 text-xs shadow-[0_14px_35px_rgba(15,23,42,0.9)]" role="tablist">
+          <button
+            id="tabLoginBtn"
+            class="flex-1 px-4 py-2 rounded-xl tab-active"
+            type="button"
+            data-i18n="tab_login"
+            role="tab"
+            aria-selected="true"
+            aria-controls="loginPanel"
+          >
+            로그인
+          </button>
+          <button
+            id="tabSignupBtn"
+            class="flex-1 px-4 py-2 rounded-xl tab-inactive"
+            type="button"
+            data-i18n="tab_signup"
+            role="tab"
+            aria-selected="false"
+            aria-controls="signupPanel"
+          >
+            회원가입
+          </button>
+        </div>
+
+        <div class="grid gap-5 sm:gap-6 relative">
+          <!-- Login -->
+          <div
+            id="loginPanel"
+            class="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/90 px-4 py-4 sm:px-5 sm:py-5 shadow-[0_16px_40px_rgba(15,23,42,0.95)]"
+            role="tabpanel"
+            aria-labelledby="tabLoginBtn"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-base font-semibold" data-i18n="login">로그인</h3>
+              <span class="pill text-[11px] text-slate-200" data-i18n="login_badge">
+                Control Center 입장
+              </span>
+            </div>
+            <div class="space-y-3.5">
+              <div>
+                <label class="block mb-1.5 text-sm" data-i18n="username" for="loginUsername">아이디</label>
+                <div class="relative">
+                  <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">@</span>
+                  <input
+                    id="loginUsername"
+                    class="input pl-7 border-slate-700/70 bg-slate-950/88"
+                    placeholder="예: KORUAL"
+                    autocomplete="username"
+                  />
+                </div>
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <div class="flex items-center">
+                    <label class="text-sm" data-i18n="password" for="loginPassword">비밀번호</label>
+                    <span id="capsIndicator" class="caps-indicator hidden">Caps Lock ON</span>
+                  </div>
+                  <button
+                    id="togglePwd"
+                    type="button"
+                    class="text-[11px] text-slate-400 hover:text-slate-200"
+                  >
+                    👁 비밀번호 보기
+                  </button>
+                </div>
+                <input
+                  id="loginPassword"
+                  class="input pl-3 border-slate-700/70 bg-slate-950/88"
+                  type="password"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                />
+              </div>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer" for="rememberId">
+                  <input
+                    type="checkbox"
+                    id="rememberId"
+                    class="rounded border-slate-600 bg-slate-900"
+                  />
+                  <span data-i18n="remember_id">아이디 기억하기</span>
+                </label>
+                <button
+                  id="btnLogin"
+                  class="btn w-full sm:w-auto justify-center"
+                  data-i18n="login_btn"
+                  type="button"
+                >
+                  로그인
+                </button>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 mt-1">
+                <p data-i18n="login_hint">엔터키로도 로그인 가능</p>
+                <div class="flex gap-3">
+                  <button
+                    id="linkFindId"
+                    class="underline decoration-dotted hover:text-sky-300"
+                    type="button"
+                  >
+                    아이디 찾기
+                  </button>
+                  <button
+                    id="linkResetPw"
+                    class="underline decoration-dotted hover:text-sky-300"
+                    type="button"
+                  >
+                    비밀번호 재설정
+                  </button>
+                </div>
+              </div>
+
+              <p class="text-[11px] text-amber-400">
+                5회 이상 연속으로 비밀번호를 틀리면 보안 잠금이 30분 동안 걸립니다.
+              </p>
+
+              <p id="loginMsg" class="text-xs text-rose-400 min-h-[1rem]" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <!-- Signup -->
+          <div
+            id="signupPanel"
+            class="hidden space-y-4 rounded-2xl border border-slate-800 bg-slate-950/88 px-4 py-4 sm:px-5 sm:py-5"
+            role="tabpanel"
+            aria-labelledby="tabSignupBtn"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-base font-semibold" data-i18n="signup">회원가입</h3>
+              <span class="pill text-[11px] text-slate-200" data-i18n="signup_badge">
+                Google Sheets 계정 저장
+              </span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="block mb-1 text-sm" data-i18n="full_name" for="suName">이름</label>
+                <input
+                  id="suName"
+                  class="input bg-slate-950/88 border-slate-700/70"
+                  placeholder="홍길동"
+                />
+              </div>
+              <div>
+                <label class="block mb-1 text-sm" data-i18n="email" for="suEmail">이메일</label>
+                <input
+                  id="suEmail"
+                  class="input bg-slate-950/88 border-slate-700/70"
+                  placeholder="you@korual.app"
+                />
+              </div>
+              <div>
+                <label class="block mb-1 text-sm" data-i18n="username" for="suUser">아이디</label>
+                <input
+                  id="suUser"
+                  class="input bg-slate-950/88 border-slate-700/70"
+                  placeholder="영문/숫자 조합"
+                  autocomplete="username"
+                />
+              </div>
+              <div>
+                <label class="block mb-1 text-sm" data-i18n="password" for="suPass">비밀번호</label>
+                <input
+                  id="suPass"
+                  class="input bg-slate-950/88 border-slate-700/70"
+                  type="password"
+                  placeholder="최소 6자리"
+                  autocomplete="new-password"
+                />
+                <p class="password-hint">6자 이상, 영어/숫자 조합 권장</p>
+              </div>
+            </div>
+            <div class="flex flex-col gap-2 mt-1">
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                <button
+                  id="btnSignup"
+                  class="btn w-full sm:w-auto"
+                  data-i18n="signup_btn"
+                  type="button"
+                >
+                  회원가입
+                </button>
+                <span id="signupMsg" class="text-xs text-slate-200" aria-live="polite"></span>
+              </div>
+              <p class="text-[11px] text-slate-400">
+                계정은 Google Sheets <span class="underline decoration-dotted">accounts</span> 시트에 저장됩니다.
+              </p>
+            </div>
           </div>
         </div>
+
+        <!-- Bottom meta -->
+        <div class="mt-5 sm:mt-6 flex flex-wrap items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-500">
+          <p>
+            © <span id="year"></span> KORUAL CONTROL CENTER · Internal Use Only
+          </p>
+          <p>v1.1 · KORUAL</p>
+        </div>
       </div>
+    </section>
+  </main>
 
-      <div class="flex items-center gap-3 text-[11px]">
-        <div class="hidden sm:flex items-center gap-2" aria-live="polite">
-          <span
-            id="apiStatusDot"
-            class="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.35)]"
-          ></span>
-          <span id="apiStatusText" class="text-slate-400">Core API 상태 확인 중…</span>
-        </div>
-        <button
-          id="themeToggle"
-          type="button"
-          class="btn-ghost px-2.5 py-1.5 text-base"
-          title="테마 전환"
-          aria-label="테마 전환"
-        >
-          🌓
-        </button>
-      </div>
-    </header>
-
-    <!-- 메인 컨텐츠 레이아웃 -->
-    <div class="flex flex-1 min-h-0">
-      <!-- 사이드바 -->
-      <aside
-        class="hidden md:flex flex-col w-60 border-r border-slate-800/80 bg-slate-950/80 glass pl-4 pr-3 py-4"
-        aria-label="KORUAL Navigation"
+  <!-- ID 찾기 모달 -->
+  <div
+    id="modalFindId"
+    class="hidden fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm px-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalFindIdTitle"
+  >
+    <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.98)] p-5 relative">
+      <button
+        id="closeFind"
+        class="absolute right-3 top-3 text-slate-500 hover:text-slate-200 text-sm"
+        type="button"
+        aria-label="아이디 찾기 닫기"
       >
-        <div class="mb-4">
-          <p class="text-[11px] font-medium text-slate-400 uppercase tracking-[0.16em] mb-2">
-            Overview
-          </p>
-          <nav class="sidebar-nav space-y-1">
-            <button class="nav-link active" data-section="dashboard">
-              <span class="icon">◔</span>
-              <span>대시보드</span>
-            </button>
-          </nav>
-        </div>
-
-        <div class="mb-4">
-          <p class="text-[11px] font-medium text-slate-400 uppercase tracking-[0.16em] mb-2">
-            Commerce
-          </p>
-          <nav class="sidebar-nav space-y-1">
-            <button class="nav-link" data-section="orders">
-              <span class="icon">№</span>
-              <span>주문 관리</span>
-            </button>
-            <button class="nav-link" data-section="products">
-              <span class="icon">◎</span>
-              <span>상품 관리</span>
-            </button>
-            <button class="nav-link" data-section="stock">
-              <span class="icon">▤</span>
-              <span>재고 현황</span>
-            </button>
-          </nav>
-        </div>
-
-        <div class="mb-4">
-          <p class="text-[11px] font-medium text-slate-400 uppercase tracking-[0.16em] mb-2">
-            Members
-          </p>
-          <nav class="sidebar-nav space-y-1">
-            <button class="nav-link" data-section="members">
-              <span class="icon">人</span>
-              <span>회원 DB</span>
-            </button>
-          </nav>
-        </div>
-
-        <div class="mt-auto">
-          <p class="text-[11px] font-medium text-slate-500 uppercase tracking-[0.16em] mb-1.5">
-            System
-          </p>
-          <nav class="sidebar-nav space-y-1">
-            <button class="nav-link" data-section="logs">
-              <span class="icon">☷</span>
-              <span>API 로그</span>
-            </button>
-          </nav>
-          <div class="mt-3 text-[10px] text-slate-500">
-            v3.1 · Core API v5.x
-          </div>
-        </div>
-      </aside>
-
-      <!-- 모바일 탭 바 -->
-      <nav
-        class="md:hidden flex items-center justify-between px-2 py-1.5 border-b border-slate-800/80 bg-slate-950/95"
-        aria-label="KORUAL Mobile Navigation"
+        ✕
+      </button>
+      <h3 id="modalFindIdTitle" class="text-sm font-semibold mb-2">아이디 찾기</h3>
+      <p class="text-xs text-slate-400 mb-3">
+        회원가입 시 사용한 이메일을 입력하면, 해당 이메일로 등록된 아이디 목록을 보여줍니다.
+      </p>
+      <label class="block mb-1 text-xs" for="fiEmail">이메일</label>
+      <input
+        id="fiEmail"
+        class="input bg-slate-950/90 border-slate-700/70 text-sm"
+        placeholder="you@korual.app"
+      />
+      <button
+        id="btnFindIdSubmit"
+        class="btn w-full mt-3 text-sm"
+        type="button"
       >
-        <div class="flex items-center gap-1">
-          <button class="nav-link active px-2.5 py-1.5 text-[11px]" data-section="dashboard">
-            대시보드
-          </button>
-          <button class="nav-link px-2.5 py-1.5 text-[11px]" data-section="orders">
-            주문
-          </button>
-          <button class="nav-link px-2.5 py-1.5 text-[11px]" data-section="products">
-            상품
-          </button>
-        </div>
-        <div class="flex items-center gap-1">
-          <button class="nav-link px-2.5 py-1.5 text-[11px]" data-section="members">
-            회원
-          </button>
-          <button class="nav-link px-2.5 py-1.5 text-[11px]" data-section="stock">
-            재고
-          </button>
-        </div>
-      </nav>
-
-      <!-- 메인 영역 -->
-      <main
-        id="main-content"
-        class="flex-1 min-w-0 min-h-0 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 overflow-auto"
-      >
-        <!-- app.js가 이 영역을 동적으로 렌더링 -->
-      </main>
+        아이디 조회
+      </button>
+      <p id="fiResult" class="mt-3 text-xs text-slate-300 min-h-[1rem]" aria-live="polite"></p>
+      <p class="mt-2 text-[10px] text-slate-500">
+        조회 내역은 <span class="text-sky-300 font-medium">login_logs</span> 시트에 보안 로그로 함께 기록됩니다.
+      </p>
     </div>
   </div>
 
-  <!-- 테마 토글 스크립트 (간단 버전) -->
-  <script>
-    (function () {
-      var html = document.documentElement;
-      var saved = localStorage.getItem("korual-theme");
-      if (saved === "light") {
-        html.classList.remove("dark");
-      }
+  <!-- 비밀번호 재설정 모달 -->
+  <div
+    id="modalResetPw"
+    class="hidden fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm px-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalResetPwTitle"
+  >
+    <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.98)] p-5 relative">
+      <button
+        id="closeReset"
+        class="absolute right-3 top-3 text-slate-500 hover:text-slate-200 text-sm"
+        type="button"
+        aria-label="비밀번호 재설정 창 닫기"
+      >
+        ✕
+      </button>
+      <h3 id="modalResetPwTitle" class="text-sm font-semibold mb-2">비밀번호 재설정</h3>
+      <p class="text-xs text-slate-400 mb-3">
+        아이디와 이메일이 일치하면 새 비밀번호로 즉시 재설정됩니다.
+      </p>
+      <div class="space-y-2">
+        <div>
+          <label class="block mb-1 text-xs" for="rpUser">아이디</label>
+          <input
+            id="rpUser"
+            class="input bg-slate-950/90 border-slate-700/70 text-sm"
+            placeholder="예: KORUAL"
+          />
+        </div>
+        <div>
+          <label class="block mb-1 text-xs" for="rpEmail">이메일</label>
+          <input
+            id="rpEmail"
+            class="input bg-slate-950/90 border-slate-700/70 text-sm"
+            placeholder="you@korual.app"
+          />
+        </div>
+        <div>
+          <label class="block mb-1 text-xs" for="rpNewPw">새 비밀번호</label>
+          <input
+            id="rpNewPw"
+            type="password"
+            class="input bg-slate-950/90 border-slate-700/70 text-sm"
+            placeholder="최소 6자리"
+          />
+        </div>
+      </div>
+      <button
+        id="btnResetPwSubmit"
+        class="btn w-full mt-3 text-sm"
+        type="button"
+      >
+        비밀번호 재설정
+      </button>
+      <p id="rpMsg" class="mt-3 text-xs text-slate-300 min-h-[1rem]" aria-live="polite"></p>
+      <p class="mt-2 text-[10px] text-slate-500">
+        재설정 내역과 로그인 IP는 <span class="text-sky-300 font-medium">login_logs</span> 시트에 기록됩니다.
+      </p>
+    </div>
+  </div>
 
-      document.getElementById("themeToggle")?.addEventListener("click", function () {
-        html.classList.toggle("dark");
-        var isDark = html.classList.contains("dark");
-        localStorage.setItem("korual-theme", isDark ? "dark" : "light");
-      });
-    })();
-  </script>
-
-  <!-- Core front controller (이전에 만든 app.js) -->
+  <!-- 로그인 로직 (로그인 성공 시 dashboard.html로 이동하도록 app.js에서 처리) -->
   <script src="app.js"></script>
 </body>
 </html>
