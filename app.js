@@ -613,3 +613,4 @@ async function initKorualApp() {
 }
 
 document.addEventListener("DOMContentLoaded", initKorualApp);
+
