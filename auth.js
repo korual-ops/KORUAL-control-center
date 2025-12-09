@@ -6,8 +6,8 @@
   // 0) META 설정
   // ============================
   const META = window.KORUAL_META_APP || {};
-  const API_BASE   = META.api?.baseUrl || "";
-  const API_SECRET = META.api?.secret || "";
+  const API_BASE   = META.api?.baseUrl || "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
+  const API_SECRET = META.api?.secret || "KORUAL_ONLY";
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
@@ -163,4 +163,5 @@
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 })();
+
 
