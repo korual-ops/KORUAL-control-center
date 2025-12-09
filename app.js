@@ -1,926 +1,828 @@
-/*************************************************
- * KORUAL CONTROL CENTER – Ultra High-End app.js
- * - 로그인(index.html) + 대시보드(dashboard.html) 통합 프론트엔드
- * - Apps Script Backend 연동 (login + dashboard + lists)
- *************************************************/
+// app.js
+// KORUAL CONTROL CENTER – Frontend v1.0
+// dashboard.html 전용 JS
 
 (function () {
   "use strict";
 
-  /*************************************************
-   * 0) 공통 설정 / 유틸
-   *************************************************/
+  // =========================
+  // 기본 설정
+  // =========================
+  const META = window.KORUAL_META_APP || {};
+  const API_BASE = META.api?.baseUrl || "";
+  const API_SECRET = META.api?.secret || "";
 
-  // index.html 또는 dashboard.html 에서 세팅한 메타 우선 사용
-  var META = (window.KORUAL_META_APP && window.KORUAL_META_APP.api)
-    ? window.KORUAL_META_APP
-    : {
-        app: {
-          id: "korual-control-center",
-          name: "KORUAL CONTROL CENTER",
-          version: "v1.0-local",
-          env: "prod"
-        },
-        api: {
-          baseUrl:
-            "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
-          secret: "KORUAL-ONLY"
-        }
-      };
+  const $ = (sel, parent = document) => parent.querySelector(sel);
+  const $$ = (sel, parent = document) => Array.from(parent.querySelectorAll(sel));
 
-  var API_BASE = META.api.baseUrl;
-  var API_SECRET = META.api.secret;
+  const state = {
+    pingMs: null,
+    lastSync: null,
+  };
 
-  // 페이지 타입 판별
-  var isAuthPage = !!document.getElementById("btnLogin");
-  var isDashboardPage = !!document.getElementById("section-dashboard");
-
-  function $(selector, root) {
-    return (root || document).querySelector(selector);
-  }
-  function $all(selector, root) {
-    return Array.prototype.slice.call((root || document).querySelectorAll(selector));
-  }
-
-  function formatNumber(n) {
-    if (n == null || isNaN(n)) return "-";
-    return Number(n).toLocaleString("ko-KR");
-  }
-
-  function formatCurrency(n) {
-    if (n == null || isNaN(n)) return "-";
-    return Number(n).toLocaleString("ko-KR") + "원";
-  }
-
-  function nowYmd() {
-    var d = new Date();
-    var y = d.getFullYear();
-    var m = ("0" + (d.getMonth() + 1)).slice(-2);
-    var day = ("0" + d.getDate()).slice(-2);
-    return y + "-" + m + "-" + day;
-  }
-
-  /*************************************************
-   * 1) Toast 시스템
-   *************************************************/
-  var toastIdSeq = 1;
-  function showToast(message, type, timeoutMs) {
-    if (!timeoutMs) timeoutMs = 2600;
-    var root = document.getElementById("toastRoot");
+  // =========================
+  // 토스트
+  // =========================
+  function showToast(message, type = "info", timeout = 2500) {
+    const root = $("#toastRoot");
     if (!root) return;
 
-    var id = "korual-toast-" + toastIdSeq++;
-    var el = document.createElement("div");
-    el.id = id;
-    el.className = "toast " + (type === "error"
-      ? "toast--error"
-      : type === "success"
-      ? "toast--success"
-      : "toast--info");
-    el.style.marginBottom = "8px";
-    el.innerHTML = '<span style="font-size:14px;">' +
-      (type === "error" ? "⚠️" : type === "success" ? "✅" : "ℹ️") +
-      "</span><div>" + message + "</div>";
+    const wrap = document.createElement("div");
+    wrap.className =
+      "pointer-events-auto inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs shadow-lg mb-2 " +
+      (type === "error"
+        ? "border-rose-500/70 bg-rose-950/80 text-rose-100"
+        : type === "success"
+        ? "border-emerald-400/70 bg-emerald-900/80 text-emerald-100"
+        : "border-slate-700/80 bg-slate-900/90 text-slate-100");
 
-    root.appendChild(el);
+    const span = document.createElement("span");
+    span.textContent = message;
+    wrap.appendChild(span);
 
-    setTimeout(function () {
-      if (el && el.parentNode) {
-        el.style.opacity = "0";
-        el.style.transform = "translateY(4px)";
-        setTimeout(function () {
-          if (el && el.parentNode) el.parentNode.removeChild(el);
-        }, 200);
-      }
-    }, timeoutMs);
+    root.appendChild(wrap);
+    setTimeout(() => {
+      wrap.style.opacity = "0";
+      wrap.style.transform = "translateY(4px)";
+      setTimeout(() => wrap.remove(), 180);
+    }, timeout);
   }
 
-  /*************************************************
-   * 2) Theme (다크/라이트)
-   *************************************************/
-  function applyStoredTheme() {
-    var stored = null;
-    try {
-      stored = localStorage.getItem("korual_theme");
-    } catch (e) {}
-    var html = document.documentElement;
-
-    if (stored === "light") {
-      html.classList.remove("dark");
-    } else {
-      html.classList.add("dark");
-    }
-  }
-
-  function toggleTheme() {
-    var html = document.documentElement;
-    var isDark = html.classList.contains("dark");
-    if (isDark) {
-      html.classList.remove("dark");
-      try {
-        localStorage.setItem("korual_theme", "light");
-      } catch (e) {}
-    } else {
-      html.classList.add("dark");
-      try {
-        localStorage.setItem("korual_theme", "dark");
-      } catch (e) {}
-    }
-  }
-
-  function initThemeToggles() {
-    applyStoredTheme();
-
-    var authToggle = document.getElementById("toggleTheme");
-    if (authToggle) {
-      authToggle.addEventListener("click", function () {
-        toggleTheme();
-      });
-    }
-
-    var dashToggle = document.getElementById("themeToggle");
-    if (dashToggle) {
-      dashToggle.addEventListener("click", function () {
-        toggleTheme();
-      });
-    }
-  }
-
-  /*************************************************
-   * 3) API 래퍼
-   *************************************************/
-  function buildQuery(params) {
-    if (!params) return "";
-    var qs = Object.keys(params)
-      .filter(function (k) { return params[k] != null && params[k] !== ""; })
-      .map(function (k) {
-        return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]);
-      })
-      .join("&");
-    return qs ? "?" + qs : "";
-  }
-
-  function apiGet(target, params) {
-    params = params || {};
-    params.target = target;
-    var url = API_BASE + buildQuery(params);
-
-    var started = performance.now();
-    return fetch(url, { method: "GET" })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        data._elapsedMs = performance.now() - started;
-        return data;
-      });
-  }
-
-  function apiPost(target, payload) {
-    payload = payload || {};
-    payload.target = target;
-    payload.secret = API_SECRET;
-
-    var started = performance.now();
-    return fetch(API_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json;charset=utf-8" },
-      body: JSON.stringify(payload)
-    })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        data._elapsedMs = performance.now() - started;
-        return data;
-      });
-  }
-
-  /*************************************************
-   * 4) 글로벌 스피너
-   *************************************************/
-  var spinnerCount = 0;
+  // =========================
+  // 글로벌 스피너
+  // =========================
+  let spinnerCount = 0;
   function showSpinner() {
-    spinnerCount++;
-    var el = document.getElementById("globalSpinner");
-    if (el) el.classList.remove("hidden");
+    const el = $("#globalSpinner");
+    if (!el) return;
+    spinnerCount += 1;
+    el.classList.remove("hidden");
   }
   function hideSpinner() {
+    const el = $("#globalSpinner");
+    if (!el) return;
     spinnerCount = Math.max(0, spinnerCount - 1);
-    if (spinnerCount === 0) {
-      var el = document.getElementById("globalSpinner");
-      if (el) el.classList.add("hidden");
-    }
+    if (spinnerCount === 0) el.classList.add("hidden");
   }
 
-  /*************************************************
-   * 5) API 상태 표시 (Auth + Dashboard 공통)
-   *************************************************/
-  function updateApiStatusPending() {
-    var dot = document.getElementById("apiStatusDot");
-    var text = document.getElementById("apiStatusText");
-    if (dot) {
-      dot.style.background = "#fbbf24";
-      dot.style.boxShadow = "0 0 0 5px rgba(251,191,36,0.35)";
+  // =========================
+  // API 클라이언트
+  // =========================
+  async function apiGet(target, params = {}) {
+    if (!API_BASE) {
+      console.error("API_BASE 미설정");
+      throw new Error("API URL이 설정되지 않았습니다.");
     }
-    if (text) text.textContent = "API 체크 중…";
-  }
+    const url = new URL(API_BASE);
+    const search = url.searchParams;
+    search.set("target", target);
+    if (API_SECRET) search.set("secret", API_SECRET);
 
-  function updateApiStatusOk(ms) {
-    var dot = document.getElementById("apiStatusDot");
-    var text = document.getElementById("apiStatusText");
-    if (dot) {
-      dot.style.background = "#22c55e";
-      dot.style.boxShadow = "0 0 0 5px rgba(34,197,94,0.35)";
+    Object.keys(params).forEach((k) => {
+      const v = params[k];
+      if (v === undefined || v === null || v === "") return;
+      search.set(k, String(v));
+    });
+
+    const started = performance.now();
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
+    });
+    const elapsed = performance.now() - started;
+    state.pingMs = Math.round(elapsed);
+
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status);
     }
-    if (text) text.textContent = "정상 (" + Math.round(ms) + " ms)";
-    var pingEl = document.getElementById("apiPing");
-    if (pingEl) pingEl.textContent = Math.round(ms) + " ms";
-  }
 
-  function updateApiStatusError(msg) {
-    var dot = document.getElementById("apiStatusDot");
-    var text = document.getElementById("apiStatusText");
-    if (dot) {
-      dot.style.background = "#f97373";
-      dot.style.boxShadow = "0 0 0 5px rgba(248,113,113,0.35)";
-    }
-    if (text) text.textContent = msg || "오류";
-  }
-
-  function pingApi() {
-    updateApiStatusPending();
-    return apiGet("ping")
-      .then(function (data) {
-        if (!data || data.ok !== true) {
-          updateApiStatusError("응답 오류");
-          return;
-        }
-        updateApiStatusOk(data._elapsedMs || 0);
-      })
-      .catch(function () {
-        updateApiStatusError("연결 실패");
-      });
-  }
-
-  /*************************************************
-   * 6) 로그인 페이지 초기화 (API 연동 버전)
-   *************************************************/
-  function initAuthPage() {
-    // Footer 연도
-    var yearEl = document.getElementById("year");
-    if (yearEl) yearEl.textContent = new Date().getFullYear();
-
-    pingApi();
-
-    // 언어 셀렉트 동기화
-    var langTop = document.getElementById("langTop");
-    var langAuth = document.getElementById("langAuth");
-    function syncLang(sel, other) {
-      if (!sel || !other) return;
-      sel.addEventListener("change", function () {
-        other.value = sel.value;
-        try {
-          localStorage.setItem("korual_lang", sel.value);
-        } catch (e) {}
-      });
-    }
-    syncLang(langTop, langAuth);
-    syncLang(langAuth, langTop);
-
-    // 저장된 언어
+    const text = await res.text();
+    let json;
     try {
-      var savedLang = localStorage.getItem("korual_lang");
-      if (savedLang && langTop && langAuth) {
-        langTop.value = savedLang;
-        langAuth.value = savedLang;
-      }
-    } catch (e) {}
+      json = JSON.parse(text);
+    } catch (e) {
+      console.error("JSON 파싱 오류", text);
+      throw new Error("API 응답이 JSON 형식이 아닙니다.");
+    }
 
-    var loginUsername = document.getElementById("loginUsername");
-    var loginPassword = document.getElementById("loginPassword");
-    var rememberId = document.getElementById("rememberId");
-    var loginMsg = document.getElementById("loginMsg");
-    var btnLogin = document.getElementById("btnLogin");
-    var capsIndicator = document.getElementById("capsIndicator");
-    var togglePwd = document.getElementById("togglePwd");
-    var btnFillDemo = document.getElementById("btnFillDemo");
-    var btnFillDemoMobile = document.getElementById("btnFillDemoMobile");
+    if (json.ok === false) {
+      throw new Error(json.message || "API 오류");
+    }
 
-    // 저장된 ID
+    return json;
+  }
+
+  async function apiPost(body) {
+    if (!API_BASE) {
+      console.error("API_BASE 미설정");
+      throw new Error("API URL이 설정되지 않았습니다.");
+    }
+    const url = new URL(API_BASE);
+    const started = performance.now();
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        secret: API_SECRET || undefined,
+        ...body,
+      }),
+    });
+    const elapsed = performance.now() - started;
+    state.pingMs = Math.round(elapsed);
+
+    if (!res.ok) {
+      throw new Error("HTTP " + res.status);
+    }
+
+    const text = await res.text();
+    let json;
     try {
-      var savedId = localStorage.getItem("korual_saved_id");
-      if (savedId && loginUsername && rememberId) {
-        loginUsername.value = savedId;
-        rememberId.checked = true;
+      json = JSON.parse(text);
+    } catch (e) {
+      console.error("JSON 파싱 오류", text);
+      throw new Error("API 응답이 JSON 형식이 아닙니다.");
+    }
+
+    if (json.ok === false) {
+      throw new Error(json.message || "API 오류");
+    }
+
+    return json;
+  }
+
+  // =========================
+  // API 상태 표시
+  // =========================
+  function updateApiStatus(ok, message) {
+    const dot = $("#apiStatusDot");
+    const text = $("#apiStatusText");
+    const pingEl = $("#apiPing");
+
+    if (!dot || !text) return;
+
+    if (ok) {
+      dot.className =
+        "status-dot inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.35)]";
+      text.textContent = message || "정상 연결";
+    } else {
+      dot.className =
+        "status-dot inline-block w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_0_4px_rgba(248,113,113,0.35)]";
+      text.textContent = message || "연결 실패";
+    }
+
+    if (pingEl && state.pingMs != null) {
+      pingEl.textContent = state.pingMs + " ms";
+    }
+  }
+
+  async function pingApi() {
+    try {
+      const res = await apiGet("ping");
+      updateApiStatus(true, "LIVE " + (res.version || ""));
+      return res;
+    } catch (err) {
+      console.error(err);
+      updateApiStatus(false, "Ping 실패");
+      showToast("API 연결에 실패했습니다.", "error");
+      throw err;
+    }
+  }
+
+  // =========================
+  // 날짜 포맷
+  // =========================
+  function formatDateLabel(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+    const day = dayNames[date.getDay()];
+    return `${y}-${m}-${d} (${day})`;
+  }
+
+  // =========================
+  // 대시보드 데이터 로딩
+  // =========================
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  function formatCurrency(value) {
+    if (value == null || isNaN(Number(value))) return "-";
+    return Number(value).toLocaleString("ko-KR") + "원";
+  }
+
+  async function loadDashboard() {
+    const todayLabelEl = $("#todayDateLabel");
+    if (todayLabelEl) {
+      todayLabelEl.textContent = formatDateLabel();
+    }
+
+    try {
+      const res = await apiGet("dashboard");
+      const d = res.data || {};
+
+      // 카드
+      const totals = d.totals || {};
+      setText("cardTotalProducts", totals.products ?? "-");
+      setText("cardTotalOrders", totals.orders ?? "-");
+      setText("cardTotalMembers", totals.members ?? "-");
+      setText("cardTotalRevenue", totals.revenue != null ? formatCurrency(totals.revenue) : "-");
+
+      // 오늘 요약
+      const today = d.today || {};
+      setText("todayOrders", today.orders ?? "-");
+      setText("todayRevenue", today.revenue != null ? formatCurrency(today.revenue) : "-");
+      setText("todayPending", today.pending ?? "-");
+
+      // 최근 주문
+      renderRecentOrders(d.recentOrders || []);
+      state.lastSync = new Date();
+      updateLastSyncLabel();
+    } catch (err) {
+      console.error(err);
+      showToast("대시보드 데이터를 불러오지 못했습니다.", "error");
+    }
+  }
+
+  function renderRecentOrders(rows) {
+    const tbody = $("#recentOrdersBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (!rows.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 7;
+      td.className = "empty-state px-3 py-6 text-center text-slate-500";
+      td.textContent = "최근 주문 데이터가 없습니다.";
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+      return;
+    }
+
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.className =
+        "border-b border-slate-800/70 last:border-b-0 hover:bg-slate-900/70 transition-colors";
+
+      const cells = [
+        row.orderDate || row.date || "",
+        row.orderNo || row.orderNumber || "",
+        row.productName || "",
+        row.qty != null ? String(row.qty) : "",
+        row.amount != null ? formatCurrency(row.amount) : "",
+        row.channel || "",
+        row.status || "",
+      ];
+
+      cells.forEach((val, idx) => {
+        const td = document.createElement("td");
+        td.className =
+          "px-2 py-1.5" + (idx === 3 || idx === 4 ? " text-right" : " text-left");
+        td.textContent = val;
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function updateLastSyncLabel() {
+    const el = $("#last-sync");
+    if (!el) return;
+    if (!state.lastSync) {
+      el.textContent = "마지막 동기화 대기 중…";
+      return;
+    }
+    const d = state.lastSync;
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    el.textContent = `마지막 동기화 ${hh}:${mm}`;
+  }
+
+  // =========================
+  // 공통 테이블 로더
+  // =========================
+  async function loadEntityTable(options) {
+    const {
+      entity,
+      sheet,
+      tbodyId,
+      pagerId,
+      searchInputId,
+      columns,
+    } = options;
+
+    const tbody = document.getElementById(tbodyId);
+    const pager = document.getElementById(pagerId);
+    const searchInput = searchInputId ? document.getElementById(searchInputId) : null;
+    if (!tbody) return;
+
+    const paging = {
+      page: 1,
+      pageSize: 50,
+      q: "",
+    };
+
+    async function fetchAndRender() {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="${columns.length}" class="empty-state px-3 py-6 text-center text-slate-500">
+            데이터를 불러오는 중입니다…
+          </td>
+        </tr>
+      `;
+
+      try {
+        const res = await apiGet(sheet, {
+          page: paging.page,
+          pageSize: paging.pageSize,
+          q: paging.q,
+        });
+
+        const data = res.data || {};
+        const rows = data.rows || data.items || [];
+        const page = data.page || paging.page;
+        const pageSize = data.pageSize || paging.pageSize;
+        const total = data.total || rows.length;
+        paging.page = page;
+        paging.pageSize = pageSize;
+
+        renderTableRows(rows);
+        updatePager(page, pageSize, total);
+        state.lastSync = new Date();
+        updateLastSyncLabel();
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="${columns.length}" class="empty-state px-3 py-6 text-center text-rose-400">
+              데이터를 불러오지 못했습니다.
+            </td>
+          </tr>
+        `;
       }
-    } catch (e) {}
-
-    // 데모 자동 채우기 (STAFF 시트에서도 KORUAL/GUEST 만들어두면 그대로 사용 가능)
-    function fillDemo() {
-      if (loginUsername) loginUsername.value = "KORUAL";
-      if (loginPassword) loginPassword.value = "GUEST";
-    }
-    if (btnFillDemo) {
-      btnFillDemo.addEventListener("click", function () {
-        fillDemo();
-        showToast("테스트 계정을 자동으로 입력했습니다.", "info");
-      });
-    }
-    if (btnFillDemoMobile) {
-      btnFillDemoMobile.addEventListener("click", function () {
-        fillDemo();
-        showToast("테스트 계정을 자동으로 입력했습니다.", "info");
-      });
     }
 
-    // Caps Lock 표시
-    function handleCaps(e) {
-      if (!capsIndicator) return;
-      var capsOn = e.getModifierState && e.getModifierState("CapsLock");
-      if (capsOn) capsIndicator.classList.remove("hidden");
-      else capsIndicator.classList.add("hidden");
-    }
-    if (loginPassword) {
-      loginPassword.addEventListener("keydown", handleCaps);
-      loginPassword.addEventListener("keyup", handleCaps);
-    }
+    function renderTableRows(rows) {
+      tbody.innerHTML = "";
 
-    // 비밀번호 보기
-    if (togglePwd && loginPassword) {
-      togglePwd.addEventListener("click", function () {
-        var type = loginPassword.getAttribute("type");
-        if (type === "password") {
-          loginPassword.setAttribute("type", "text");
-          togglePwd.textContent = "🙈 비밀번호 숨기기";
-        } else {
-          loginPassword.setAttribute("type", "password");
-          togglePwd.textContent = "👁 비밀번호 보기";
-        }
-      });
-    }
-
-    var isLoggingIn = false;
-
-    function doLogin() {
-      if (!loginUsername || !loginPassword || !btnLogin) return;
-      if (isLoggingIn) return;
-
-      var id = (loginUsername.value || "").trim();
-      var pw = (loginPassword.value || "").trim();
-
-      if (!id || !pw) {
-        loginMsg.textContent = "아이디와 비밀번호를 모두 입력해주세요.";
-        loginPassword.classList.add("input-error");
+      if (!rows.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = columns.length;
+        td.className = "empty-state px-3 py-6 text-center text-slate-500";
+        td.textContent = "데이터가 없습니다.";
+        tr.appendChild(td);
+        tbody.appendChild(tr);
         return;
       }
 
-      loginMsg.textContent = "";
-      loginPassword.classList.remove("input-error");
-      isLoggingIn = true;
-      btnLogin.disabled = true;
-      btnLogin.textContent = "로그인 중…";
-      showSpinner();
+      rows.forEach((row, idx) => {
+        const tr = document.createElement("tr");
+        tr.className =
+          "border-b border-slate-800/70 last:border-b-0 hover:bg-slate-900/70 transition-colors";
 
-      apiPost("login", { username: id, password: pw })
-        .then(function (data) {
-          if (!data || data.ok !== true) {
-            var msg =
-              (data && data.message) ||
-              "아이디 또는 비밀번호가 올바르지 않습니다.";
-            loginMsg.textContent = msg;
-            showToast(msg, "error");
-            loginPassword.classList.add("input-error");
-            return;
+        columns.forEach((col) => {
+          const td = document.createElement("td");
+          td.className = "px-2 py-1.5 " + (col.align === "right" ? "text-right" : "text-left");
+          let value = row[col.key];
+
+          if (col.format === "currency") {
+            value = formatCurrency(value);
+          } else if (col.format === "date") {
+            value = value || "";
+          } else if (value == null) {
+            value = "";
           }
 
-          // 백엔드에서 내려준 user 사용
-          var userInfo = data.user || { username: id };
-          var user = {
-            username: userInfo.username || id,
-            displayName: userInfo.displayName || id,
-            role: userInfo.role || "USER",
-            loggedInAt: new Date().toISOString(),
-            app: META.app
-          };
-
-          try {
-            localStorage.setItem("korual_user", JSON.stringify(user));
-            if (rememberId && rememberId.checked) {
-              localStorage.setItem("korual_saved_id", id);
-            } else {
-              localStorage.removeItem("korual_saved_id");
-            }
-          } catch (e) {}
-
-          showToast("KORUAL CONTROL CENTER에 로그인되었습니다.", "success", 1800);
-
-          setTimeout(function () {
-            window.location.href = "dashboard.html";
-          }, 600);
-        })
-        .catch(function () {
-          var msg = "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
-          loginMsg.textContent = msg;
-          showToast(msg, "error");
-        })
-        .finally(function () {
-          isLoggingIn = false;
-          btnLogin.disabled = false;
-          btnLogin.textContent = "로그인";
-          hideSpinner();
+          td.textContent = value;
+          tr.appendChild(td);
         });
-    }
 
-    if (btnLogin) {
-      btnLogin.addEventListener("click", function () {
-        doLogin();
+        // 관리 버튼이 필요한 경우
+        const manageCol = columns.find((c) => c.type === "manage");
+        if (manageCol) {
+          const td = document.createElement("td");
+          td.className = "px-2 py-1.5 text-center";
+          const btnEdit = document.createElement("button");
+          btnEdit.type = "button";
+          btnEdit.className =
+            "inline-flex items-center px-2 py-0.5 rounded-full border border-slate-600/80 text-[10px] text-slate-200 bg-slate-900/80 mr-1";
+          btnEdit.textContent = "수정";
+          btnEdit.addEventListener("click", () => {
+            if (!window.KORUAL_MODAL || !window.KORUAL_MODAL.openEdit) return;
+            window.KORUAL_MODAL.openEdit({
+              entity,
+              sheet,
+              rowIndex: row._row || row.rowIndex || idx + 2,
+              data: row,
+            });
+          });
+
+          const btnDel = document.createElement("button");
+          btnDel.type = "button";
+          btnDel.className =
+            "inline-flex items-center px-2 py-0.5 rounded-full border border-rose-500/70 text-[10px] text-rose-200 bg-rose-950/70";
+          btnDel.textContent = "삭제";
+          btnDel.addEventListener("click", () => {
+            if (!window.KORUAL_MODAL || !window.KORUAL_MODAL.openDelete) return;
+            window.KORUAL_MODAL.openDelete({
+              entity,
+              sheet,
+              rowIndex: row._row || row.rowIndex || idx + 2,
+              title: row[manageCol.titleKey || ""] || "",
+            });
+          });
+
+          td.appendChild(btnEdit);
+          td.appendChild(btnDel);
+          tr.appendChild(td);
+        }
+
+        tbody.appendChild(tr);
       });
     }
 
-    [loginUsername, loginPassword].forEach(function (input) {
-      if (!input) return;
-      input.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          doLogin();
-        }
-      });
-    });
-
-    // 아이디 찾기 / 비번 재설정 모달은 데모 메세지만
-    var btnFindIdSubmit = document.getElementById("btnFindIdSubmit");
-    var fiResult = document.getElementById("fiResult");
-    if (btnFindIdSubmit && fiResult) {
-      btnFindIdSubmit.addEventListener("click", function () {
-        fiResult.textContent =
-          "현재 데모 환경에서는 STAFF 시트에 등록된 계정만 사용합니다.";
-      });
-    }
-    var btnResetPwSubmit = document.getElementById("btnResetPwSubmit");
-    var rpMsg = document.getElementById("rpMsg");
-    if (btnResetPwSubmit && rpMsg) {
-      btnResetPwSubmit.addEventListener("click", function () {
-        rpMsg.textContent =
-          "데모 환경에서는 비밀번호 재설정 없이 STAFF 시트 비밀번호를 그대로 사용합니다.";
-      });
-    }
-  }
-
-  /*************************************************
-   * 7) 대시보드 – 상태
-   *************************************************/
-  var listState = {
-    products: { page: 1, size: 50, q: "", total: 0, pageCount: 1 },
-    orders: { page: 1, size: 50, q: "", total: 0, pageCount: 1 },
-    members: { page: 1, size: 50, q: "", total: 0, pageCount: 1 },
-    stock: { page: 1, size: 50, q: "", total: 0, pageCount: 1 },
-    logs: { page: 1, size: 50, q: "", total: 0, pageCount: 1 }
-  };
-
-  function setLastSync() {
-    var el = document.getElementById("last-sync");
-    if (!el) return;
-    var d = new Date();
-    var timeStr =
-      d.getHours().toString().padStart(2, "0") +
-      ":" +
-      d.getMinutes().toString().padStart(2, "0") +
-      ":" +
-      d.getSeconds().toString().padStart(2, "0");
-    el.textContent = "마지막 동기화: " + nowYmd() + " " + timeStr;
-  }
-
-  /*************************************************
-   * 8) 대시보드 – 카드 / 오늘 요약
-   *************************************************/
-  function loadDashboardSummary() {
-    var cardTotalProducts = document.getElementById("cardTotalProducts");
-    var cardTotalOrders = document.getElementById("cardTotalOrders");
-    var cardTotalRevenue = document.getElementById("cardTotalRevenue");
-    var cardTotalMembers = document.getElementById("cardTotalMembers");
-    var todayOrders = document.getElementById("todayOrders");
-    var todayRevenue = document.getElementById("todayRevenue");
-    var todayPending = document.getElementById("todayPending");
-    var todayDateLabel = document.getElementById("todayDateLabel");
-    var recentOrdersBody = document.getElementById("recentOrdersBody");
-
-    if (todayDateLabel) todayDateLabel.textContent = nowYmd();
-
-    showSpinner();
-    return apiGet("dashboard")
-      .then(function (data) {
-        if (!data || data.ok !== true) {
-          showToast("대시보드 데이터를 불러오지 못했습니다.", "error");
-          return;
-        }
-
-        if (cardTotalProducts) cardTotalProducts.textContent = formatNumber(data.totalProducts);
-        if (cardTotalOrders) cardTotalOrders.textContent = formatNumber(data.totalOrders);
-        if (cardTotalRevenue) cardTotalRevenue.textContent = formatCurrency(data.totalRevenue);
-        if (cardTotalMembers) cardTotalMembers.textContent = formatNumber(data.totalMembers);
-
-        if (todayOrders) todayOrders.textContent = formatNumber(data.todayOrders);
-        if (todayRevenue) todayRevenue.textContent = formatCurrency(data.todayRevenue);
-        if (todayPending) todayPending.textContent = formatNumber(data.todayPending);
-
-        if (recentOrdersBody) {
-          var items = data.recentOrders || [];
-          if (!items.length) {
-            recentOrdersBody.innerHTML =
-              '<tr><td colspan="7" class="empty-state">최근 주문이 없습니다.</td></tr>';
-          } else {
-            var rowsHtml = items
-              .map(function (o) {
-                return (
-                  "<tr>" +
-                  "<td>" + (o.order_date || "") + "</td>" +
-                  "<td>" + (o.order_no || "") + "</td>" +
-                  "<td>" + (o.item_name || "") + "</td>" +
-                  "<td class=\"text-right\">" + formatNumber(o.qty) + "</td>" +
-                  "<td class=\"text-right\">" + formatCurrency(o.amount) + "</td>" +
-                  "<td>" + (o.channel || "") + "</td>" +
-                  "<td>" + (o.status || "") + "</td>" +
-                  "</tr>"
-                );
-              })
-              .join("");
-            recentOrdersBody.innerHTML = rowsHtml;
-          }
-        }
-      })
-      .catch(function () {
-        showToast("대시보드 데이터를 불러오는 중 오류가 발생했습니다.", "error");
-      })
-      .finally(function () {
-        hideSpinner();
-      });
-  }
-
-  /*************************************************
-   * 9) 공통 리스트 로더
-   *************************************************/
-  function loadList(entity) {
-    var state = listState[entity];
-    if (!state) return;
-
-    var tbodyId = entity + "Body";
-    var pagerId = entity + "Pager";
-    var sheetTarget =
-      entity === "products"
-        ? "products"
-        : entity === "orders"
-        ? "orders"
-        : entity === "members"
-        ? "members"
-        : entity === "stock"
-        ? "stock"
-        : "logs";
-
-    var tbody = document.getElementById(tbodyId);
-
-    if (tbody) {
-      tbody.innerHTML =
-        '<tr><td colspan="12" class="empty-state">데이터를 불러오는 중입니다…</td></tr>';
-    }
-
-    var page = state.page || 1;
-    var size = state.size || 50;
-
-    return apiGet(sheetTarget, {
-      q: state.q || "",
-      page: page,
-      size: size
-    })
-      .then(function (data) {
-        if (!data || data.ok !== true) {
-          showToast("데이터를 불러오지 못했습니다. (" + entity + ")", "error");
-          return;
-        }
-        var rows = data.rows || [];
-        var meta = data.meta || {};
-        state.total = meta.total || rows.length;
-        state.pageCount = meta.pageCount || 1;
-        state.page = meta.page || 1;
-        state.size = meta.pageSize || size;
-
-        if (!tbody) return;
-        if (!rows.length) {
-          tbody.innerHTML =
-            '<tr><td colspan="12" class="empty-state">데이터가 없습니다.</td></tr>';
-          updatePager(entity);
-          return;
-        }
-
-        var html = "";
-        if (entity === "products") {
-          html = rows
-            .map(function (r) {
-              return (
-                "<tr>" +
-                "<td>" + (r["상품코드"] || "") + "</td>" +
-                "<td>" + (r["상품명"] || "") + "</td>" +
-                "<td>" + (r["옵션"] || "") + "</td>" +
-                "<td class=\"text-right\">" + formatCurrency(r["판매가"]) + "</td>" +
-                "<td class=\"text-right\">" + formatNumber(r["재고"]) + "</td>" +
-                "<td>" + (r["채널"] || "") + "</td>" +
-                "</tr>"
-              );
-            })
-            .join("");
-        } else if (entity === "orders") {
-          html = rows
-            .map(function (r) {
-              return (
-                "<tr>" +
-                "<td>" + (r["회원번호"] || "") + "</td>" +
-                "<td>" + (r["날짜"] || r["주문일자"] || "") + "</td>" +
-                "<td>" + (r["주문번호"] || "") + "</td>" +
-                "<td>" + (r["고객명"] || "") + "</td>" +
-                "<td>" + (r["상품명"] || "") + "</td>" +
-                "<td class=\"text-right\">" + formatNumber(r["수량"]) + "</td>" +
-                "<td class=\"text-right\">" + formatCurrency(r["금액"]) + "</td>" +
-                "<td>" + (r["상태"] || "") + "</td>" +
-                "<td>" + (r["채널"] || "") + "</td>" +
-                "</tr>"
-              );
-            })
-            .join("");
-        } else if (entity === "members") {
-          html = rows
-            .map(function (r) {
-              return (
-                "<tr>" +
-                "<td>" + (r["회원번호"] || "") + "</td>" +
-                "<td>" + (r["이름"] || "") + "</td>" +
-                "<td>" + (r["전화번호"] || "") + "</td>" +
-                "<td>" + (r["이메일"] || "") + "</td>" +
-                "<td>" + (r["가입일"] || "") + "</td>" +
-                "<td>" + (r["채널"] || "") + "</td>" +
-                "<td>" + (r["등급"] || "") + "</td>" +
-                "<td class=\"text-right\">" + formatCurrency(r["누적매출"]) + "</td>" +
-                "<td class=\"text-right\">" + formatNumber(r["포인트"]) + "</td>" +
-                "<td>" + (r["최근주문일"] || "") + "</td>" +
-                "<td>" + (r["메모"] || "") + "</td>" +
-                "<td>-</td>" +
-                "</tr>"
-              );
-            })
-            .join("");
-        } else if (entity === "stock") {
-          html = rows
-            .map(function (r) {
-              return (
-                "<tr>" +
-                "<td>" + (r["상품코드"] || "") + "</td>" +
-                "<td>" + (r["상품명"] || "") + "</td>" +
-                "<td class=\"text-right\">" + formatNumber(r["현재재고"] || r["현재 재고"]) + "</td>" +
-                "<td class=\"text-right\">" + formatNumber(r["안전재고"] || r["안전 재고"]) + "</td>" +
-                "<td>" + (r["상태"] || "") + "</td>" +
-                "<td>" + (r["창고"] || "") + "</td>" +
-                "<td>" + (r["채널"] || "") + "</td>" +
-                "<td>-</td>" +
-                "</tr>"
-              );
-            })
-            .join("");
-        } else if (entity === "logs") {
-          html = rows
-            .map(function (r) {
-              return (
-                "<tr>" +
-                "<td>" + (r["시간"] || "") + "</td>" +
-                "<td>" + (r["타입"] || "") + "</td>" +
-                "<td>" + (r["메시지"] || "") + "</td>" +
-                "<td>" + (r["상세"] || "") + "</td>" +
-                "</tr>"
-              );
-            })
-            .join("");
-        }
-
-        tbody.innerHTML = html;
-        updatePager(entity);
-      })
-      .catch(function () {
-        showToast("데이터를 불러오는 중 오류가 발생했습니다. (" + entity + ")", "error");
-      });
-  }
-
-  function updatePager(entity) {
-    var state = listState[entity];
-    if (!state) return;
-    var pager = document.getElementById(entity + "Pager");
-    if (!pager) return;
-
-    var label = pager.querySelector("[data-page-label]");
-    var btnPrev = pager.querySelector('[data-page="prev"]');
-    var btnNext = pager.querySelector('[data-page="next"]');
-
-    if (label) {
-      label.textContent =
-        (state.page || 1) + " / " + (state.pageCount || 1) + " (총 " + state.total + "행)";
-    }
-    if (btnPrev) btnPrev.disabled = state.page <= 1;
-    if (btnNext) btnNext.disabled = state.page >= state.pageCount;
-  }
-
-  function initPagerControls(entity) {
-    var pager = document.getElementById(entity + "Pager");
-    if (!pager) return;
-
-    pager.addEventListener("click", function (e) {
-      var btn = e.target.closest("button");
-      if (!btn) return;
-      var dir = btn.getAttribute("data-page");
-      if (!dir) return;
-
-      var state = listState[entity];
-      if (!state) return;
-
-      if (dir === "prev" && state.page > 1) {
-        state.page -= 1;
-        loadList(entity);
-      } else if (dir === "next" && state.page < state.pageCount) {
-        state.page += 1;
-        loadList(entity);
+    function updatePager(page, pageSize, total) {
+      if (!pager) return;
+      const label = pager.querySelector("[data-page-label]");
+      if (label) {
+        const start = (page - 1) * pageSize + 1;
+        const end = Math.min(total, page * pageSize);
+        label.textContent = total
+          ? `${start}–${end} / ${total}`
+          : `${page} 페이지`;
       }
-    });
-  }
+    }
 
-  function debounce(fn, delay) {
-    var timer = null;
-    return function () {
-      var ctx = this;
-      var args = arguments;
-      clearTimeout(timer);
-      timer = setTimeout(function () {
-        fn.apply(ctx, args);
-      }, delay || 300);
+    if (pager) {
+      pager.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-page]");
+        if (!btn) return;
+        const dir = btn.dataset.page;
+        if (dir === "prev") {
+          paging.page = Math.max(1, paging.page - 1);
+        } else if (dir === "next") {
+          paging.page = paging.page + 1;
+        }
+        fetchAndRender();
+      });
+    }
+
+    if (searchInput) {
+      let timer = null;
+      searchInput.addEventListener("input", () => {
+        const q = searchInput.value.trim();
+        paging.q = q;
+        paging.page = 1;
+        clearTimeout(timer);
+        timer = setTimeout(() => fetchAndRender(), 250);
+      });
+    }
+
+    // 최초 로딩
+    fetchAndRender();
+
+    // 반환해서 필요 시 다시 호출 가능
+    return {
+      reload: fetchAndRender,
+      state: paging,
     };
   }
 
-  function initSearchInput(entity, inputId) {
-    var input = document.getElementById(inputId);
-    if (!input) return;
+  // 각 섹션 테이블 초기화
+  function initTables() {
+    loadEntityTable({
+      entity: "products",
+      sheet: "PRODUCTS",
+      tbodyId: "productsBody",
+      pagerId: "productsPager",
+      searchInputId: "searchProducts",
+      columns: [
+        { key: "productCode" },
+        { key: "productName" },
+        { key: "optionName" },
+        { key: "price", align: "right", format: "currency" },
+        { key: "stock", align: "right" },
+        { key: "channel" },
+      ],
+    });
 
-    input.addEventListener(
-      "input",
-      debounce(function () {
-        var val = input.value || "";
-        listState[entity].q = val.trim();
-        listState[entity].page = 1;
-        loadList(entity);
-      }, 400)
-    );
+    loadEntityTable({
+      entity: "orders",
+      sheet: "ORDERS",
+      tbodyId: "ordersBody",
+      pagerId: "ordersPager",
+      searchInputId: "searchOrders",
+      columns: [
+        { key: "memberNo" },
+        { key: "date" },
+        { key: "orderNo" },
+        { key: "customerName" },
+        { key: "productName" },
+        { key: "qty", align: "right" },
+        { key: "amount", align: "right", format: "currency" },
+        { key: "status" },
+        { key: "channel" },
+      ],
+    });
+
+    loadEntityTable({
+      entity: "members",
+      sheet: "MEMBERS",
+      tbodyId: "membersBody",
+      pagerId: "membersPager",
+      searchInputId: "searchMembers",
+      columns: [
+        { key: "memberNo" },
+        { key: "name" },
+        { key: "phone" },
+        { key: "email" },
+        { key: "joinedAt" },
+        { key: "channel" },
+        { key: "grade" },
+        { key: "totalSales", align: "right", format: "currency" },
+        { key: "point", align: "right" },
+        { key: "lastOrderAt" },
+        { key: "memo" },
+        { type: "manage", titleKey: "name" },
+      ],
+    });
+
+    loadEntityTable({
+      entity: "stock",
+      sheet: "STOCK",
+      tbodyId: "stockBody",
+      pagerId: "stockPager",
+      searchInputId: "searchStock",
+      columns: [
+        { key: "productCode" },
+        { key: "productName" },
+        { key: "currentStock", align: "right" },
+        { key: "safetyStock", align: "right" },
+        { key: "status" },
+        { key: "warehouse" },
+        { key: "channel" },
+        { type: "manage", titleKey: "productName" },
+      ],
+    });
+
+    loadEntityTable({
+      entity: "logs",
+      sheet: "LOGS",
+      tbodyId: "logsBody",
+      pagerId: "logsPager",
+      searchInputId: "searchLogs",
+      columns: [
+        { key: "time" },
+        { key: "type" },
+        { key: "message" },
+        { key: "detail" },
+      ],
+    });
   }
 
-  /*************************************************
-   * 10) 대시보드 페이지 초기화
-   *************************************************/
-  function initDashboardPage() {
-    // 로그인 세션 복구
-    var user = null;
-    try {
-      var raw = localStorage.getItem("korual_user");
-      if (raw) user = JSON.parse(raw);
-    } catch (e) {}
-    var welcomeUser = document.getElementById("welcomeUser");
-    if (welcomeUser) {
-      welcomeUser.textContent =
-        (user && (user.displayName || user.username)) || "KORUAL";
+  // =========================
+  // 테마 토글
+  // =========================
+  function initThemeToggle() {
+    const btn = $("#themeToggle");
+    const label = btn?.querySelector(".theme-toggle-label");
+    const thumb = btn?.querySelector(".theme-toggle-thumb");
+    const body = document.body;
+    if (!btn || !label || !thumb || !body) return;
+
+    const saved = localStorage.getItem("korual_theme");
+    if (saved === "light") {
+      body.classList.remove("theme-dark");
+      body.classList.add("theme-light", "bg-slate-50", "text-slate-900");
+      label.textContent = label.dataset.light || "Light";
+      thumb.style.transform = "translateX(1.5rem)";
+    } else {
+      body.classList.add("theme-dark");
+      label.textContent = label.dataset.dark || "Dark";
+      thumb.style.transform = "translateX(0.25rem)";
     }
 
-    pingApi();
-    setLastSync();
+    btn.addEventListener("click", () => {
+      const isDark = body.classList.contains("theme-dark");
+      if (isDark) {
+        body.classList.remove("theme-dark");
+        body.classList.add("theme-light", "bg-slate-50", "text-slate-900");
+        localStorage.setItem("korual_theme", "light");
+        label.textContent = label.dataset.light || "Light";
+        thumb.style.transform = "translateX(1.5rem)";
+      } else {
+        body.classList.remove("theme-light", "bg-slate-50", "text-slate-900");
+        body.classList.add("theme-dark");
+        localStorage.setItem("korual_theme", "dark");
+        label.textContent = label.dataset.dark || "Dark";
+        thumb.style.transform = "translateX(0.25rem)";
+      }
+    });
+  }
 
-    // 사이드바 내비게이션
-    var navLinks = $all(".nav-link");
-    navLinks.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var target = btn.getAttribute("data-section");
-        if (!target) return;
+  // =========================
+  // 네비게이션
+  // =========================
+  function initNavigation() {
+    const links = $$(".nav-link");
+    const sections = $$(".section");
 
-        navLinks.forEach(function (b) {
-          b.classList.remove("active");
-        });
+    links.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const target = btn.dataset.section;
+        links.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
 
-        var id = "section-" + target;
-        $all(".section").forEach(function (sec) {
-          if (sec.id === id) sec.classList.add("active");
-          else sec.classList.remove("active");
+        sections.forEach((sec) => {
+          if (sec.id === "section-" + target) {
+            sec.classList.remove("hidden");
+            sec.classList.add("active");
+          } else {
+            sec.classList.add("hidden");
+            sec.classList.remove("active");
+          }
         });
       });
     });
 
-    // 모바일 메뉴
-    var menuToggle = document.getElementById("menuToggle");
-    var sidebarBackdrop = document.getElementById("sidebarBackdrop");
-    var body = document.body;
-    if (menuToggle && sidebarBackdrop) {
-      function closeSidebar() {
-        body.classList.remove("sidebar-open");
-      }
-      function toggleSidebar() {
-        body.classList.toggle("sidebar-open");
-      }
-
-      menuToggle.addEventListener("click", toggleSidebar);
-      sidebarBackdrop.addEventListener("click", closeSidebar);
-    }
-
-    // 버튼들
-    var btnRefreshAll = document.getElementById("btnRefreshAll");
-    if (btnRefreshAll) {
-      btnRefreshAll.addEventListener("click", function () {
-        showSpinner();
-        Promise.all([
-          loadDashboardSummary(),
-          loadList("products"),
-          loadList("orders"),
-          loadList("members"),
-          loadList("stock"),
-          loadList("logs")
-        ])
-          .then(function () {
-            setLastSync();
-            showToast("전체 데이터를 새로고침했습니다.", "success");
-          })
-          .finally(function () {
-            hideSpinner();
-          });
-      });
-    }
-
-    var btnLogout = document.getElementById("btnLogout");
-    if (btnLogout) {
-      btnLogout.addEventListener("click", function () {
-        try {
-          localStorage.removeItem("korual_user");
-        } catch (e) {}
-        showToast("로그아웃 되었습니다.", "info", 1200);
-        setTimeout(function () {
-          window.location.href = "index.html";
-        }, 900);
-      });
-    }
-
-    var goOrders = document.getElementById("goOrders");
+    const goOrders = $("#goOrders");
     if (goOrders) {
-      goOrders.addEventListener("click", function () {
-        var btn = document.querySelector('.nav-link[data-section="orders"]');
-        if (btn) btn.click();
-      });
-    }
-
-    // 페이저/검색 초기화
-    initPagerControls("products");
-    initPagerControls("orders");
-    initPagerControls("members");
-    initPagerControls("stock");
-    initPagerControls("logs");
-
-    initSearchInput("products", "searchProducts");
-    initSearchInput("orders", "searchOrders");
-    initSearchInput("members", "searchMembers");
-    initSearchInput("stock", "searchStock");
-    initSearchInput("logs", "searchLogs");
-
-    // 초기 로딩
-    showSpinner();
-    Promise.all([
-      loadDashboardSummary(),
-      loadList("products"),
-      loadList("orders"),
-      loadList("members"),
-      loadList("stock"),
-      loadList("logs")
-    ])
-      .then(function () {
-        setLastSync();
-      })
-      .finally(function () {
-        hideSpinner();
-      });
-
-    var rowEditSave = document.getElementById("rowEditSave");
-    if (rowEditSave) {
-      rowEditSave.addEventListener("click", function () {
-        showToast("편집 저장 기능은 추후 Apps Script와 연동 예정입니다.", "info");
-      });
-    }
-    var rowDeleteConfirm = document.getElementById("rowDeleteConfirm");
-    if (rowDeleteConfirm) {
-      rowDeleteConfirm.addEventListener("click", function () {
-        showToast("삭제 기능은 추후 Apps Script와 연동 예정입니다.", "info");
+      goOrders.addEventListener("click", () => {
+        const ordersBtn = $('.nav-link[data-section="orders"]');
+        if (ordersBtn) ordersBtn.click();
       });
     }
   }
 
-  /*************************************************
-   * 11) Entry
-   *************************************************/
-  document.addEventListener("DOMContentLoaded", function () {
-    initThemeToggles();
+  // =========================
+  // 상단바 버튼
+  // =========================
+  function initTopbar() {
+    const btnRefresh = $("#btnRefreshAll");
+    const btnLogout = $("#btnLogout");
+    const menuToggle = $("#menuToggle");
+    const sidebar = $(".sidebar");
+    const backdrop = $("#sidebarBackdrop");
 
-    if (isAuthPage) initAuthPage();
-    if (isDashboardPage) initDashboardPage();
-  });
+    if (btnRefresh) {
+      btnRefresh.addEventListener("click", async () => {
+        showSpinner();
+        try {
+          await pingApi();
+          await loadDashboard();
+          initTables(); // 간단하게 전체 리로드
+          showToast("전체 데이터를 새로 불러왔습니다.", "success");
+        } catch (e) {
+          // pingApi 안에서 토스트 처리
+        } finally {
+          hideSpinner();
+        }
+      });
+    }
+
+    if (btnLogout) {
+      btnLogout.addEventListener("click", () => {
+        localStorage.removeItem("korual_user");
+        location.replace("index.html");
+      });
+    }
+
+    if (menuToggle && sidebar && backdrop) {
+      function closeSidebar() {
+        sidebar.classList.add("hidden");
+        backdrop.classList.add("hidden");
+      }
+      function openSidebar() {
+        sidebar.classList.remove("hidden");
+        backdrop.classList.remove("hidden");
+      }
+
+      menuToggle.addEventListener("click", () => {
+        const isHidden = sidebar.classList.contains("hidden");
+        if (isHidden) openSidebar();
+        else closeSidebar();
+      });
+
+      backdrop.addEventListener("click", closeSidebar);
+    }
+
+    // 환영 문구
+    try {
+      const raw = localStorage.getItem("korual_user");
+      if (raw) {
+        const user = JSON.parse(raw);
+        if (user && user.username) {
+          const el = $("#welcomeUser");
+          if (el) el.textContent = user.username;
+        }
+      }
+    } catch (e) {
+      console.warn("korual_user 파싱 실패");
+    }
+  }
+
+  // =========================
+  // 모달 저장/삭제 (POST 예시)
+  // =========================
+  function initModalActions() {
+    const btnSave = $("#rowEditSave");
+    const btnDel = $("#rowDeleteConfirm");
+
+    if (btnSave) {
+      btnSave.addEventListener("click", async () => {
+        const entity = btnSave.dataset.entity;
+        const sheet = btnSave.dataset.sheet;
+        const rowIndex = Number(btnSave.dataset.rowIndex || "0");
+        const fieldsWrap = $("#rowEditFields");
+        if (!entity || !sheet || !rowIndex || !fieldsWrap) return;
+
+        const inputs = $$("input[data-field-key]", fieldsWrap);
+        const rowObject = {};
+        inputs.forEach((input) => {
+          const key = input.dataset.fieldKey;
+          rowObject[key] = input.value ?? "";
+        });
+
+        showSpinner();
+        try {
+          await apiPost({
+            target: "updateRow",
+            key: sheet,
+            row: rowIndex,
+            rowObject,
+          });
+          showToast("수정이 저장되었습니다.", "success");
+          if (window.KORUAL_MODAL && window.KORUAL_MODAL.closeAll) {
+            window.KORUAL_MODAL.closeAll();
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("저장 중 오류가 발생했습니다.", "error");
+        } finally {
+          hideSpinner();
+        }
+      });
+    }
+
+    if (btnDel) {
+      btnDel.addEventListener("click", async () => {
+        const entity = btnDel.dataset.entity;
+        const sheet = btnDel.dataset.sheet;
+        const rowIndex = Number(btnDel.dataset.rowIndex || "0");
+        if (!entity || !sheet || !rowIndex) return;
+
+        showSpinner();
+        try {
+          await apiPost({
+            target: "deleteRow",
+            key: sheet,
+            row: rowIndex,
+          });
+          showToast("행이 삭제되었습니다.", "success");
+          if (window.KORUAL_MODAL && window.KORUAL_MODAL.closeAll) {
+            window.KORUAL_MODAL.closeAll();
+          }
+        } catch (err) {
+          console.error(err);
+          showToast("삭제 중 오류가 발생했습니다.", "error");
+        } finally {
+          hideSpinner();
+        }
+      });
+    }
+  }
+
+  // =========================
+  // 초기 실행
+  // =========================
+  async function init() {
+    showSpinner();
+    try {
+      initNavigation();
+      initThemeToggle();
+      initTopbar();
+      initModalActions();
+
+      await pingApi();
+      await loadDashboard();
+      initTables();
+    } catch (e) {
+      // pingApi/loadDashboard에서 이미 에러 처리
+    } finally {
+      hideSpinner();
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
 })();
