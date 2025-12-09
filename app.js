@@ -6,10 +6,24 @@
   "use strict";
 
   const META = window.KORUAL_META_APP || {};
-  const API_BASE = META.api?.baseUrl || "";
+  const API_BASE   = META.api?.baseUrl || "";
   const API_SECRET = META.api?.secret || "";
 
-  const $ = (sel, parent = document) => parent.querySelector(sel);
+  const $ = (sel) => document.querySelector(sel);
+
+  // 1) 로그인 페이지 여부 판단
+  const loginBtn = $("#btnLogin");
+  if (loginBtn) {
+    // 여기 안에 위에서 만든 handleLogin 코드 붙여넣기
+    // ...
+    return; // 대시보드용 코드는 실행 안 함
+  }
+
+  // 2) 아래부터는 dashboard.html 전용 기존 코드
+  // const state = { ... }
+  // initDashboard();
+})();
+
 
   // 토스트 대신 간단 메시지
   function showLoginMsg(msg, isError = true) {
@@ -883,5 +897,6 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
+
 
 
