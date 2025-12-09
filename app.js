@@ -28,16 +28,19 @@
  *       <div id="korual-toast"></div>
  *************************************************/
 
+"use strict";
+
 /* ================================================
    0) 전역 설정 / 상태
 ================================================ */
 
-const CORE_API_BASE = "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec"; // 예: https://script.google.com/macros/s/XXX/exec
+const CORE_API_BASE =
+  "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec";
 
 const KorualState = {
   currentSection: "dashboard",
   routes: [],              // /routes 응답
-  cache: {},               // key → { data, pagination }
+  cache: {},               // key → { data, pagination, route }
   filters: {
     q: "",
     from: "",
@@ -63,7 +66,7 @@ async function coreGet(params = {}) {
   const res = await fetch(url.toString(), {
     method: "GET",
     headers: {
-      "Accept": "application/json"
+      Accept: "application/json"
     }
   });
 
@@ -80,7 +83,7 @@ async function corePost(body = {}) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept": "application/json"
+      Accept: "application/json"
     },
     body: JSON.stringify(body)
   });
@@ -166,7 +169,10 @@ function renderDashboard(data) {
   const members = data?.members || {};
 
   main.innerHTML = `
-    ${renderSectionHeader("대시보드", "오늘의 주문, 회원 지표를 한눈에 확인합니다.")}
+    ${renderSectionHeader(
+      "대시보드",
+      "오늘의 주문, 회원 지표를 한눈에 확인합니다."
+    )}
 
     <section class="dashboard-grid">
       <article class="dash-card">
@@ -219,8 +225,8 @@ function renderDashboard(data) {
     </section>
   `;
 
-  // 빠른 액션 버튼 클릭 시 해당 섹션으로 이동
-  main.querySelectorAll("[data-jump]").forEach(btn => {
+  // 빠른 액션 버튼 → 섹션 전환
+  main.querySelectorAll("[data-jump]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const section = btn.getAttribute("data-jump");
       switchSection(section);
@@ -246,7 +252,7 @@ function renderTableSection(key, payload) {
     stock: "재고 관리"
   };
 
-  const title = titleMap[key] || (route.key || key || "데이터");
+  const title = titleMap[key] || route.key || key || "데이터";
   const desc = route.desc || `${route.sheet || ""} 시트의 데이터를 조회합니다.`;
 
   if (!rows.length) {
@@ -272,15 +278,21 @@ function renderTableSection(key, payload) {
         <table class="korual-table">
           <thead>
             <tr>
-              ${headers.map(h => `<th>${h}</th>`).join("")}
+              ${headers.map((h) => `<th>${h}</th>`).join("")}
             </tr>
           </thead>
           <tbody>
-            ${rows.map(row => `
+            ${rows
+              .map(
+                (row) => `
               <tr>
-                ${headers.map(h => `<td>${formatCellValue(row[h])}</td>`).join("")}
+                ${headers
+                  .map((h) => `<td>${formatCellValue(row[h])}</td>`)
+                  .join("")}
               </tr>
-            `).join("")}
+            `
+              )
+              .join("")}
           </tbody>
         </table>
       </div>
@@ -292,7 +304,7 @@ function renderTableSection(key, payload) {
   bindPaginationEvents(key, pagination);
 }
 
-/** 필터 영역 렌더링 (존재하는 HTML 필터와 자연스럽게 맞물리게 설계) */
+/** 필터 영역 렌더링 */
 function renderFilterBar() {
   return `
     <section class="filter-bar">
@@ -314,8 +326,8 @@ function renderFilterBar() {
         </select>
       </div>
       <div class="filter-right">
-        <button id="filter-apply"    class="btn-primary">필터 적용</button>
-        <button id="filter-reset"    class="btn-ghost">초기화</button>
+        <button id="filter-apply" class="btn-primary">필터 적용</button>
+        <button id="filter-reset" class="btn-ghost">초기화</button>
       </div>
     </section>
   `;
@@ -352,16 +364,39 @@ function renderPagination(pagination) {
   `;
 }
 
-/** 셀 값 포맷 */
+/** 셀 값 포맷 (브라우저 환경용) */
 function formatCellValue(v) {
-  if (v instanceof Date) {
-    return Utilities
-      ? Utilities.formatDate(v, "Asia/Seoul", "yyyy-MM-dd HH:mm")
-      : v.toISOString();
-  }
+  if (v == null) return "";
   if (v === true) return "TRUE";
   if (v === false) return "FALSE";
-  if (v == null) return "";
+
+  // Date 객체
+  if (v instanceof Date) {
+    return new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(v);
+  }
+
+  // 문자열인데 날짜처럼 생긴 경우
+  if (typeof v === "string") {
+    const maybe = new Date(v);
+    if (!isNaN(maybe.getTime())) {
+      return new Intl.DateTimeFormat("ko-KR", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(maybe);
+    }
+  }
+
   return v.toString();
 }
 
@@ -371,35 +406,34 @@ function formatCellValue(v) {
 ================================================ */
 
 function bindFilterEvents(key) {
-  const qEl        = document.getElementById("filter-search");
-  const fromEl     = document.getElementById("filter-from");
-  const toEl       = document.getElementById("filter-to");
-  const channelEl  = document.getElementById("filter-channel");
-  const applyEl    = document.getElementById("filter-apply");
-  const resetEl    = document.getElementById("filter-reset");
+  const qEl = document.getElementById("filter-search");
+  const fromEl = document.getElementById("filter-from");
+  const toEl = document.getElementById("filter-to");
+  const channelEl = document.getElementById("filter-channel");
+  const applyEl = document.getElementById("filter-apply");
+  const resetEl = document.getElementById("filter-reset");
 
   if (!applyEl || !resetEl) return;
 
   // 기존 state를 UI에 반영
-  if (qEl)       qEl.value = KorualState.filters.q || "";
-  if (fromEl)    fromEl.value = KorualState.filters.from || "";
-  if (toEl)      toEl.value = KorualState.filters.to || "";
+  if (qEl) qEl.value = KorualState.filters.q || "";
+  if (fromEl) fromEl.value = KorualState.filters.from || "";
+  if (toEl) toEl.value = KorualState.filters.to || "";
   if (channelEl) channelEl.value = KorualState.filters.channel || "";
 
   applyEl.onclick = () => {
-    KorualState.filters.q       = qEl ? qEl.value.trim() : "";
-    KorualState.filters.from    = fromEl ? fromEl.value : "";
-    KorualState.filters.to      = toEl ? toEl.value : "";
+    KorualState.filters.q = qEl ? qEl.value.trim() : "";
+    KorualState.filters.from = fromEl ? fromEl.value : "";
+    KorualState.filters.to = toEl ? toEl.value : "";
     KorualState.filters.channel = channelEl ? channelEl.value : "";
-
     loadSheetSection(key, 1); // 필터 변경 시 1페이지부터
   };
 
   resetEl.onclick = () => {
     KorualState.filters = { q: "", from: "", to: "", channel: "" };
-    if (qEl)       qEl.value = "";
-    if (fromEl)    fromEl.value = "";
-    if (toEl)      toEl.value = "";
+    if (qEl) qEl.value = "";
+    if (fromEl) fromEl.value = "";
+    if (toEl) toEl.value = "";
     if (channelEl) channelEl.value = "";
     loadSheetSection(key, 1);
   };
@@ -407,10 +441,14 @@ function bindFilterEvents(key) {
 
 function bindPaginationEvents(key, pagination) {
   const main = getMainEl();
-  main.querySelectorAll(".page-btn").forEach(btn => {
+  main.querySelectorAll(".page-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const page = parseInt(btn.getAttribute("data-page"), 10);
-      if (!isNaN(page) && page >= 1 && page <= (pagination.totalPages || 1)) {
+      if (
+        !isNaN(page) &&
+        page >= 1 &&
+        page <= (pagination.totalPages || 1)
+      ) {
         loadSheetSection(key, page);
       }
     });
@@ -427,7 +465,7 @@ function switchSection(section) {
   KorualState.currentSection = section;
 
   // 사이드바 비주얼 상태
-  document.querySelectorAll(".nav-link").forEach(btn => {
+  document.querySelectorAll(".nav-link").forEach((btn) => {
     if (btn.dataset.section === section) {
       btn.classList.add("active");
     } else {
@@ -450,7 +488,10 @@ async function refreshDashboard() {
     renderDashboard(json.data);
   } catch (err) {
     console.error(err);
-    showToast(err.message || "대시보드 로딩 중 오류가 발생했습니다.", "error");
+    showToast(
+      err.message || "대시보드 로딩 중 오류가 발생했습니다.",
+      "error"
+    );
     getMainEl().innerHTML = `
       ${renderSectionHeader("대시보드", "")}
       <div class="error-box">
@@ -485,10 +526,11 @@ async function loadSheetSection(key, page = 1) {
       pageSize: 50
     };
 
-    if (KorualState.filters.q)       params.q       = KorualState.filters.q;
-    if (KorualState.filters.from)    params.from    = KorualState.filters.from;
-    if (KorualState.filters.to)      params.to      = KorualState.filters.to;
-    if (KorualState.filters.channel) params.channel = KorualState.filters.channel;
+    if (KorualState.filters.q) params.q = KorualState.filters.q;
+    if (KorualState.filters.from) params.from = KorualState.filters.from;
+    if (KorualState.filters.to) params.to = KorualState.filters.to;
+    if (KorualState.filters.channel)
+      params.channel = KorualState.filters.channel;
 
     const json = await coreGet(params);
 
@@ -502,7 +544,10 @@ async function loadSheetSection(key, page = 1) {
     renderTableSection(key, KorualState.cache[key]);
   } catch (err) {
     console.error(err);
-    showToast(err.message || `${key} 데이터 로딩 중 오류가 발생했습니다.`, "error");
+    showToast(
+      err.message || `${key} 데이터 로딩 중 오류가 발생했습니다.`,
+      "error"
+    );
     getMainEl().innerHTML = `
       ${renderSectionHeader(key, "")}
       <div class="error-box">
@@ -522,7 +567,7 @@ async function loadSheetSection(key, page = 1) {
 ================================================ */
 
 function bindSidebarNav() {
-  document.querySelectorAll(".nav-link").forEach(btn => {
+  document.querySelectorAll(".nav-link").forEach((btn) => {
     btn.addEventListener("click", () => {
       const section = btn.dataset.section || "dashboard";
       switchSection(section);
@@ -539,17 +584,20 @@ async function initKorualApp() {
     await coreGet({ target: "ping" });
     showToast("KORUAL Core API 연결 성공", "success", 2000);
 
-    // ROUTES 메타는 선택 (실패해도 앱 동작)
+    // ROUTES 메타 (선택 기능, 실패해도 앱 동작)
     loadRoutesMeta();
 
     // 사이드바 바인딩
     bindSidebarNav();
 
-    // 기본은 대시보드
+    // 기본 섹션: 대시보드
     switchSection("dashboard");
   } catch (err) {
     console.error(err);
-    showToast(err.message || "Core API 연결에 실패했습니다.", "error");
+    showToast(
+      err.message || "Core API 연결에 실패했습니다.",
+      "error"
+    );
     const main = getMainEl();
     main.innerHTML = `
       ${renderSectionHeader("KORUAL CONTROL CENTER", "")}
@@ -565,4 +613,3 @@ async function initKorualApp() {
 }
 
 document.addEventListener("DOMContentLoaded", initKorualApp);
-
