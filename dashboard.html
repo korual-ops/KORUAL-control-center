@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
 
-  <!-- 즉시 로그인 세션 검증 (직접 URL 입력 차단) -->
+  <!-- 로그인 세션 검증 (직접 URL 입력 차단) -->
   <script>
     (function () {
       try {
@@ -18,38 +18,155 @@
   </script>
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KORUAL CONTROL CENTER</title>
+  <title>KORUAL CONTROL CENTER – Dashboard</title>
 
-  <!-- High-End 스타일 -->
+  <!-- Tailwind (하이엔드용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            korual: {
+              bg: "#020617",
+              accent: "#38bdf8",
+              accent2: "#6366f1",
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- 기존 High-End 스타일 유지 -->
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="modal.css" />
 </head>
 
-<body class="theme-dark">
-  <!-- 글로벌 로딩 스피너 -->
-  <div id="globalSpinner" class="spinner-overlay hidden">
-    <div class="spinner-core">
-      <div class="spinner-ring"></div>
-      <div class="spinner-dot"></div>
-      <div class="spinner-label">KORUAL 데이터를 불러오는 중입니다…</div>
+<body class="theme-dark bg-slate-950 text-slate-50">
+  <!-- 하이엔드 배경 레이어 -->
+  <div class="fixed inset-0 -z-10 bg-slate-950">
+    <div
+      class="pointer-events-none absolute inset-0 opacity-80"
+      style="
+        background:
+          radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.24), transparent 65%),
+          radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.30), transparent 65%),
+          linear-gradient(to bottom right, #020617, #020617);
+      "
+    ></div>
+    <div
+      class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.8),transparent_60%)] opacity-70 mix-blend-soft-light"
+    ></div>
+    <div
+      class="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.72)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.72)_1px,transparent_1px)] bg-[length:80px_80px] opacity-60"
+      style="mask-image: radial-gradient(circle at center, black 0%, transparent 65%);"
+    ></div>
+    <!-- 중앙 레이더 링 -->
+    <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <div
+        class="relative w-[min(720px,80vw)] h-[min(720px,80vw)] rounded-full border border-slate-700/40 shadow-[0_0_0_1px_rgba(15,23,42,0.95),0_0_120px_rgba(56,189,248,0.25)]"
+      >
+        <div
+          class="absolute -inset-[10%] rounded-full"
+          style="
+            background: conic-gradient(
+              from 220deg,
+              rgba(56,189,248,0.35),
+              transparent 45%,
+              transparent 100%
+            );
+            filter: blur(6px);
+            animation: korualRadarSweep 18s linear infinite;
+          "
+        ></div>
+      </div>
+    </div>
+    <!-- ORB -->
+    <div
+      class="pointer-events-none absolute w-60 h-60 rounded-full blur-3xl bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,.75),transparent_60%)] top-8 left-6 opacity-80 animate-[korualOrb1_16s_ease-in-out_infinite_alternate]"
+    ></div>
+    <div
+      class="pointer-events-none absolute w-72 h-72 rounded-full blur-3xl bg-[radial-gradient(circle_at_70%_60%,rgba(129,140,248,.85),transparent_60%)] bottom-6 right-10 opacity-80 animate-[korualOrb2_18s_ease-in-out_infinite_alternate]"
+    ></div>
+  </div>
+
+  <style>
+    @keyframes korualRadarSweep {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes korualOrb1 {
+      0%   { transform: translate3d(0,0,0); }
+      100% { transform: translate3d(24px,36px,0); }
+    }
+    @keyframes korualOrb2 {
+      0%   { transform: translate3d(0,0,0); }
+      100% { transform: translate3d(-30px,-26px,0); }
+    }
+  </style>
+
+  <!-- 글로벌 로딩 스피너 (기존 ID 유지) -->
+  <div
+    id="globalSpinner"
+    class="spinner-overlay hidden flex items-center justify-center fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm"
+  >
+    <div
+      class="spinner-core relative flex flex-col items-center gap-3 rounded-2xl border border-slate-700/80 bg-slate-950/95 px-6 py-5 shadow-[0_30px_90px_rgba(15,23,42,0.98)]"
+    >
+      <div
+        class="spinner-ring w-10 h-10 rounded-full border-2 border-slate-700 border-t-sky-400 animate-spin"
+      ></div>
+      <div class="spinner-dot hidden"></div>
+      <div class="spinner-label text-xs text-slate-300">
+        KORUAL 데이터를 불러오는 중입니다…
+      </div>
     </div>
   </div>
 
   <!-- 토스트 루트 -->
-  <div id="toastRoot" class="toast-container"></div>
+  <div
+    id="toastRoot"
+    class="toast-container fixed inset-x-0 bottom-4 flex justify-center px-4 pointer-events-none z-50"
+  ></div>
 
-  <div class="app-shell">
+  <!-- 앱 쉘 -->
+  <div class="app-shell relative z-10 flex h-screen">
 
     <!-- ======================================
          ■ 사이드바 (Glass + High-End)
     ======================================= -->
-    <aside class="sidebar">
-      <div class="brand-block">
-        <div class="brand-title">KORUAL</div>
-        <div class="brand-subtitle">Control Center</div>
+    <aside
+      class="sidebar hidden md:flex flex-col w-64 border-r border-slate-800/80 bg-slate-950/80/80 backdrop-blur-2xl px-4 py-5 shadow-[0_24px_80px_rgba(15,23,42,0.95)]"
+    >
+      <div class="brand-block mb-6">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-2xl bg-white text-slate-900 grid place-content-center text-lg font-bold shadow-[0_18px_40px_rgba(15,23,42,0.95)]"
+          >
+            K
+          </div>
+          <div>
+            <div class="brand-title text-sm font-semibold tracking-[0.18em] uppercase text-slate-300">
+              KORUAL
+            </div>
+            <div class="brand-subtitle text-xs text-slate-400">Control Center</div>
+          </div>
+        </div>
+        <div class="mt-4 rounded-2xl border border-sky-500/25 bg-gradient-to-br from-slate-950/90 via-slate-950/80 to-slate-900/90 px-3 py-2 text-[11px] text-slate-300">
+          <div class="flex items-center justify-between">
+            <span>관제 모드</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-400/60">
+              LIVE
+            </span>
+          </div>
+          <p class="mt-1 text-[10px] text-slate-400">
+            주문 · 회원 · 재고 · 로그를 한 번에 모니터링합니다.
+          </p>
+        </div>
       </div>
 
-      <nav class="nav">
+      <nav class="nav flex-1 flex flex-col gap-1 text-[13px]">
         <button class="nav-link active" data-section="dashboard">
           <span class="nav-emoji">📊</span>
           <span>대시보드</span>
@@ -76,494 +193,639 @@
         </button>
       </nav>
 
-      <div class="sidebar-footer">
-        <div class="api-status-row">
-          <div class="api-status-label">API 연결 상태</div>
-          <div class="api-status-dot-wrap">
-            <span id="apiStatusDot" class="status-dot"></span>
-            <span id="apiStatusText" class="api-status-text">Checking…</span>
+      <div class="sidebar-footer mt-4 pt-4 border-t border-slate-800/70 text-[11px]">
+        <div class="api-status-row flex flex-col gap-1">
+          <div class="api-status-label text-slate-400">API 연결 상태</div>
+          <div class="api-status-dot-wrap flex items-center gap-2">
+            <span
+              id="apiStatusDot"
+              class="status-dot inline-block w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_0_4px_rgba(251,191,36,0.35)]"
+            ></span>
+            <span id="apiStatusText" class="api-status-text text-slate-300">
+              Checking…
+            </span>
           </div>
         </div>
-        <div class="api-meta">
+        <div class="api-meta mt-2 text-slate-500">
           Ping <span id="apiPing">- ms</span>
         </div>
       </div>
     </aside>
 
     <!-- 모바일일 때 사이드바 뒤 어두운 배경 -->
-    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+    <div
+      id="sidebarBackdrop"
+      class="sidebar-backdrop fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-30 hidden md:hidden"
+    ></div>
 
     <!-- ======================================
          ■ 메인 컨텐츠
     ======================================= -->
-    <main class="content">
+    <main class="content flex-1 flex flex-col min-w-0">
 
       <!-- 상단바 (Topbar) -->
-      <header class="topbar">
-        <div class="topbar-left">
+      <header
+        class="topbar flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-2xl shadow-[0_18px_60px_rgba(15,23,42,0.9)]"
+      >
+        <div class="topbar-left flex items-center gap-3">
           <!-- 모바일 메뉴 버튼 -->
-          <button id="menuToggle" class="mobile-menu-btn" type="button" aria-label="메뉴 열기">
-            <span></span><span></span><span></span>
+          <button
+            id="menuToggle"
+            class="mobile-menu-btn md:hidden flex flex-col justify-between w-8 h-8 p-1.5 rounded-xl border border-slate-700/80 bg-slate-900/90"
+            type="button"
+            aria-label="메뉴 열기"
+          >
+            <span class="block h-[2px] rounded-full bg-slate-200"></span>
+            <span class="block h-[2px] rounded-full bg-slate-400"></span>
+            <span class="block h-[2px] rounded-full bg-slate-500"></span>
           </button>
 
           <div class="topbar-text">
-            <div class="topbar-title">
+            <div class="topbar-title text-xs sm:text-sm font-semibold tracking-[0.24em] uppercase text-slate-300">
               KORUAL CONTROL CENTER
-              <span class="topbar-badge">LIVE</span>
+              <span
+                class="topbar-badge ml-2 align-middle px-2 py-0.5 rounded-full text-[9px] border border-emerald-400/70 bg-emerald-500/15 text-emerald-200"
+              >
+                LIVE
+              </span>
             </div>
-            <div class="topbar-meta">
-              반갑습니다, <span id="welcomeUser">KORUAL</span>님
-              <span class="topbar-divider">·</span>
+            <div class="topbar-meta mt-0.5 text-[11px] text-slate-400">
+              반갑습니다, <span id="welcomeUser" class="text-sky-300 font-medium">KORUAL</span>님
+              <span class="topbar-divider mx-1 text-slate-600">·</span>
               <span class="last-sync" id="last-sync">마지막 동기화 대기 중…</span>
             </div>
           </div>
         </div>
 
-        <div class="topbar-right">
+        <div class="topbar-right flex items-center gap-2 sm:gap-3">
           <!-- 테마 토글 -->
-          <button id="themeToggle" class="theme-toggle" type="button">
-            <span class="theme-toggle-label" data-light="Light" data-dark="Dark">Dark</span>
-            <span class="theme-toggle-track">
-              <span class="theme-toggle-thumb"></span>
+          <button
+            id="themeToggle"
+            class="theme-toggle inline-flex items-center gap-2 text-[11px] px-2.5 py-1.5 rounded-full border border-slate-700/80 bg-slate-900/90"
+            type="button"
+          >
+            <span
+              class="theme-toggle-label text-slate-300"
+              data-light="Light"
+              data-dark="Dark"
+            >
+              Dark
+            </span>
+            <span class="theme-toggle-track relative inline-flex items-center w-8 h-4 rounded-full bg-slate-700">
+              <span class="theme-toggle-thumb absolute h-3 w-3 rounded-full bg-white shadow translate-x-1 transition-transform"></span>
             </span>
           </button>
 
           <!-- 전체 새로고침 -->
-          <button id="btnRefreshAll" class="primary-btn" type="button">
-            🔄 전체 새로고침
+          <button
+            id="btnRefreshAll"
+            class="primary-btn inline-flex items-center gap-1.5 rounded-full border border-sky-500/70 bg-gradient-to-r from-sky-500 to-indigo-500 px-3 py-1.5 text-[11px] font-medium shadow-[0_18px_40px_rgba(15,23,42,0.98)]"
+            type="button"
+          >
+            🔄 <span>전체 새로고침</span>
           </button>
 
           <!-- 로그아웃 -->
-          <button id="btnLogout" class="ghost-btn logout-btn" type="button">
+          <button
+            id="btnLogout"
+            class="ghost-btn logout-btn inline-flex items-center rounded-full border border-slate-700/80 bg-slate-900/80 px-3 py-1.5 text-[11px] text-slate-300 hover:border-rose-500/70 hover:text-rose-300 hover:bg-rose-950/60 transition-colors"
+            type="button"
+          >
             로그아웃
           </button>
         </div>
       </header>
 
-      <!-- ============================================================
-           1) 대시보드
-      ============================================================ -->
-      <section id="section-dashboard" class="section active">
-        <div class="section-header-row">
-          <div>
-            <h2>📊 대시보드</h2>
-            <p class="section-desc">
-              KORUAL 전 채널 데이터를 한눈에 보는 하이엔드 관제탑입니다.
-            </p>
-          </div>
-          <div class="section-actions">
-            <span class="section-kpi-pill">실시간 요약 모드</span>
-          </div>
-        </div>
+      <!-- 실제 컨텐츠 래퍼 -->
+      <div class="flex-1 min-h-0 overflow-auto px-3 sm:px-5 lg:px-7 py-3 sm:py-4">
 
-        <!-- 요약 카드 -->
-        <div class="cards-grid">
-          <div class="card card-metric">
-            <div class="card-label">총 상품 수</div>
-            <div class="card-value" id="cardTotalProducts">-</div>
-            <div class="card-submeta">PRODUCTS 시트 기준</div>
-          </div>
-
-          <div class="card card-metric">
-            <div class="card-label">총 주문 수</div>
-            <div class="card-value" id="cardTotalOrders">-</div>
-            <div class="card-submeta">ORDERS 시트 기준</div>
-          </div>
-
-          <div class="card card-metric">
-            <div class="card-label">추정 매출 합계</div>
-            <div class="card-value" id="cardTotalRevenue">-</div>
-            <div class="card-submeta">주문 금액 합계(원화)</div>
-          </div>
-
-          <div class="card card-metric">
-            <div class="card-label">회원 수</div>
-            <div class="card-value" id="cardTotalMembers">-</div>
-            <div class="card-submeta">MEMBERS 시트 기준</div>
-          </div>
-        </div>
-
-        <!-- 오늘 요약 -->
-        <div class="panel">
-          <div class="panel-header">
-            <h3>오늘 요약</h3>
-            <div class="panel-header-meta">
-              <span id="todayDateLabel"></span>
+        <!-- ============================================================
+             1) 대시보드
+        ============================================================ -->
+        <section
+          id="section-dashboard"
+          class="section active space-y-4 sm:space-y-5"
+        >
+          <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                <span>📊 대시보드</span>
+              </h2>
+              <p class="section-desc text-xs sm:text-sm text-slate-400 mt-1">
+                KORUAL 전 채널 데이터를 한눈에 보는 하이엔드 관제탑입니다.
+              </p>
+            </div>
+            <div class="section-actions">
+              <span
+                class="section-kpi-pill inline-flex items-center gap-1 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>실시간 요약 모드</span>
+              </span>
             </div>
           </div>
 
-          <div class="panel-body">
-            <div class="today-metrics">
-              <div class="today-metric">
-                <span class="today-label">오늘 주문</span>
-                <span class="today-value" id="todayOrders">-</span>
-                <span class="today-caption">신규 ORDERS 카운트</span>
-              </div>
+          <!-- 요약 카드 -->
+          <div class="cards-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="card card-metric rounded-2xl border border-slate-800/80 bg-slate-950/90 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.9)]">
+              <div class="card-label text-xs text-slate-400 mb-1">총 상품 수</div>
+              <div class="card-value text-2xl font-semibold tracking-tight" id="cardTotalProducts">-</div>
+              <div class="card-submeta text-[11px] text-slate-500 mt-1">PRODUCTS 시트 기준</div>
+            </div>
 
-              <div class="today-metric">
-                <span class="today-label">오늘 매출</span>
-                <span class="today-value" id="todayRevenue">-</span>
-                <span class="today-caption">당일 합계 금액</span>
-              </div>
+            <div class="card card-metric rounded-2xl border border-slate-800/80 bg-slate-950/90 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.9)]">
+              <div class="card-label text-xs text-slate-400 mb-1">총 주문 수</div>
+              <div class="card-value text-2xl font-semibold tracking-tight" id="cardTotalOrders">-</div>
+              <div class="card-submeta text-[11px] text-slate-500 mt-1">ORDERS 시트 기준</div>
+            </div>
 
-              <div class="today-metric">
-                <span class="today-label">준비중 주문</span>
-                <span class="today-value" id="todayPending">-</span>
-                <span class="today-caption">상태에 "준비중" 포함</span>
+            <div class="card card-metric rounded-2xl border border-slate-800/80 bg-slate-950/90 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.9)]">
+              <div class="card-label text-xs text-slate-400 mb-1">추정 매출 합계</div>
+              <div class="card-value text-2xl font-semibold tracking-tight" id="cardTotalRevenue">-</div>
+              <div class="card-submeta text-[11px] text-slate-500 mt-1">주문 금액 합계(원화)</div>
+            </div>
+
+            <div class="card card-metric rounded-2xl border border-slate-800/80 bg-slate-950/90 p-3.5 shadow-[0_18px_55px_rgba(15,23,42,0.9)]">
+              <div class="card-label text-xs text-slate-400 mb-1">회원 수</div>
+              <div class="card-value text-2xl font-semibold tracking-tight" id="cardTotalMembers">-</div>
+              <div class="card-submeta text-[11px] text-slate-500 mt-1">MEMBERS 시트 기준</div>
+            </div>
+          </div>
+
+          <!-- 오늘 요약 -->
+          <div class="panel rounded-2xl border border-slate-800/80 bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.95)]">
+            <div class="panel-header flex items-center justify-between px-4 pt-3 pb-2 border-b border-slate-800/80">
+              <h3 class="text-sm font-semibold">오늘 요약</h3>
+              <div class="panel-header-meta text-[11px] text-slate-400">
+                <span id="todayDateLabel"></span>
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- 최근 주문 -->
-        <div class="panel">
-          <div class="panel-header">
-            <h3>최근 주문</h3>
-            <div class="panel-header-actions">
-              <button id="goOrders" class="ghost-btn small" type="button">
-                → 주문 관리 바로가기
-              </button>
+            <div class="panel-body px-4 py-3">
+              <div class="today-metrics grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="today-metric rounded-xl border border-slate-800/80 bg-slate-950/90 px-3 py-2.5">
+                  <span class="today-label text-[11px] text-slate-400">오늘 주문</span>
+                  <span class="today-value block text-xl font-semibold mt-1" id="todayOrders">-</span>
+                  <span class="today-caption text-[11px] text-slate-500 mt-1">
+                    신규 ORDERS 카운트
+                  </span>
+                </div>
+
+                <div class="today-metric rounded-xl border border-slate-800/80 bg-slate-950/90 px-3 py-2.5">
+                  <span class="today-label text-[11px] text-slate-400">오늘 매출</span>
+                  <span class="today-value block text-xl font-semibold mt-1" id="todayRevenue">-</span>
+                  <span class="today-caption text-[11px] text-slate-500 mt-1">
+                    당일 합계 금액
+                  </span>
+                </div>
+
+                <div class="today-metric rounded-xl border border-slate-800/80 bg-slate-950/90 px-3 py-2.5">
+                  <span class="today-label text-[11px] text-slate-400">준비중 주문</span>
+                  <span class="today-value block text-xl font-semibold mt-1" id="todayPending">-</span>
+                  <span class="today-caption text-[11px] text-slate-500 mt-1">
+                    상태에 "준비중" 포함
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="panel-body">
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>주문일자</th>
-                    <th>주문번호</th>
-                    <th>상품명</th>
-                    <th>수량</th>
-                    <th>금액</th>
-                    <th>채널</th>
-                    <th>상태</th>
-                  </tr>
-                </thead>
-                <tbody id="recentOrdersBody">
-                  <tr>
-                    <td colspan="7" class="empty-state">최근 주문 데이터를 불러오는 중입니다…</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ============================================================
-           2) 상품 관리
-      ============================================================ -->
-      <section id="section-products" class="section">
-        <div class="section-header-row">
-          <div>
-            <h2>📦 상품 관리</h2>
-            <p class="section-desc">
-              자사몰, 마켓, Shopee 등 전 채널 상품 정보를 한 곳에서 확인합니다.
-            </p>
-          </div>
-
-          <div class="section-actions">
-            <input
-              id="searchProducts"
-              class="input"
-              placeholder="검색 (상품명 / 코드 / 옵션 / 채널)"
-            />
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-body">
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>상품코드</th>
-                    <th>상품명</th>
-                    <th>옵션</th>
-                    <th>판매가</th>
-                    <th>재고</th>
-                    <th>채널</th>
-                  </tr>
-                </thead>
-                <tbody
-                  id="productsBody"
-                  data-entity="products"
-                  data-sheet="PRODUCTS"
+          <!-- 최근 주문 -->
+          <div class="panel rounded-2xl border border-slate-800/80 bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.95)]">
+            <div class="panel-header flex items-center justify-between px-4 pt-3 pb-2 border-b border-slate-800/80">
+              <h3 class="text-sm font-semibold">최근 주문</h3>
+              <div class="panel-header-actions">
+                <button
+                  id="goOrders"
+                  class="ghost-btn small inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/80 px-3 py-1 text-[11px] text-slate-300 hover:border-sky-400/80 hover:bg-slate-900/95"
+                  type="button"
                 >
-                  <tr>
-                    <td colspan="6" class="empty-state">상품 데이터를 불러오는 중입니다…</td>
-                  </tr>
-                </tbody>
-              </table>
+                  → 주문 관리 바로가기
+                </button>
+              </div>
             </div>
 
-            <div class="table-footer">
-              <div class="pager" id="productsPager">
-                <button type="button" data-page="prev">이전</button>
-                <span data-page-label>-</span>
-                <button type="button" data-page="next">다음</button>
+            <div class="panel-body px-4 py-3">
+              <div class="table-wrapper overflow-auto rounded-xl border border-slate-800/80 bg-slate-950/90">
+                <table class="w-full text-xs">
+                  <thead class="bg-slate-900/95 text-slate-400 text-[11px] sticky top-0">
+                    <tr>
+                      <th class="px-2 py-1.5 text-left">주문일자</th>
+                      <th class="px-2 py-1.5 text-left">주문번호</th>
+                      <th class="px-2 py-1.5 text-left">상품명</th>
+                      <th class="px-2 py-1.5 text-right">수량</th>
+                      <th class="px-2 py-1.5 text-right">금액</th>
+                      <th class="px-2 py-1.5 text-left">채널</th>
+                      <th class="px-2 py-1.5 text-left">상태</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentOrdersBody" class="text-[11px]">
+                    <tr>
+                      <td colspan="7" class="empty-state px-3 py-6 text-center text-slate-500">
+                        최근 주문 데이터를 불러오는 중입니다…
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- ============================================================
-           3) 주문 관리
-      ============================================================ -->
-      <section id="section-orders" class="section">
-        <div class="section-header-row">
-          <div>
-            <h2>📮 주문 관리</h2>
-            <p class="section-desc">
-              전체 주문 흐름과 배송 상태를 KORUAL 관제탑 기준으로 관리합니다.
-            </p>
-          </div>
-
-          <div class="section-actions">
-            <input
-              id="searchOrders"
-              class="input"
-              placeholder="검색 (주문번호 / 고객명 / 상태 / 채널)"
-            />
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-body">
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>회원번호</th>
-                    <th>날짜</th>
-                    <th>주문번호</th>
-                    <th>고객명</th>
-                    <th>상품명</th>
-                    <th>수량</th>
-                    <th>금액</th>
-                    <th>상태</th>
-                    <th>채널</th>
-                  </tr>
-                </thead>
-                <tbody
-                  id="ordersBody"
-                  data-entity="orders"
-                  data-sheet="ORDERS"
-                >
-                  <tr>
-                    <td colspan="9" class="empty-state">주문 데이터를 불러오는 중입니다…</td>
-                  </tr>
-                </tbody>
-              </table>
+        <!-- ============================================================
+             2) 상품 관리
+        ============================================================ -->
+        <section id="section-products" class="section hidden space-y-4 sm:space-y-5">
+          <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                <span>📦 상품 관리</span>
+              </h2>
+              <p class="section-desc text-xs sm:text-sm text-slate-400 mt-1">
+                자사몰, 마켓, Shopee 등 전 채널 상품 정보를 한 곳에서 확인합니다.
+              </p>
             </div>
 
-            <div class="table-footer">
-              <div class="pager" id="ordersPager">
-                <button type="button" data-page="prev">이전</button>
-                <span data-page-label>-</span>
-                <button type="button" data-page="next">다음</button>
+            <div class="section-actions flex items-center gap-2">
+              <input
+                id="searchProducts"
+                class="input w-48 sm:w-60 rounded-full border border-slate-700/80 bg-slate-950/90 px-3 py-1.5 text-[11px] placeholder:text-slate-500"
+                placeholder="검색 (상품명 / 코드 / 옵션 / 채널)"
+              />
+            </div>
+          </div>
+
+          <div class="panel rounded-2xl border border-slate-800/80 bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.95)]">
+            <div class="panel-body px-3 sm:px-4 py-3">
+              <div class="table-wrapper overflow-auto rounded-xl border border-slate-800/80 bg-slate-950/90">
+                <table class="w-full text-[11px]">
+                  <thead class="bg-slate-900/95 text-slate-400 sticky top-0">
+                    <tr>
+                      <th class="px-2 py-1.5 text-left">상품코드</th>
+                      <th class="px-2 py-1.5 text-left">상품명</th>
+                      <th class="px-2 py-1.5 text-left">옵션</th>
+                      <th class="px-2 py-1.5 text-right">판매가</th>
+                      <th class="px-2 py-1.5 text-right">재고</th>
+                      <th class="px-2 py-1.5 text-left">채널</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="productsBody"
+                    data-entity="products"
+                    data-sheet="PRODUCTS"
+                    class="text-[11px]"
+                  >
+                    <tr>
+                      <td colspan="6" class="empty-state px-3 py-6 text-center text-slate-500">
+                        상품 데이터를 불러오는 중입니다…
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-footer flex justify-end mt-3">
+                <div class="pager inline-flex items-center gap-2 text-[11px]" id="productsPager">
+                  <button
+                    type="button"
+                    data-page="prev"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    이전
+                  </button>
+                  <span data-page-label class="text-slate-400">-</span>
+                  <button
+                    type="button"
+                    data-page="next"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    다음
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- ============================================================
-           4) 회원 관리
-      ============================================================ -->
-      <section id="section-members" class="section">
-        <div class="section-header-row">
-          <div>
-            <h2>🧑‍🤝‍🧑 회원 관리</h2>
-            <p class="section-desc">
-              VIP, 멤버십 등급, 누적 매출을 기반으로 KORUAL 회원 풀을 관리합니다.
-            </p>
-          </div>
-
-          <div class="section-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            <input
-              id="searchMembers"
-              class="input"
-              placeholder="검색 (회원번호 / 이름 / 이메일 / 전화번호 / 등급)"
-            />
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-body">
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>회원번호</th>
-                    <th>이름</th>
-                    <th>전화번호</th>
-                    <th>이메일</th>
-                    <th>가입일</th>
-                    <th>채널</th>
-                    <th>등급</th>
-                    <th>누적매출</th>
-                    <th>포인트</th>
-                    <th>최근주문일</th>
-                    <th>메모</th>
-                    <th>관리</th>
-                  </tr>
-                </thead>
-                <tbody
-                  id="membersBody"
-                  data-entity="members"
-                  data-sheet="MEMBERS"
-                >
-                  <tr>
-                    <td colspan="12" class="empty-state">회원 데이터를 불러오는 중입니다…</td>
-                  </tr>
-                </tbody>
-              </table>
+        <!-- ============================================================
+             3) 주문 관리
+        ============================================================ -->
+        <section id="section-orders" class="section hidden space-y-4 sm:space-y-5">
+          <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                <span>📮 주문 관리</span>
+              </h2>
+              <p class="section-desc text-xs sm:text-sm text-slate-400 mt-1">
+                전체 주문 흐름과 배송 상태를 KORUAL 관제탑 기준으로 관리합니다.
+              </p>
             </div>
 
-            <div class="table-footer">
-              <div class="pager" id="membersPager">
-                <button type="button" data-page="prev">이전</button>
-                <span data-page-label>-</span>
-                <button type="button" data-page="next">다음</button>
+            <div class="section-actions flex items-center gap-2">
+              <input
+                id="searchOrders"
+                class="input w-52 sm:w-64 rounded-full border border-slate-700/80 bg-slate-950/90 px-3 py-1.5 text-[11px] placeholder:text-slate-500"
+                placeholder="검색 (주문번호 / 고객명 / 상태 / 채널)"
+              />
+            </div>
+          </div>
+
+          <div class="panel rounded-2xl border border-slate-800/80 bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.95)]">
+            <div class="panel-body px-3 sm:px-4 py-3">
+              <div class="table-wrapper overflow-auto rounded-xl border border-slate-800/80 bg-slate-950/90">
+                <table class="w-full text-[11px]">
+                  <thead class="bg-slate-900/95 text-slate-400 sticky top-0">
+                    <tr>
+                      <th class="px-2 py-1.5 text-left">회원번호</th>
+                      <th class="px-2 py-1.5 text-left">날짜</th>
+                      <th class="px-2 py-1.5 text-left">주문번호</th>
+                      <th class="px-2 py-1.5 text-left">고객명</th>
+                      <th class="px-2 py-1.5 text-left">상품명</th>
+                      <th class="px-2 py-1.5 text-right">수량</th>
+                      <th class="px-2 py-1.5 text-right">금액</th>
+                      <th class="px-2 py-1.5 text-left">상태</th>
+                      <th class="px-2 py-1.5 text-left">채널</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="ordersBody"
+                    data-entity="orders"
+                    data-sheet="ORDERS"
+                  >
+                    <tr>
+                      <td colspan="9" class="empty-state px-3 py-6 text-center text-slate-500">
+                        주문 데이터를 불러오는 중입니다…
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-footer flex justify-end mt-3">
+                <div class="pager inline-flex items-center gap-2 text-[11px]" id="ordersPager">
+                  <button
+                    type="button"
+                    data-page="prev"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    이전
+                  </button>
+                  <span data-page-label class="text-slate-400">-</span>
+                  <button
+                    type="button"
+                    data-page="next"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    다음
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- ============================================================
-           5) 재고 관리
-      ============================================================ -->
-      <section id="section-stock" class="section">
-        <div class="section-header-row">
-          <div>
-            <h2>🏬 재고 관리</h2>
-            <p class="section-desc">
-              입고/출고 없이도 자동 계산된 재고를 창고·채널 단위로 모니터링합니다.
-            </p>
-          </div>
-
-          <div class="section-actions">
-            <input
-              id="searchStock"
-              class="input"
-              placeholder="검색 (상품코드 / 상품명 / 상태 / 창고 / 채널)"
-            />
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-body">
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>상품코드</th>
-                    <th>상품명</th>
-                    <th>현재 재고</th>
-                    <th>안전 재고</th>
-                    <th>상태</th>
-                    <th>창고</th>
-                    <th>채널</th>
-                    <th>관리</th>
-                  </tr>
-                </thead>
-                <tbody
-                  id="stockBody"
-                  data-entity="stock"
-                  data-sheet="STOCK"
-                >
-                  <tr>
-                    <td colspan="8" class="empty-state">재고 데이터를 불러오는 중입니다…</td>
-                  </tr>
-                </tbody>
-              </table>
+        <!-- ============================================================
+             4) 회원 관리
+        ============================================================ -->
+        <section id="section-members" class="section hidden space-y-4 sm:space-y-5">
+          <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                <span>🧑‍🤝‍🧑 회원 관리</span>
+              </h2>
+              <p class="section-desc text-xs sm:text-sm text-slate-400 mt-1">
+                VIP, 멤버십 등급, 누적 매출을 기반으로 KORUAL 회원 풀을 관리합니다.
+              </p>
             </div>
 
-            <div class="table-footer">
-              <div class="pager" id="stockPager">
-                <button type="button" data-page="prev">이전</button>
-                <span data-page-label>-</span>
-                <button type="button" data-page="next">다음</button>
+            <div class="section-actions flex items-center gap-2 flex-wrap">
+              <input
+                id="searchMembers"
+                class="input w-64 sm:w-72 rounded-full border border-slate-700/80 bg-slate-950/90 px-3 py-1.5 text-[11px] placeholder:text-slate-500"
+                placeholder="검색 (회원번호 / 이름 / 이메일 / 전화번호 / 등급)"
+              />
+            </div>
+          </div>
+
+          <div class="panel rounded-2xl border border-slate-800/80 bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.95)]">
+            <div class="panel-body px-3 sm:px-4 py-3">
+              <div class="table-wrapper overflow-auto rounded-xl border border-slate-800/80 bg-slate-950/90">
+                <table class="w-full text-[11px]">
+                  <thead class="bg-slate-900/95 text-slate-400 sticky top-0">
+                    <tr>
+                      <th class="px-2 py-1.5 text-left">회원번호</th>
+                      <th class="px-2 py-1.5 text-left">이름</th>
+                      <th class="px-2 py-1.5 text-left">전화번호</th>
+                      <th class="px-2 py-1.5 text-left">이메일</th>
+                      <th class="px-2 py-1.5 text-left">가입일</th>
+                      <th class="px-2 py-1.5 text-left">채널</th>
+                      <th class="px-2 py-1.5 text-left">등급</th>
+                      <th class="px-2 py-1.5 text-right">누적매출</th>
+                      <th class="px-2 py-1.5 text-right">포인트</th>
+                      <th class="px-2 py-1.5 text-left">최근주문일</th>
+                      <th class="px-2 py-1.5 text-left">메모</th>
+                      <th class="px-2 py-1.5 text-center">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="membersBody"
+                    data-entity="members"
+                    data-sheet="MEMBERS"
+                  >
+                    <tr>
+                      <td colspan="12" class="empty-state px-3 py-6 text-center text-slate-500">
+                        회원 데이터를 불러오는 중입니다…
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-footer flex justify-end mt-3">
+                <div class="pager inline-flex items-center gap-2 text-[11px]" id="membersPager">
+                  <button
+                    type="button"
+                    data-page="prev"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    이전
+                  </button>
+                  <span data-page-label class="text-slate-400">-</span>
+                  <button
+                    type="button"
+                    data-page="next"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    다음
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- ============================================================
-           6) 로그 모니터링
-      ============================================================ -->
-      <section id="section-logs" class="section">
-        <div class="section-header-row">
-          <div>
-            <h2>📝 로그 모니터링</h2>
-          <p class="section-desc">
-              자동화 스크립트, API 호출, 알림 기록을 한 번에 추적합니다.
-            </p>
-          </div>
-
-          <div class="section-actions">
-            <input
-              id="searchLogs"
-              class="input"
-              placeholder="검색 (시간 / 타입 / 메시지 / 상세)"
-            />
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-body">
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>시간</th>
-                    <th>타입</th>
-                    <th>메시지</th>
-                    <th>상세</th>
-                  </tr>
-                </thead>
-                <tbody
-                  id="logsBody"
-                  data-entity="logs"
-                  data-sheet="LOGS"
-                >
-                  <tr>
-                    <td colspan="4" class="empty-state">로그 데이터를 불러오는 중입니다…</td>
-                  </tr>
-                </tbody>
-              </table>
+        <!-- ============================================================
+             5) 재고 관리
+        ============================================================ -->
+        <section id="section-stock" class="section hidden space-y-4 sm:space-y-5">
+          <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                <span>🏬 재고 관리</span>
+              </h2>
+              <p class="section-desc text-xs sm:text-sm text-slate-400 mt-1">
+                입고/출고 없이도 자동 계산된 재고를 창고·채널 단위로 모니터링합니다.
+              </p>
             </div>
 
-            <div class="table-footer">
-              <div class="pager" id="logsPager">
-                <button type="button" data-page="prev">이전</button>
-                <span data-page-label>-</span>
-                <button type="button" data-page="next">다음</button>
+            <div class="section-actions flex items-center gap-2">
+              <input
+                id="searchStock"
+                class="input w-52 sm:w-64 rounded-full border border-slate-700/80 bg-slate-950/90 px-3 py-1.5 text-[11px] placeholder:text-slate-500"
+                placeholder="검색 (상품코드 / 상품명 / 상태 / 창고 / 채널)"
+              />
+            </div>
+          </div>
+
+          <div class="panel rounded-2xl border border-slate-800/80 bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.95)]">
+            <div class="panel-body px-3 sm:px-4 py-3">
+              <div class="table-wrapper overflow-auto rounded-xl border border-slate-800/80 bg-slate-950/90">
+                <table class="w-full text-[11px]">
+                  <thead class="bg-slate-900/95 text-slate-400 sticky top-0">
+                    <tr>
+                      <th class="px-2 py-1.5 text-left">상품코드</th>
+                      <th class="px-2 py-1.5 text-left">상품명</th>
+                      <th class="px-2 py-1.5 text-right">현재 재고</th>
+                      <th class="px-2 py-1.5 text-right">안전 재고</th>
+                      <th class="px-2 py-1.5 text-left">상태</th>
+                      <th class="px-2 py-1.5 text-left">창고</th>
+                      <th class="px-2 py-1.5 text-left">채널</th>
+                      <th class="px-2 py-1.5 text-center">관리</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="stockBody"
+                    data-entity="stock"
+                    data-sheet="STOCK"
+                  >
+                    <tr>
+                      <td colspan="8" class="empty-state px-3 py-6 text-center text-slate-500">
+                        재고 데이터를 불러오는 중입니다…
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-footer flex justify-end mt-3">
+                <div class="pager inline-flex items-center gap-2 text-[11px]" id="stockPager">
+                  <button
+                    type="button"
+                    data-page="prev"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    이전
+                  </button>
+                  <span data-page-label class="text-slate-400">-</span>
+                  <button
+                    type="button"
+                    data-page="next"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    다음
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- ============================================================
-           FOOTER
-      ============================================================ -->
-      <footer class="footer">
-        <div class="footer-inner">
-          <span>© 2025 KORUAL Control Center · All Systems Automated</span>
-        </div>
-      </footer>
+        <!-- ============================================================
+             6) 로그 모니터링
+        ============================================================ -->
+        <section id="section-logs" class="section hidden space-y-4 sm:space-y-5">
+          <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 class="text-lg sm:text-xl font-semibold flex items-center gap-2">
+                <span>📝 로그 모니터링</span>
+              </h2>
+              <p class="section-desc text-xs sm:text-sm text-slate-400 mt-1">
+                자동화 스크립트, API 호출, 알림 기록을 한 번에 추적합니다.
+              </p>
+            </div>
 
-    </main> <!-- /content -->
-  </div> <!-- /app-shell -->
+            <div class="section-actions flex items-center gap-2">
+              <input
+                id="searchLogs"
+                class="input w-52 sm:w-64 rounded-full border border-slate-700/80 bg-slate-950/90 px-3 py-1.5 text-[11px] placeholder:text-slate-500"
+                placeholder="검색 (시간 / 타입 / 메시지 / 상세)"
+              />
+            </div>
+          </div>
+
+          <div class="panel rounded-2xl border border-slate-800/80 bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.95)]">
+            <div class="panel-body px-3 sm:px-4 py-3">
+              <div class="table-wrapper overflow-auto rounded-xl border border-slate-800/80 bg-slate-950/90">
+                <table class="w-full text-[11px]">
+                  <thead class="bg-slate-900/95 text-slate-400 sticky top-0">
+                    <tr>
+                      <th class="px-2 py-1.5 text-left">시간</th>
+                      <th class="px-2 py-1.5 text-left">타입</th>
+                      <th class="px-2 py-1.5 text-left">메시지</th>
+                      <th class="px-2 py-1.5 text-left">상세</th>
+                    </tr>
+                  </thead>
+                  <tbody
+                    id="logsBody"
+                    data-entity="logs"
+                    data-sheet="LOGS"
+                  >
+                    <tr>
+                      <td colspan="4" class="empty-state px-3 py-6 text-center text-slate-500">
+                        로그 데이터를 불러오는 중입니다…
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-footer flex justify-end mt-3">
+                <div class="pager inline-flex items-center gap-2 text-[11px]" id="logsPager">
+                  <button
+                    type="button"
+                    data-page="prev"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    이전
+                  </button>
+                  <span data-page-label class="text-slate-400">-</span>
+                  <button
+                    type="button"
+                    data-page="next"
+                    class="px-2 py-1 rounded-full border border-slate-700/80 bg-slate-900/90"
+                  >
+                    다음
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================
+             FOOTER
+        ============================================================ -->
+        <footer class="footer mt-4 text-[11px] text-slate-500">
+          <div class="footer-inner py-3 text-center border-t border-slate-800/70">
+            © 2025 KORUAL Control Center · All Systems Automated
+          </div>
+        </footer>
+      </div>
+    </main>
+  </div>
 
   <!-- ============================================================
-       ■ 수정/삭제 공통 모달 레이어
+       ■ 수정/삭제 공통 모달 레이어 (기존 구조 그대로)
   ============================================================ -->
   <div
     id="korualModalLayer"
@@ -627,11 +889,11 @@
     </div>
   </div>
 
-  <!-- JS 연결 -->
+  <!-- JS 연결 (기존 로직 그대로 사용) -->
   <script src="app.js"></script>
   <script src="modal.js"></script>
 
-  <!-- 모달 전역 헬퍼 -->
+  <!-- 모달 전역 헬퍼 (그대로 유지) -->
   <script>
     (function () {
       const layer      = document.getElementById("korualModalLayer");
