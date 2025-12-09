@@ -5,20 +5,77 @@
 (function () {
   "use strict";
 
-  // =========================
-  // 기본 설정
-  // =========================
   const META = window.KORUAL_META_APP || {};
-  const API_BASE = META.api?.baseUrl || "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
-  const API_SECRET = META.api?.secret || "KORUAL-ONLY";
+  const API_BASE = META.api?.baseUrl || "";
+  const API_SECRET = META.api?.secret || "";
 
   const $ = (sel, parent = document) => parent.querySelector(sel);
-  const $$ = (sel, parent = document) => Array.from(parent.querySelectorAll(sel));
 
-  const state = {
-    pingMs: null,
-    lastSync: null,
-  };
+  // 토스트 대신 간단 메시지
+  function showLoginMsg(msg, isError = true) {
+    const el = $("#loginMsg");
+    if (!el) return;
+    el.textContent = msg || "";
+    el.style.color = isError ? "#fca5a5" : "#4ade80";
+  }
+
+  async function handleLogin() {
+    const username = $("#loginUsername")?.value.trim();
+    const password = $("#loginPassword")?.value.trim();
+
+    if (!username || !password) {
+      showLoginMsg("아이디와 비밀번호를 모두 입력해주세요.");
+      return;
+    }
+
+    try {
+      showLoginMsg("로그인 중입니다…", false);
+
+      const res = await fetch(API_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target: "login",
+          username,
+          password,
+          secret: API_SECRET,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.ok) {
+        showLoginMsg(data.message || "로그인에 실패했습니다.");
+        return;
+      }
+
+      // 로그인 성공 → localStorage 저장 후 대시보드로 이동
+      const user = data.user || { username };
+      localStorage.setItem("korual_user", JSON.stringify(user));
+      location.href = "dashboard.html";
+    } catch (err) {
+      console.error(err);
+      showLoginMsg("서버 통신 중 오류가 발생했습니다.");
+    }
+  }
+
+  // DOM 연결 (index.html일 때만 존재하므로 ? 사용)
+  const btnLogin = document.getElementById("btnLogin");
+  if (btnLogin) {
+    btnLogin.addEventListener("click", handleLogin);
+
+    const pw = document.getElementById("loginPassword");
+    if (pw) {
+      pw.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          handleLogin();
+        }
+      });
+    }
+  }
+
+})();
+
 
   // =========================
   // 토스트
@@ -826,4 +883,5 @@
 
   document.addEventListener("DOMContentLoaded", init);
 })();
+
 
