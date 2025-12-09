@@ -19,22 +19,24 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL CONTROL CENTER – Dashboard</title>
-<script>
-  window.KORUAL_META_APP = {
-    app: {
-      id: "korual-control-center",
-      name: "KORUAL CONTROL CENTER",
-      version: "v1.0-live",
-      env: "prod"
-    },
-    api: {
-      baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
-      secret: "KORUAL-ONLY"
-    }
-  };
-</script>
 
-  <!-- Tailwind (하이엔드용) -->
+  <!-- 프론트에서 app.js가 읽어갈 메타 정보 -->
+  <script>
+    window.KORUAL_META_APP = {
+      app: {
+        id: "korual-control-center",
+        name: "KORUAL CONTROL CENTER",
+        version: "v1.0-live",
+        env: "prod"
+      },
+      api: {
+        baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
+        secret: "KORUAL-ONLY"
+      }
+    };
+  </script>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -52,7 +54,7 @@
     };
   </script>
 
-  <!-- 기존 High-End 스타일 유지 -->
+  <!-- 스타일 -->
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="modal.css" />
 </head>
@@ -120,7 +122,7 @@
     }
   </style>
 
-  <!-- 글로벌 로딩 스피너 (기존 ID 유지) -->
+  <!-- 글로벌 스피너 -->
   <div
     id="globalSpinner"
     class="spinner-overlay hidden flex items-center justify-center fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm"
@@ -147,9 +149,7 @@
   <!-- 앱 쉘 -->
   <div class="app-shell relative z-10 flex h-screen">
 
-    <!-- ======================================
-         ■ 사이드바 (Glass + High-End)
-    ======================================= -->
+    <!-- 사이드바 -->
     <aside
       class="sidebar hidden md:flex flex-col w-64 border-r border-slate-800/80 bg-slate-950/80/80 backdrop-blur-2xl px-4 py-5 shadow-[0_24px_80px_rgba(15,23,42,0.95)]"
     >
@@ -226,18 +226,16 @@
       </div>
     </aside>
 
-    <!-- 모바일일 때 사이드바 뒤 어두운 배경 -->
+    <!-- 모바일 사이드바 백드롭 -->
     <div
       id="sidebarBackdrop"
       class="sidebar-backdrop fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-30 hidden md:hidden"
     ></div>
 
-    <!-- ======================================
-         ■ 메인 컨텐츠
-    ======================================= -->
+    <!-- 메인 컨텐츠 -->
     <main class="content flex-1 flex flex-col min-w-0">
 
-      <!-- 상단바 (Topbar) -->
+      <!-- 상단바 -->
       <header
         class="topbar flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-2xl shadow-[0_18px_60px_rgba(15,23,42,0.9)]"
       >
@@ -310,12 +308,10 @@
         </div>
       </header>
 
-      <!-- 실제 컨텐츠 래퍼 -->
+      <!-- 컨텐츠 래퍼 -->
       <div class="flex-1 min-h-0 overflow-auto px-3 sm:px-5 lg:px-7 py-3 sm:py-4">
 
-        <!-- ============================================================
-             1) 대시보드
-        ============================================================ -->
+        <!-- 1) 대시보드 -->
         <section
           id="section-dashboard"
           class="section active space-y-4 sm:space-y-5"
@@ -446,9 +442,7 @@
           </div>
         </section>
 
-        <!-- ============================================================
-             2) 상품 관리
-        ============================================================ -->
+        <!-- 2) 상품 관리 -->
         <section id="section-products" class="section hidden space-y-4 sm:space-y-5">
           <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
             <div>
@@ -521,9 +515,7 @@
           </div>
         </section>
 
-        <!-- ============================================================
-             3) 주문 관리
-        ============================================================ -->
+        <!-- 3) 주문 관리 -->
         <section id="section-orders" class="section hidden space-y-4 sm:space-y-5">
           <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
             <div>
@@ -598,9 +590,7 @@
           </div>
         </section>
 
-        <!-- ============================================================
-             4) 회원 관리
-        ============================================================ -->
+        <!-- 4) 회원 관리 -->
         <section id="section-members" class="section hidden space-y-4 sm:space-y-5">
           <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
             <div>
@@ -678,9 +668,7 @@
           </div>
         </section>
 
-        <!-- ============================================================
-             5) 재고 관리
-        ============================================================ -->
+        <!-- 5) 재고 관리 -->
         <section id="section-stock" class="section hidden space-y-4 sm:space-y-5">
           <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
             <div>
@@ -754,9 +742,7 @@
           </div>
         </section>
 
-        <!-- ============================================================
-             6) 로그 모니터링
-        ============================================================ -->
+        <!-- 6) 로그 모니터링 -->
         <section id="section-logs" class="section hidden space-y-4 sm:space-y-5">
           <div class="section-header-row flex items-center justify-between gap-3 flex-wrap">
             <div>
@@ -826,9 +812,7 @@
           </div>
         </section>
 
-        <!-- ============================================================
-             FOOTER
-        ============================================================ -->
+        <!-- Footer -->
         <footer class="footer mt-4 text-[11px] text-slate-500">
           <div class="footer-inner py-3 text-center border-t border-slate-800/70">
             © 2025 KORUAL Control Center · All Systems Automated
@@ -838,9 +822,7 @@
     </main>
   </div>
 
-  <!-- ============================================================
-       ■ 수정/삭제 공통 모달 레이어 (기존 구조 그대로)
-  ============================================================ -->
+  <!-- 모달 레이어 -->
   <div
     id="korualModalLayer"
     class="modal-layer"
@@ -903,11 +885,11 @@
     </div>
   </div>
 
-  <!-- JS 연결 (기존 로직 그대로 사용) -->
+  <!-- JS 연결 -->
   <script src="app.js"></script>
   <script src="modal.js"></script>
 
-  <!-- 모달 전역 헬퍼 (그대로 유지) -->
+  <!-- 모달 전역 헬퍼 -->
   <script>
     (function () {
       const layer      = document.getElementById("korualModalLayer");
@@ -1018,6 +1000,4 @@
     })();
   </script>
 </body>
-  <script src="app.js"></script>
 </html>
-
