@@ -54,16 +54,15 @@
 
     setLoading(true);
     try {
-  const res = await fetch(API_BASE, {
+const res = await fetch(API_BASE, {
   method: "POST",
-  // ⚠ 헤더 삭제 (브라우저가 자동으로 text/plain 으로 보냄 → preflight 안 뜸)
-  body: JSON.stringify({
-    target: "login",
-    username,
-    password,
-    secret: API_SECRET,
-  }),
+  body:
+    "target=login" +
+    "&username=" + encodeURIComponent(username) +
+    "&password=" + encodeURIComponent(password) +
+    "&secret=" + encodeURIComponent(API_SECRET)
 });
+
 
 
       const data = await res.json().catch(() => ({}));
@@ -164,6 +163,7 @@
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
 })();
+
 
 
 
