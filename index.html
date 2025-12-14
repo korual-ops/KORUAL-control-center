@@ -100,6 +100,7 @@
       border-radius: 0.9rem;
       font-size: 0.95rem;
       font-weight: 600;
+      color: #fff;
       background: linear-gradient(135deg, #2563eb, #0ea5e9);
       transition: .2s;
       box-shadow: 0 18px 48px rgba(15,23,42,0.95);
@@ -107,6 +108,12 @@
     .btn:hover {
       transform: translateY(-1px);
       box-shadow: 0 26px 60px rgba(15,23,42,1);
+    }
+    .btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 14px 34px rgba(15,23,42,0.8);
     }
 
     .glass {
@@ -122,8 +129,8 @@
     <div class="radar-sweep"></div>
   </div>
 
-  <!-- Toast root -->
-  <div id="toastRoot" class="fixed inset-x-0 bottom-6 z-40 flex justify-center pointer-events-none"></div>
+  <!-- Toast root (옵션: auth.js에서 토스트 사용 시) -->
+  <div id="toastRoot" class="fixed inset-x-0 bottom-6 z-40 flex justify-center pointer-events-none px-4"></div>
 
   <!-- MAIN LOGIN CARD -->
   <main class="max-w-5xl mx-auto px-6 pt-16">
@@ -135,30 +142,46 @@
           <h1 class="text-2xl font-semibold">24h 자동화 커머스 레이더</h1>
         </div>
       </div>
+
+      <!-- API 상태 표시 (옵션) -->
+      <div class="mt-4 flex justify-center">
+        <div class="inline-flex items-center gap-2 text-xs text-slate-400">
+          <span id="apiStatusDot" class="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.35)]"></span>
+          <span id="apiStatusText">Auth API 체크 중…</span>
+        </div>
+      </div>
     </div>
 
-    <section
-      class="glass rounded-3xl max-w-xl mx-auto px-6 py-7 shadow-[0_32px_90px_rgba(15,23,42,0.98)]"
-    >
+    <section class="glass rounded-3xl max-w-xl mx-auto px-6 py-7 shadow-[0_32px_90px_rgba(15,23,42,0.98)] relative">
+      <!-- 로딩 오버레이 (auth.js setLoading에서 사용) -->
+      <div
+        id="loadingOverlay"
+        class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm rounded-3xl z-20 flex flex-col items-center justify-center gap-3"
+        aria-hidden="true"
+      >
+        <div class="w-10 h-10 border-2 border-slate-600 border-t-sky-400 rounded-full animate-spin"></div>
+        <p class="text-xs text-slate-300">KORUAL 계정 확인 중...</p>
+      </div>
+
       <h2 class="text-xl font-semibold mb-6">KORUAL 로그인</h2>
 
       <div class="space-y-4">
         <div>
-          <label class="text-sm mb-1 block">아이디</label>
+          <label class="text-sm mb-1 block" for="loginUsername">아이디</label>
           <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">@</span>
-            <input id="loginUsername" class="input pl-8" placeholder="예: KORUAL" />
+            <input id="loginUsername" class="input pl-8" placeholder="예: KORUAL" autocomplete="username" />
           </div>
         </div>
 
         <div>
-          <label class="text-sm mb-1 block">비밀번호</label>
-          <input id="loginPassword" type="password" class="input" placeholder="••••••••" />
+          <label class="text-sm mb-1 block" for="loginPassword">비밀번호</label>
+          <input id="loginPassword" type="password" class="input" placeholder="••••••••" autocomplete="current-password" />
         </div>
 
-        <button id="btnLogin" class="btn mt-2">로그인</button>
+        <button id="btnLogin" class="btn mt-2" type="button">로그인</button>
 
-        <p id="loginMsg" class="text-sm text-rose-400 h-4 mt-1"></p>
+        <p id="loginMsg" class="text-sm text-rose-400 min-h-[1.25rem] mt-1" aria-live="polite"></p>
       </div>
 
       <!-- 샘플 계정 -->
@@ -167,11 +190,7 @@
         <div class="inline-flex gap-2 items-center bg-slate-900/80 px-3 py-2 mt-2 rounded-xl border border-slate-700/70">
           <span>ID:</span><code class="bg-slate-800 px-1.5 py-0.5 rounded">KORUAL</code>
           <span>/ PW:</span><code class="bg-slate-800 px-1.5 py-0.5 rounded">GUEST</code>
-          <button
-            id="btnFillDemo"
-            class="underline decoration-dotted ml-2 text-sky-300"
-            type="button"
-          >
+          <button id="btnFillDemo" class="underline decoration-dotted ml-2 text-sky-300" type="button">
             자동 입력
           </button>
         </div>
