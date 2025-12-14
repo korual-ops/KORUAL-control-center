@@ -1,80 +1,120 @@
-// auth.js – index.html 전용 (PW_HASH 로그인 처리)
+// auth.js – LOGIN 전용 (PW_HASH 기반 로그인)
 (function () {
   "use strict";
 
   const META = window.KORUAL_META_APP || {};
-  const API_BASE = META.api?.baseUrl || "";
+  const API_BASE   = META.api?.baseUrl || "";
   const API_SECRET = META.api?.secret || "";
 
   const $ = (sel) => document.querySelector(sel);
 
-  const loginBtn = $("#btnLogin");
   const inputUser = $("#loginUsername");
   const inputPass = $("#loginPassword");
-  const msgEl = $("#loginMsg");
+  const btnLogin  = $("#btnLogin");
+  const msgEl     = $("#loginMsg");
+  const overlay   = $("#loadingOverlay");
+  const btnDemo   = $("#btnFillDemo");
 
-  if (!loginBtn || !inputUser || !inputPass) return;
+  if (!inputUser || !inputPass || !btnLogin) return;
 
-  function setLoading(isLoading) {
-    const overlay = document.getElementById("loadingOverlay");
-    if (overlay) overlay.classList.toggle("hidden", !isLoading);
-    loginBtn.disabled = isLoading;
+  /* =========================
+     Utils
+  ========================= */
+
+  function setLoading(on) {
+    if (overlay) overlay.classList.toggle("hidden", !on);
+    btnLogin.disabled = on;
   }
 
-  async function handleLogin() {
-    const username = (inputUser.value || "").trim();
-    const password = (inputPass.value || "").trim();
-    const ua = navigator.userAgent || "";
+  function setMsg(text) {
+    if (msgEl) msgEl.textContent = text || "";
+  }
 
-    if (msgEl) msgEl.textContent = "";
+  // SHA-256 → hex
+  async function sha256Hex(str) {
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  /* =========================
+     Login Handler
+  ========================= */
+
+  async function handleLogin() {
+    const username = inputUser.value.trim();
+    const password = inputPass.value;
+
+    setMsg("");
 
     if (!username || !password) {
-      if (msgEl) msgEl.textContent = "아이디와 비밀번호를 모두 입력해주세요.";
+      setMsg("아이디와 비밀번호를 모두 입력해주세요.");
       return;
     }
 
     if (!API_BASE) {
-      if (msgEl) msgEl.textContent = "API BASE URL이 설정되지 않았습니다.";
+      setMsg("API 주소가 설정되지 않았습니다.");
       return;
     }
 
     setLoading(true);
+
     try {
+      // 🔐 브라우저에서 PW_HASH 생성
+      const pwHash = await sha256Hex(password);
+
       const res = await fetch(API_BASE, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           target: "login",
           username,
-          password,        // 평문 전송 (서버에서 SHA-256 처리 -> PW_HASH 비교)
-          secret: API_SECRET,
-          ua,              // 서버가 LAST_UA / LOGS 기록에 사용
-        }),
+          pwHash,          // ✅ PW_HASH만 전송
+          secret: API_SECRET
+        })
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || !data.ok) {
-        if (msgEl) msgEl.textContent = data.message || "로그인에 실패했습니다. 다시 시도해주세요.";
+        setMsg(data.message || "로그인에 실패했습니다.");
         return;
       }
 
+      // 로그인 성공
       const user = data.user || { username };
       localStorage.setItem("korual_user", JSON.stringify(user));
-      location.href = "dashboard.html";
+      location.replace("dashboard.html");
+
     } catch (err) {
       console.error(err);
-      if (msgEl) msgEl.textContent = "네트워크 오류가 발생했습니다.";
+      setMsg("네트워크 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
   }
 
-  loginBtn.addEventListener("click", handleLogin);
+  /* =========================
+     Event Bind
+  ========================= */
 
-  [inputUser, inputPass].forEach((el) => {
-    el.addEventListener("keydown", (e) => {
+  btnLogin.addEventListener("click", handleLogin);
+
+  [inputUser, inputPass].forEach(el => {
+    el.addEventListener("keydown", e => {
       if (e.key === "Enter") handleLogin();
     });
   });
+
+  // 데모 계정 자동 입력
+  if (btnDemo) {
+    btnDemo.addEventListener("click", () => {
+      inputUser.value = "KORUAL";
+      inputPass.value = "GUEST";
+      inputPass.focus();
+    });
+  }
+
 })();
