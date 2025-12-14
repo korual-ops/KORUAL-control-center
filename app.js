@@ -1,23 +1,36 @@
 // app.js
-// KORUAL CONTROL CENTER – Frontend v1.0
-// index.html (로그인) + dashboard.html 공용 JS
+// KORUAL CONTROL CENTER – Frontend v1.0 (dashboard.html 전용)
+// - Auth(index.html)는 auth.js가 처리
+// - Dashboard는 app.js가 처리
 
 (function () {
   "use strict";
 
-  // ========================
-  // 기본 설정
-  // ========================
   const META = window.KORUAL_META_APP || {};
-  const API_BASE =
-    META.api?.baseUrl ||
-    "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
-  const API_SECRET = META.api?.secret || "KORUAL-ONLY";
+  const API_BASE   = META.api?.baseUrl || "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
+  const API_SECRET = META.api?.secret  || "KORUAL-ONLY";
 
-  const $ = (sel, parent = document) => parent.querySelector(sel);
-  const $$ = (sel, parent = document) =>
-    Array.from(parent.querySelectorAll(sel));
+  const $  = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  // 로그인 페이지(index.html)에 있으면 실행하지 않음
+  if ($("#btnLogin")) return;
+
+  // 로그인 세션 체크 (dashboard.html 접근 보호)
+  (function guardAuth() {
+    try {
+      const raw = localStorage.getItem("korual_user");
+      if (!raw) return location.replace("index.html");
+      const u = JSON.parse(raw);
+      if (!u || !u.username) return location.replace("index.html");
+    } catch (e) {
+      return location.replace("index.html");
+    }
+  })();
+
+  // =========================
+  // 상태
+  // =========================
   const state = {
     pingMs: null,
     lastSync: null,
@@ -44,6 +57,7 @@
     wrap.appendChild(span);
 
     root.appendChild(wrap);
+
     setTimeout(() => {
       wrap.style.opacity = "0";
       wrap.style.transform = "translateY(4px)";
@@ -72,35 +86,27 @@
   // API 클라이언트
   // =========================
   async function apiGet(target, params = {}) {
-    if (!API_BASE) {
-      console.error("API_BASE 미설정");
-      throw new Error("API URL이 설정되지 않았습니다.");
-    }
+    if (!API_BASE) throw new Error("API URL이 설정되지 않았습니다.");
+
     const url = new URL(API_BASE);
-    const search = url.searchParams;
-    search.set("target", target);
-    // doGet에서는 secret을 검사하지 않지만, 필요할 때를 위해 남겨둠
-    if (API_SECRET) search.set("secret", API_SECRET);
+    const sp = url.searchParams;
+    sp.set("target", target);
+    if (API_SECRET) sp.set("secret", API_SECRET);
 
     Object.keys(params).forEach((k) => {
       const v = params[k];
       if (v === undefined || v === null || v === "") return;
-      search.set(k, String(v));
+      sp.set(k, String(v));
     });
 
     const started = performance.now();
     const res = await fetch(url.toString(), {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
     });
-    const elapsed = performance.now() - started;
-    state.pingMs = Math.round(elapsed);
+    state.pingMs = Math.round(performance.now() - started);
 
-    if (!res.ok) {
-      throw new Error("HTTP " + res.status);
-    }
+    if (!res.ok) throw new Error("HTTP " + res.status);
 
     const text = await res.text();
     let json;
@@ -110,25 +116,22 @@
       console.error("JSON 파싱 오류", text);
       throw new Error("API 응답이 JSON 형식이 아닙니다.");
     }
-
-    if (json.ok === false) {
-      throw new Error(json.message || "API 오류");
-    }
+    if (json.ok === false) throw new Error(json.message || "API 오류");
 
     return json;
   }
 
   async function apiPost(body) {
-    if (!API_BASE) {
-      console.error("API_BASE 미설정");
-      throw new Error("API URL이 설정되지 않았습니다.");
-    }
+    if (!API_BASE) throw new Error("API URL이 설정되지 않았습니다.");
+
     const url = new URL(API_BASE);
     const started = performance.now();
+
+    // preflight 최소화를 위해 text/plain 사용 권장(특히 Vercel→GAS)
     const res = await fetch(url.toString(), {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain;charset=utf-8",
         Accept: "application/json",
       },
       body: JSON.stringify({
@@ -136,12 +139,10 @@
         ...body,
       }),
     });
-    const elapsed = performance.now() - started;
-    state.pingMs = Math.round(elapsed);
 
-    if (!res.ok) {
-      throw new Error("HTTP " + res.status);
-    }
+    state.pingMs = Math.round(performance.now() - started);
+
+    if (!res.ok) throw new Error("HTTP " + res.status);
 
     const text = await res.text();
     let json;
@@ -151,10 +152,7 @@
       console.error("JSON 파싱 오류", text);
       throw new Error("API 응답이 JSON 형식이 아닙니다.");
     }
-
-    if (json.ok === false) {
-      throw new Error(json.message || "API 오류");
-    }
+    if (json.ok === false) throw new Error(json.message || "API 오류");
 
     return json;
   }
@@ -166,7 +164,6 @@
     const dot = $("#apiStatusDot");
     const text = $("#apiStatusText");
     const pingEl = $("#apiPing");
-
     if (!dot || !text) return;
 
     if (ok) {
@@ -179,15 +176,13 @@
       text.textContent = message || "연결 실패";
     }
 
-    if (pingEl && state.pingMs != null) {
-      pingEl.textContent = state.pingMs + " ms";
-    }
+    if (pingEl && state.pingMs != null) pingEl.textContent = state.pingMs + " ms";
   }
 
   async function pingApi() {
     try {
       const res = await apiGet("ping");
-      updateApiStatus(true, res.message || "LIVE");
+      updateApiStatus(true, "LIVE " + (res.version || res.data?.version || ""));
       return res;
     } catch (err) {
       console.error(err);
@@ -198,7 +193,7 @@
   }
 
   // =========================
-  // 날짜/금액 포맷
+  // 날짜 포맷
   // =========================
   function formatDateLabel(date = new Date()) {
     const y = date.getFullYear();
@@ -209,46 +204,37 @@
     return `${y}-${m}-${d} (${day})`;
   }
 
-  function formatCurrency(value) {
-    if (value == null || isNaN(Number(value))) return "-";
-    return Number(value).toLocaleString("ko-KR") + "원";
-  }
-
   function setText(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
   }
 
+  function formatCurrency(value) {
+    if (value == null || isNaN(Number(value))) return "-";
+    return Number(value).toLocaleString("ko-KR") + "원";
+  }
+
   // =========================
-  // 대시보드 데이터 로딩
+  // 대시보드 로딩
   // =========================
   async function loadDashboard() {
     const todayLabelEl = $("#todayDateLabel");
-    if (todayLabelEl) {
-      todayLabelEl.textContent = formatDateLabel();
-    }
+    if (todayLabelEl) todayLabelEl.textContent = formatDateLabel();
 
     try {
-      // backend handleDashboard_ 결과 형식에 맞게 사용
-      const d = await apiGet("dashboard");
+      const res = await apiGet("dashboard");
+      const d = res.data || {};
 
-      setText("cardTotalProducts", d.totalProducts ?? "-");
-      setText("cardTotalOrders", d.totalOrders ?? "-");
-      setText(
-        "cardTotalMembers",
-        d.totalMembers != null ? d.totalMembers : "-"
-      );
-      setText(
-        "cardTotalRevenue",
-        d.totalRevenue != null ? formatCurrency(d.totalRevenue) : "-"
-      );
+      const totals = d.totals || {};
+      setText("cardTotalProducts", totals.products ?? "-");
+      setText("cardTotalOrders", totals.orders ?? "-");
+      setText("cardTotalMembers", totals.members ?? "-");
+      setText("cardTotalRevenue", totals.revenue != null ? formatCurrency(totals.revenue) : "-");
 
-      setText("todayOrders", d.todayOrders ?? "-");
-      setText(
-        "todayRevenue",
-        d.todayRevenue != null ? formatCurrency(d.todayRevenue) : "-"
-      );
-      setText("todayPending", d.todayPending ?? "-");
+      const today = d.today || {};
+      setText("todayOrders", today.orders ?? "-");
+      setText("todayRevenue", today.revenue != null ? formatCurrency(today.revenue) : "-");
+      setText("todayPending", today.pending ?? "-");
 
       renderRecentOrders(d.recentOrders || []);
       state.lastSync = new Date();
@@ -269,8 +255,7 @@
       const tr = document.createElement("tr");
       const td = document.createElement("td");
       td.colSpan = 7;
-      td.className =
-        "empty-state px-3 py-6 text-center text-slate-500";
+      td.className = "empty-state px-3 py-6 text-center text-slate-500";
       td.textContent = "최근 주문 데이터가 없습니다.";
       tr.appendChild(td);
       tbody.appendChild(tr);
@@ -283,9 +268,9 @@
         "border-b border-slate-800/70 last:border-b-0 hover:bg-slate-900/70 transition-colors";
 
       const cells = [
-        row.order_date || row.orderDate || row.date || "",
-        row.order_no || row.orderNo || row.orderNumber || "",
-        row.item_name || row.productName || "",
+        row.orderDate || row.date || "",
+        row.orderNo || row.orderNumber || "",
+        row.productName || "",
         row.qty != null ? String(row.qty) : "",
         row.amount != null ? formatCurrency(row.amount) : "",
         row.channel || "",
@@ -294,9 +279,7 @@
 
       cells.forEach((val, idx) => {
         const td = document.createElement("td");
-        td.className =
-          "px-2 py-1.5" +
-          (idx === 3 || idx === 4 ? " text-right" : " text-left");
+        td.className = "px-2 py-1.5" + (idx === 3 || idx === 4 ? " text-right" : " text-left");
         td.textContent = val;
         tr.appendChild(td);
       });
@@ -320,24 +303,16 @@
 
   // =========================
   // 공통 테이블 로더
-  // (products / orders / members / stock / logs)
   // =========================
   async function loadEntityTable(options) {
-    const { entity, endpoint, tbodyId, pagerId, searchInputId, columns } =
-      options;
+    const { entity, sheet, tbodyId, pagerId, searchInputId, columns } = options;
 
     const tbody = document.getElementById(tbodyId);
     const pager = document.getElementById(pagerId);
-    const searchInput = searchInputId
-      ? document.getElementById(searchInputId)
-      : null;
+    const searchInput = searchInputId ? document.getElementById(searchInputId) : null;
     if (!tbody) return;
 
-    const paging = {
-      page: 1,
-      pageSize: 50,
-      q: "",
-    };
+    const paging = { page: 1, pageSize: 50, q: "" };
 
     async function fetchAndRender() {
       tbody.innerHTML = `
@@ -349,17 +324,17 @@
       `;
 
       try {
-        const res = await apiGet(endpoint, {
+        const res = await apiGet(sheet, {
           page: paging.page,
-          size: paging.pageSize,
+          size: paging.pageSize,     // code.gs는 size 사용
           q: paging.q,
         });
 
-        const rows = res.rows || [];
-        const meta = res.meta || {};
-        const page = meta.page || paging.page;
-        const pageSize = meta.pageSize || paging.pageSize;
-        const total = meta.total ?? rows.length;
+        const data = res.data || {};
+        const rows = data.rows || data.items || [];
+        const page = data.page || paging.page;
+        const pageSize = data.pageSize || paging.pageSize;
+        const total = data.total ?? rows.length;
 
         paging.page = page;
         paging.pageSize = pageSize;
@@ -387,8 +362,7 @@
         const tr = document.createElement("tr");
         const td = document.createElement("td");
         td.colSpan = columns.length;
-        td.className =
-          "empty-state px-3 py-6 text-center text-slate-500";
+        td.className = "empty-state px-3 py-6 text-center text-slate-500";
         td.textContent = "데이터가 없습니다.";
         tr.appendChild(td);
         tbody.appendChild(tr);
@@ -401,37 +375,33 @@
           "border-b border-slate-800/70 last:border-b-0 hover:bg-slate-900/70 transition-colors";
 
         columns.forEach((col) => {
+          if (col.type === "manage") return; // 마지막에 별도 추가
           const td = document.createElement("td");
-          td.className =
-            "px-2 py-1.5 " +
-            (col.align === "right" ? "text-right" : "text-left");
-          let value = row[col.key];
+          td.className = "px-2 py-1.5 " + (col.align === "right" ? "text-right" : "text-left");
 
-          if (col.format === "currency") {
-            value = formatCurrency(value);
-          } else if (value == null) {
-            value = "";
-          }
+          let value = row[col.key];
+          if (col.format === "currency") value = formatCurrency(value);
+          else if (value == null) value = "";
 
           td.textContent = value;
           tr.appendChild(td);
         });
 
-        // 관리 버튼
         const manageCol = columns.find((c) => c.type === "manage");
         if (manageCol) {
           const td = document.createElement("td");
           td.className = "px-2 py-1.5 text-center";
+
           const btnEdit = document.createElement("button");
           btnEdit.type = "button";
           btnEdit.className =
             "inline-flex items-center px-2 py-0.5 rounded-full border border-slate-600/80 text-[10px] text-slate-200 bg-slate-900/80 mr-1";
           btnEdit.textContent = "수정";
           btnEdit.addEventListener("click", () => {
-            if (!window.KORUAL_MODAL || !window.KORUAL_MODAL.openEdit) return;
+            if (!window.KORUAL_MODAL?.openEdit) return;
             window.KORUAL_MODAL.openEdit({
               entity,
-              sheet: endpoint,
+              sheet,
               rowIndex: row._row || row.rowIndex || idx + 2,
               data: row,
             });
@@ -443,10 +413,10 @@
             "inline-flex items-center px-2 py-0.5 rounded-full border border-rose-500/70 text-[10px] text-rose-200 bg-rose-950/70";
           btnDel.textContent = "삭제";
           btnDel.addEventListener("click", () => {
-            if (!window.KORUAL_MODAL || !window.KORUAL_MODAL.openDelete) return;
+            if (!window.KORUAL_MODAL?.openDelete) return;
             window.KORUAL_MODAL.openDelete({
               entity,
-              sheet: endpoint,
+              sheet,
               rowIndex: row._row || row.rowIndex || idx + 2,
               title: row[manageCol.titleKey || ""] || "",
             });
@@ -467,9 +437,7 @@
       if (label) {
         const start = (page - 1) * pageSize + 1;
         const end = Math.min(total, page * pageSize);
-        label.textContent = total
-          ? `${start}–${end} / ${total}`
-          : `${page} 페이지`;
+        label.textContent = total ? `${start}–${end} / ${total}` : `${page} 페이지`;
       }
     }
 
@@ -478,11 +446,8 @@
         const btn = e.target.closest("button[data-page]");
         if (!btn) return;
         const dir = btn.dataset.page;
-        if (dir === "prev") {
-          paging.page = Math.max(1, paging.page - 1);
-        } else if (dir === "next") {
-          paging.page = paging.page + 1;
-        }
+        if (dir === "prev") paging.page = Math.max(1, paging.page - 1);
+        if (dir === "next") paging.page = paging.page + 1;
         fetchAndRender();
       });
     }
@@ -490,28 +455,22 @@
     if (searchInput) {
       let timer = null;
       searchInput.addEventListener("input", () => {
-        const q = searchInput.value.trim();
-        paging.q = q;
+        paging.q = searchInput.value.trim();
         paging.page = 1;
         clearTimeout(timer);
         timer = setTimeout(() => fetchAndRender(), 250);
       });
     }
 
-    // 최초 로딩
     fetchAndRender();
 
-    // 필요하면 외부에서 다시 호출할 수 있게 반환
-    return {
-      reload: fetchAndRender,
-      state: paging,
-    };
+    return { reload: fetchAndRender, state: paging };
   }
 
   function initTables() {
     loadEntityTable({
       entity: "products",
-      endpoint: "products",
+      sheet: "products",
       tbodyId: "productsBody",
       pagerId: "productsPager",
       searchInputId: "searchProducts",
@@ -527,7 +486,7 @@
 
     loadEntityTable({
       entity: "orders",
-      endpoint: "orders",
+      sheet: "orders",
       tbodyId: "ordersBody",
       pagerId: "ordersPager",
       searchInputId: "searchOrders",
@@ -546,7 +505,7 @@
 
     loadEntityTable({
       entity: "members",
-      endpoint: "members",
+      sheet: "members",
       tbodyId: "membersBody",
       pagerId: "membersPager",
       searchInputId: "searchMembers",
@@ -568,7 +527,7 @@
 
     loadEntityTable({
       entity: "stock",
-      endpoint: "stock",
+      sheet: "stock",
       tbodyId: "stockBody",
       pagerId: "stockPager",
       searchInputId: "searchStock",
@@ -586,7 +545,7 @@
 
     loadEntityTable({
       entity: "logs",
-      endpoint: "logs",
+      sheet: "logs",
       tbodyId: "logsBody",
       pagerId: "logsPager",
       searchInputId: "searchLogs",
@@ -692,7 +651,7 @@
           initTables();
           showToast("전체 데이터를 새로 불러왔습니다.", "success");
         } catch (e) {
-          // pingApi 안에서 토스트 처리
+          // pingApi에서 처리
         } finally {
           hideSpinner();
         }
@@ -730,7 +689,7 @@
       const raw = localStorage.getItem("korual_user");
       if (raw) {
         const user = JSON.parse(raw);
-        if (user && user.username) {
+        if (user?.username) {
           const el = $("#welcomeUser");
           if (el) el.textContent = user.username;
         }
@@ -741,7 +700,7 @@
   }
 
   // =========================
-  // 모달 저장/삭제 (POST 예시 – backend 확장 시 사용)
+  // 모달 저장/삭제 (POST)
   // =========================
   function initModalActions() {
     const btnSave = $("#rowEditSave");
@@ -764,16 +723,9 @@
 
         showSpinner();
         try {
-          await apiPost({
-            target: "updateRow",
-            key: sheet,
-            row: rowIndex,
-            rowObject,
-          });
+          await apiPost({ target: "updateRow", key: sheet, row: rowIndex, rowObject });
           showToast("수정이 저장되었습니다.", "success");
-          if (window.KORUAL_MODAL && window.KORUAL_MODAL.closeAll) {
-            window.KORUAL_MODAL.closeAll();
-          }
+          window.KORUAL_MODAL?.closeAll?.();
         } catch (err) {
           console.error(err);
           showToast("저장 중 오류가 발생했습니다.", "error");
@@ -792,15 +744,9 @@
 
         showSpinner();
         try {
-          await apiPost({
-            target: "deleteRow",
-            key: sheet,
-            row: rowIndex,
-          });
+          await apiPost({ target: "deleteRow", key: sheet, row: rowIndex });
           showToast("행이 삭제되었습니다.", "success");
-          if (window.KORUAL_MODAL && window.KORUAL_MODAL.closeAll) {
-            window.KORUAL_MODAL.closeAll();
-          }
+          window.KORUAL_MODAL?.closeAll?.();
         } catch (err) {
           console.error(err);
           showToast("삭제 중 오류가 발생했습니다.", "error");
@@ -812,14 +758,9 @@
   }
 
   // =========================
-  // 대시보드 초기 실행
+  // 초기 실행
   // =========================
-  async function initDashboard() {
-    // 로그인 페이지가 아니면 실행
-    if (!$("#dashboardRoot") && !$("#todayDateLabel")) {
-      return;
-    }
-
+  async function init() {
     showSpinner();
     try {
       initNavigation();
@@ -831,99 +772,11 @@
       await loadDashboard();
       initTables();
     } catch (e) {
-      // pingApi/loadDashboard에서 이미 에러 처리
+      // 개별 함수에서 처리
     } finally {
       hideSpinner();
     }
   }
 
-  // =========================
-  // 로그인 전용
-  // =========================
-  function showLoginMsg(msg, isError = true) {
-    const el = $("#loginMsg");
-    if (!el) return;
-    el.textContent = msg || "";
-    el.style.color = isError ? "#fca5a5" : "#4ade80";
-  }
-
-  async function handleLogin() {
-    const username = $("#loginUsername")?.value.trim();
-    const password = $("#loginPassword")?.value.trim();
-
-    if (!username || !password) {
-      showLoginMsg("아이디와 비밀번호를 모두 입력해주세요.");
-      return;
-    }
-
-    try {
-      showLoginMsg("로그인 중입니다…", false);
-
-      const data = await apiPost({
-        target: "login",
-        username,
-        password,
-      });
-
-      const user = data.user || { username };
-      localStorage.setItem("korual_user", JSON.stringify(user));
-      location.href = "dashboard.html";
-    } catch (err) {
-      console.error(err);
-      showLoginMsg(err.message || "서버 통신 중 오류가 발생했습니다.");
-    }
-  }
-
-  function initLoginPage() {
-    const btnLogin = $("#btnLogin");
-    if (!btnLogin) return; // 로그인 페이지가 아닐 때는 스킵
-
-    const pw = $("#loginPassword");
-    const idInput = $("#loginUsername");
-
-    btnLogin.addEventListener("click", handleLogin);
-
-    if (pw) {
-      pw.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          handleLogin();
-        }
-      });
-    }
-    if (idInput) {
-      idInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          handleLogin();
-        }
-      });
-    }
-
-    // 테스트 계정 자동 채우기 버튼(있으면)
-    const fillDemo = $("#btnFillDemo");
-    const fillDemoMobile = $("#btnFillDemoMobile");
-    function fill() {
-      const u = $("#loginUsername");
-      const p = $("#loginPassword");
-      if (u) u.value = "KORUAL";
-      if (p) p.value = "GUEST";
-    }
-    if (fillDemo) fillDemo.addEventListener("click", fill);
-    if (fillDemoMobile) fillDemoMobile.addEventListener("click", fill);
-
-    // 처음 들어올 때 ping 한 번
-    pingApi().catch(() => {});
-  }
-
-  // =========================
-  // 엔트리
-  // =========================
-  document.addEventListener("DOMContentLoaded", () => {
-    if ($("#btnLogin")) {
-      // 로그인 페이지
-      initLoginPage();
-    } else {
-      // 대시보드 페이지
-      initDashboard();
-    }
-  });
+  document.addEventListener("DOMContentLoaded", init);
 })();
