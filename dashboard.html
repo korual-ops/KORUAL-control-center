@@ -2,278 +2,107 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-
-  <!-- 로그인 안 되어 있으면 index로 -->
-  <script>
-    (function () {
-      try {
-        const token = localStorage.getItem("korual_token");
-        if (!token) location.replace("index.html");
-      } catch (_) {}
-    })();
-  </script>
-
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KORUAL Control Center – Dashboard</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- KORUAL META -->
   <script>
     window.KORUAL_META_APP = {
       api: {
         baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
         secret: "KORUAL-ONLY"
-      },
-      ui: { defaultTheme: "dark", defaultLang: "ko" }
+      }
     };
   </script>
-
-  <style>
-    :root { color-scheme: dark; }
-    body {
-      background: radial-gradient(circle at 20% 20%, rgba(56,189,248,0.14), transparent 60%),
-                  radial-gradient(circle at 80% 70%, rgba(139,92,246,0.14), transparent 60%),
-                  #020617;
-      min-height: 100vh;
-      color: #e5e7eb;
-      font-family: system-ui, Pretendard, sans-serif;
-      overflow-x: hidden;
-    }
-    .glass {
-      background: rgba(15,23,42,0.75);
-      backdrop-filter: blur(22px);
-      border: 1px solid rgba(148,163,184,0.18);
-    }
-    .chip {
-      border: 1px solid rgba(148,163,184,0.22);
-      background: rgba(2,6,23,0.6);
-    }
-    .table-th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      background: rgba(2,6,23,0.95);
-      border-bottom: 1px solid rgba(148,163,184,0.18);
-    }
-    .btn-soft {
-      border: 1px solid rgba(148,163,184,0.22);
-      background: rgba(15,23,42,0.7);
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #2563eb, #0ea5e9);
-    }
-  </style>
 </head>
 
-<body>
-  <!-- Toast -->
-  <div id="toastRoot" class="fixed inset-x-0 bottom-6 z-50 flex justify-center pointer-events-none"></div>
-
-  <!-- Global Spinner -->
-  <div id="globalSpinner" class="hidden fixed inset-0 z-40 grid place-content-center">
-    <div class="glass rounded-2xl px-5 py-4 shadow-lg flex items-center gap-3">
-      <div class="w-4 h-4 rounded-full border-2 border-slate-500 border-t-sky-400 animate-spin"></div>
-      <p class="text-sm text-slate-200">처리 중…</p>
+<body class="bg-slate-950 text-slate-100">
+  <header class="max-w-6xl mx-auto p-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-semibold">KORUAL Control Center</h1>
+      <p class="text-xs text-slate-400">Dashboard</p>
     </div>
-  </div>
-
-  <!-- Topbar -->
-  <header class="max-w-7xl mx-auto px-6 pt-8">
-    <div class="glass rounded-3xl px-6 py-5 shadow-[0_26px_70px_rgba(0,0,0,0.55)]">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-white grid place-content-center text-slate-900 font-bold text-xl shadow-lg">K</div>
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.3em] text-slate-400">Korual Control Center</p>
-            <h1 class="text-xl font-semibold">24h 자동화 커머스 레이더</h1>
-            <p class="text-xs text-slate-400 mt-1">
-              <span id="welcomeUser">KORUAL</span>
-              <span class="mx-2 text-slate-600">|</span>
-              <span id="last-sync">마지막 동기화 대기 중…</span>
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <div class="chip rounded-full px-3 py-2 text-xs flex items-center gap-2">
-            <span id="apiStatusDot" class="inline-block w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-            <span id="apiStatusText" class="text-slate-200">연결 확인 중</span>
-            <span class="text-slate-600">|</span>
-            <span class="text-slate-300">PING</span>
-            <span id="apiPing" class="text-sky-300">- ms</span>
-          </div>
-
-          <button id="btnLogout" class="btn-soft rounded-2xl px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-900/70">
-            로그아웃
-          </button>
-        </div>
-      </div>
+    <div class="flex items-center gap-2">
+      <span id="apiStatusText" class="text-xs text-slate-400">API 체크 중…</span>
+      <button id="btnLogout" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm">로그아웃</button>
     </div>
   </header>
 
-  <!-- Main -->
-  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
-
-    <!-- KPI -->
-    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="glass rounded-3xl p-5">
-        <p class="text-xs text-slate-400">총 상품</p>
-        <p id="cardTotalProducts" class="text-2xl font-semibold mt-2">-</p>
+  <main class="max-w-6xl mx-auto p-6 space-y-6">
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+        <div class="text-xs text-slate-400">총 매출</div>
+        <div id="cardTotalRevenue" class="text-lg font-semibold">-</div>
       </div>
-      <div class="glass rounded-3xl p-5">
-        <p class="text-xs text-slate-400">총 주문</p>
-        <p id="cardTotalOrders" class="text-2xl font-semibold mt-2">-</p>
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+        <div class="text-xs text-slate-400">총 주문</div>
+        <div id="cardTotalOrders" class="text-lg font-semibold">-</div>
       </div>
-      <div class="glass rounded-3xl p-5">
-        <p class="text-xs text-slate-400">총 회원</p>
-        <p id="cardTotalMembers" class="text-2xl font-semibold mt-2">-</p>
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+        <div class="text-xs text-slate-400">총 회원</div>
+        <div id="cardTotalMembers" class="text-lg font-semibold">-</div>
       </div>
-      <div class="glass rounded-3xl p-5">
-        <p class="text-xs text-slate-400">총 매출</p>
-        <p id="cardTotalRevenue" class="text-2xl font-semibold mt-2">-</p>
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+        <div class="text-xs text-slate-400">총 상품</div>
+        <div id="cardTotalProducts" class="text-lg font-semibold">-</div>
       </div>
     </section>
 
-    <!-- Today -->
-    <section class="glass rounded-3xl p-6">
-      <div class="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h2 class="text-lg font-semibold">오늘 현황</h2>
-          <p class="text-xs text-slate-400 mt-1">주문/매출/준비중 자동 집계</p>
-        </div>
-
-        <div class="flex items-center gap-3 flex-wrap">
-          <div class="chip rounded-2xl px-4 py-2">
-            <p class="text-[11px] text-slate-400">오늘 주문</p>
-            <p id="todayOrders" class="text-lg font-semibold mt-0.5">-</p>
-          </div>
-          <div class="chip rounded-2xl px-4 py-2">
-            <p class="text-[11px] text-slate-400">오늘 매출</p>
-            <p id="todayRevenue" class="text-lg font-semibold mt-0.5">-</p>
-          </div>
-          <div class="chip rounded-2xl px-4 py-2">
-            <p class="text-[11px] text-slate-400">오늘 준비중</p>
-            <p id="todayPending" class="text-lg font-semibold mt-0.5">-</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Recent Orders -->
-    <section class="glass rounded-3xl p-6">
-      <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
-        <div>
-          <h2 class="text-lg font-semibold">최근 주문 10건</h2>
-          <p class="text-xs text-slate-400 mt-1">실시간 주문 흐름 체크</p>
-        </div>
+    <section class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold">MEMBERS</h2>
+        <input id="searchMembers" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" placeholder="검색"/>
       </div>
 
-      <div class="overflow-auto rounded-2xl border border-slate-800/60">
-        <table class="min-w-[860px] w-full text-sm">
-          <thead>
-            <tr class="text-slate-300">
-              <th class="table-th px-2 py-2 text-left">주문일</th>
-              <th class="table-th px-2 py-2 text-left">주문번호</th>
-              <th class="table-th px-2 py-2 text-left">상품명</th>
-              <th class="table-th px-2 py-2 text-right">수량</th>
-              <th class="table-th px-2 py-2 text-right">금액</th>
-              <th class="table-th px-2 py-2 text-left">채널</th>
-              <th class="table-th px-2 py-2 text-left">상태</th>
+      <div class="overflow-auto">
+        <table class="min-w-full text-sm">
+          <thead class="text-slate-400">
+            <tr>
+              <th class="text-left p-2">memberNo</th>
+              <th class="text-left p-2">name</th>
+              <th class="text-left p-2">phone</th>
+              <th class="text-left p-2">grade</th>
+              <th class="text-right p-2">totalSales</th>
+              <th class="text-center p-2">관리</th>
             </tr>
           </thead>
-          <tbody id="recentOrdersBody" class="text-slate-100"></tbody>
+          <tbody id="membersBody"></tbody>
         </table>
       </div>
-    </section>
-
-    <!-- PRODUCTS (CRUD demo section) -->
-    <section class="glass rounded-3xl p-6">
-      <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
-        <div>
-          <h2 class="text-lg font-semibold">PRODUCTS</h2>
-          <p class="text-xs text-slate-400 mt-1">상품 리스트 (수정/삭제)</p>
-        </div>
-
-        <div class="flex items-center gap-2 flex-wrap">
-          <input id="searchProducts" class="btn-soft rounded-2xl px-4 py-2 text-sm outline-none focus:border-sky-400 border border-slate-700/60"
-                 placeholder="검색 (q)" />
-          <button class="btn-soft rounded-2xl px-4 py-2 text-sm font-semibold hover:bg-slate-900/70"
-                  type="button"
-                  onclick="window.KORUAL_MODAL && window.KORUAL_MODAL.openAdd({sheet:'PRODUCTS'})">
-            추가
-          </button>
-        </div>
-      </div>
-
-      <div class="overflow-auto rounded-2xl border border-slate-800/60">
-        <table class="min-w-[920px] w-full text-sm">
-          <thead>
-            <tr class="text-slate-300">
-              <th class="table-th px-2 py-2 text-left">productCode</th>
-              <th class="table-th px-2 py-2 text-left">productName</th>
-              <th class="table-th px-2 py-2 text-right">price</th>
-              <th class="table-th px-2 py-2 text-center">관리</th>
-            </tr>
-          </thead>
-          <tbody id="productsBody" class="text-slate-100"></tbody>
-        </table>
-      </div>
-
-      <div id="productsPager" class="flex items-center justify-end gap-2 mt-4">
-        <span data-page-label class="text-xs text-slate-400 mr-2">-</span>
-        <button data-page="prev" class="btn-soft rounded-xl px-3 py-2 text-xs hover:bg-slate-900/70" type="button">이전</button>
-        <button data-page="next" class="btn-soft rounded-xl px-3 py-2 text-xs hover:bg-slate-900/70" type="button">다음</button>
+      <div id="membersPager" class="mt-3 flex items-center justify-between">
+        <button data-page="prev" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs">이전</button>
+        <span data-page-label class="text-xs text-slate-400">-</span>
+        <button data-page="next" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs">다음</button>
       </div>
     </section>
   </main>
 
-  <!-- CRUD Modal Root -->
-  <div id="modalBackdrop" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"></div>
+  <!-- CRUD MODAL -->
+  <div id="modalBackdrop" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"></div>
 
-  <div id="crudModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
-    <div class="w-full max-w-xl rounded-2xl border border-slate-700/70 bg-slate-950/95 shadow-[0_30px_90px_rgba(0,0,0,0.7)]">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800/70">
-        <div>
-          <p id="crudModeLabel" class="text-xs text-slate-400">Edit</p>
-          <h3 id="crudTitle" class="text-lg font-semibold text-slate-50">Row</h3>
-        </div>
-        <button id="crudClose" class="text-slate-400 hover:text-slate-100" type="button">✕</button>
+  <div id="modalEdit" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+    <div class="w-full max-w-lg rounded-2xl bg-slate-950 border border-slate-700 p-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold">행 수정</h3>
+        <button id="modalClose" class="text-slate-400 hover:text-slate-200">닫기</button>
       </div>
+      <div id="rowEditFields" class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3"></div>
 
-      <div class="px-5 py-4">
-        <div class="text-xs text-slate-400 mb-3">
-          <span id="crudSheetLabel"></span>
-          <span id="crudRowLabel" class="ml-2"></span>
-        </div>
-        <div id="crudFields" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-800/70">
-        <button id="crudCancel" class="px-4 py-2 rounded-xl border border-slate-700/70 text-slate-200 bg-slate-900/70" type="button">
-          취소
-        </button>
-        <button id="crudSave" class="px-4 py-2 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-sky-500" type="button">
-          저장
-        </button>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="rowEditSave" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-sm">저장</button>
       </div>
     </div>
   </div>
 
-  <!-- Delete Confirm -->
-  <div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
-    <div class="w-full max-w-md rounded-2xl border border-rose-700/40 bg-slate-950/95 shadow-[0_30px_90px_rgba(0,0,0,0.7)]">
-      <div class="px-5 py-4 border-b border-slate-800/70">
-        <h3 class="text-lg font-semibold text-rose-200">삭제 확인</h3>
-        <p id="deleteText" class="text-sm text-slate-300 mt-1"></p>
+  <div id="modalDelete" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-2xl bg-slate-950 border border-slate-700 p-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold">삭제 확인</h3>
+        <button id="modalDeleteClose" class="text-slate-400 hover:text-slate-200">닫기</button>
       </div>
-      <div class="flex items-center justify-end gap-2 px-5 py-4">
-        <button id="deleteCancel" class="px-4 py-2 rounded-xl border border-slate-700/70 text-slate-200 bg-slate-900/70" type="button">
-          취소
-        </button>
-        <button id="deleteConfirm" class="px-4 py-2 rounded-xl font-semibold text-white bg-rose-600" type="button">
-          삭제
-        </button>
+      <p id="rowDeleteText" class="text-sm text-slate-300 mt-3">정말 삭제하시겠습니까?</p>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="rowDeleteConfirm" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-sm">삭제</button>
       </div>
     </div>
   </div>
