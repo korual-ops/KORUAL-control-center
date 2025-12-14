@@ -3,45 +3,58 @@
   "use strict";
 
   const META = window.KORUAL_META_APP || {};
-  const API_BASE   = META.api?.baseUrl || "";
+  const API_BASE = META.api?.baseUrl || "";
   const API_SECRET = META.api?.secret || "";
 
   const $ = (sel) => document.querySelector(sel);
 
-  const loginBtn  = $("#btnLogin");
+  const loginBtn = $("#btnLogin");
   const inputUser = $("#loginUsername");
   const inputPass = $("#loginPassword");
-  const msgEl     = $("#loginMsg");
+  const msgEl = $("#loginMsg");
 
   if (!loginBtn || !inputUser || !inputPass) return;
 
-  async function sha256Hex(text) {
-    const enc = new TextEncoder();
-    const buf = await crypto.subtle.digest("SHA-256", enc.encode(text));
-    const arr = Array.from(new Uint8Array(buf));
-    return arr.map(b => b.toString(16).padStart(2, "0")).join("");
+  function setLoading(isLoading) {
+    const overlay = document.getElementById("loadingOverlay");
+    if (overlay) overlay.classList.toggle("hidden", !isLoading);
+    loginBtn.disabled = isLoading;
   }
 
-  function setMsg(msg) {
-    if (msgEl) msgEl.textContent = msg || "";
+  function showMsg(text, isError = true) {
+    if (!msgEl) return;
+    msgEl.textContent = text || "";
+    msgEl.style.color = isError ? "#fca5a5" : "#4ade80";
+  }
+
+  async function sha256Hex(text) {
+    const enc = new TextEncoder();
+    const data = enc.encode(text);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    const bytes = Array.from(new Uint8Array(digest));
+    return bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
   async function handleLogin() {
     const username = (inputUser.value || "").trim();
-    const password = (inputPass.value || "").trim(); // 전송하지 않음(해시만 전송)
+    const password = (inputPass.value || "").trim();
 
-    setMsg("");
+    showMsg("");
 
     if (!username || !password) {
-      setMsg("아이디와 비밀번호를 모두 입력해주세요.");
+      showMsg("아이디와 비밀번호를 모두 입력해주세요.");
       return;
     }
     if (!API_BASE) {
-      setMsg("API BASE URL이 설정되지 않았습니다.");
+      showMsg("API BASE URL이 설정되지 않았습니다.");
+      return;
+    }
+    if (!window.crypto?.subtle) {
+      showMsg("이 브라우저에서는 해시 로그인이 지원되지 않습니다. (crypto.subtle 없음)");
       return;
     }
 
-    loginBtn.disabled = true;
+    setLoading(true);
     try {
       const pw_hash = await sha256Hex(password);
 
@@ -51,30 +64,43 @@
         body: JSON.stringify({
           target: "login",
           username,
-          pw_hash,
+          pw_hash,              // 핵심: PASSWORD가 아니라 pw_hash
           secret: API_SECRET
-        })
+        }),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok || !data.ok) {
-        setMsg(data.message || "로그인에 실패했습니다.");
+        showMsg(data?.message || "로그인에 실패했습니다. 다시 시도해주세요.");
         return;
       }
 
-      localStorage.setItem("korual_user", JSON.stringify(data.user || { username }));
+      const user = data.user || { username };
+      localStorage.setItem("korual_user", JSON.stringify(user));
       location.href = "dashboard.html";
     } catch (err) {
       console.error(err);
-      setMsg("네트워크 오류가 발생했습니다.");
+      showMsg("네트워크 오류가 발생했습니다.");
     } finally {
-      loginBtn.disabled = false;
+      setLoading(false);
     }
   }
 
   loginBtn.addEventListener("click", handleLogin);
   [inputUser, inputPass].forEach((el) => {
-    el.addEventListener("keydown", (e) => { if (e.key === "Enter") handleLogin(); });
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleLogin();
+    });
   });
+
+  // (선택) 데모 자동 입력
+  const demoBtn = document.getElementById("btnFillDemo");
+  if (demoBtn) {
+    demoBtn.addEventListener("click", () => {
+      inputUser.value = "KORUAL";
+      inputPass.value = "GUEST";
+      inputPass.focus();
+    });
+  }
 })();
