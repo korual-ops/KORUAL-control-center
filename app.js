@@ -1,797 +1,343 @@
-// app.js
-// KORUAL CONTROL CENTER – Dashboard Frontend (Full)
-// - dashboard.html 전용
-// - auth.js는 index.html 전용 (로그인 처리)
-
+// app.js (dashboard.html 전용)
 (function () {
   "use strict";
 
-  // =========================
-  // META / CONFIG
-  // =========================
   const META = window.KORUAL_META_APP || {};
-  const API_BASE = META.api?.baseUrl || "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
-  const API_SECRET = META.api?.secret || "KORUAL-ONLY";
+  const API_BASE = META.api?.baseUrl || "";
+  const API_SECRET = META.api?.secret || "";
+  const STORAGE_KEY = META.auth?.storageKey || "korual_user";
 
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const $ = (s) => document.querySelector(s);
 
-  const state = {
-    pingMs: null,
-    lastSync: null,
-  };
-
-  // =========================
-  // AUTH GUARD (dashboard only)
-  // =========================
-  function requireAuthOrRedirect() {
+  // ---- Auth guard ----
+  function getUser() {
     try {
-      const raw = localStorage.getItem("korual_user");
-      if (!raw) {
-        location.replace("index.html");
-        return false;
-      }
-      const user = JSON.parse(raw);
-      if (!user || !user.username) {
-        localStorage.removeItem("korual_user");
-        location.replace("index.html");
-        return false;
-      }
-      return true;
-    } catch (e) {
-      localStorage.removeItem("korual_user");
-      location.replace("index.html");
-      return false;
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
     }
   }
-
-  // =========================
-  // TOAST
-  // =========================
-  function showToast(message, type = "info", timeout = 2500) {
-    const root = $("#toastRoot");
-    if (!root) return;
-
-    const wrap = document.createElement("div");
-    wrap.className =
-      "pointer-events-auto inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs shadow-lg mb-2 " +
-      (type === "error"
-        ? "border-rose-500/70 bg-rose-950/80 text-rose-100"
-        : type === "success"
-        ? "border-emerald-400/70 bg-emerald-900/80 text-emerald-100"
-        : "border-slate-700/80 bg-slate-900/90 text-slate-100");
-
-    const span = document.createElement("span");
-    span.textContent = message;
-    wrap.appendChild(span);
-
-    root.appendChild(wrap);
-    setTimeout(() => {
-      wrap.style.opacity = "0";
-      wrap.style.transform = "translateY(4px)";
-      setTimeout(() => wrap.remove(), 180);
-    }, timeout);
+  function requireAuth() {
+    const u = getUser();
+    if (!u || !u.username) location.replace("index.html");
+    return u;
+  }
+  function logout() {
+    localStorage.removeItem(STORAGE_KEY);
+    location.replace("index.html");
   }
 
-  // =========================
-  // GLOBAL SPINNER
-  // =========================
-  let spinnerCount = 0;
-  function showSpinner() {
-    const el = $("#globalSpinner");
-    if (!el) return;
-    spinnerCount += 1;
-    el.classList.remove("hidden");
-  }
-  function hideSpinner() {
-    const el = $("#globalSpinner");
-    if (!el) return;
-    spinnerCount = Math.max(0, spinnerCount - 1);
-    if (spinnerCount === 0) el.classList.add("hidden");
-  }
-
-  // =========================
-  // API CLIENT
-  // =========================
+  // ---- API helpers ----
   async function apiGet(target, params = {}) {
-    if (!API_BASE) throw new Error("API URL이 설정되지 않았습니다.");
-
-    const url = new URL(API_BASE);
-    url.searchParams.set("target", String(target));
-    if (API_SECRET) url.searchParams.set("secret", API_SECRET);
-
-    Object.keys(params).forEach((k) => {
-      const v = params[k];
-      if (v === undefined || v === null || v === "") return;
-      url.searchParams.set(k, String(v));
-    });
-
-    const started = performance.now();
-    const res = await fetch(url.toString(), { method: "GET", headers: { Accept: "application/json" } });
-    state.pingMs = Math.round(performance.now() - started);
-
-    const text = await res.text();
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch (e) {
-      console.error("JSON 파싱 오류", text);
-      throw new Error("API 응답이 JSON 형식이 아닙니다.");
-    }
-
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    if (json.ok === false) throw new Error(json.message || "API 오류");
-
-    return json;
+    const url = new URL(API_BASE, location.origin);
+    url.searchParams.set("target", target);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+    const res = await fetch(url.toString(), { method: "GET" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data?.message || "API GET failed");
+    return data;
   }
 
-  async function apiPost(body) {
-    if (!API_BASE) throw new Error("API URL이 설정되지 않았습니다.");
-
-    const started = performance.now();
+  async function apiPost(payload) {
     const res = await fetch(API_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ secret: API_SECRET || undefined, ...body }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, secret: API_SECRET }),
     });
-    state.pingMs = Math.round(performance.now() - started);
-
-    const text = await res.text();
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch (e) {
-      console.error("JSON 파싱 오류", text);
-      throw new Error("API 응답이 JSON 형식이 아닙니다.");
-    }
-
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    if (json.ok === false) throw new Error(json.message || "API 오류");
-
-    return json;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data?.message || "API POST failed");
+    return data;
   }
 
-  // =========================
-  // API STATUS (top bar)
-  // =========================
-  function updateApiStatus(ok, message) {
-    const dot = $("#apiStatusDot");
-    const text = $("#apiStatusText");
-    const pingEl = $("#apiPing");
+  // ---- Minimal modal (built-in) ----
+  function ensureModal() {
+    let root = $("#korualModalRoot");
+    if (root) return root;
 
-    if (dot && text) {
-      if (ok) {
-        dot.className =
-          "status-dot inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.35)]";
-        text.textContent = message || "정상 연결";
-      } else {
-        dot.className =
-          "status-dot inline-block w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_0_4px_rgba(248,113,113,0.35)]";
-        text.textContent = message || "연결 실패";
+    root = document.createElement("div");
+    root.id = "korualModalRoot";
+    root.className = "fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm px-4";
+    root.innerHTML = `
+      <div class="w-full max-w-2xl rounded-2xl border border-slate-700/80 bg-slate-950/95 shadow-[0_24px_70px_rgba(15,23,42,0.98)] p-5 relative">
+        <button id="korualModalClose" class="absolute right-3 top-3 text-slate-400 hover:text-slate-100" type="button">✕</button>
+        <h3 id="korualModalTitle" class="text-sm font-semibold mb-3 text-slate-100">Edit</h3>
+        <div id="korualModalBody" class="space-y-3"></div>
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button id="korualModalDelete" class="px-3 py-2 rounded-xl border border-rose-500/50 text-rose-300 hover:bg-rose-500/10" type="button">삭제</button>
+          <button id="korualModalSave" class="px-3 py-2 rounded-xl bg-sky-500/90 text-slate-950 font-semibold hover:bg-sky-400" type="button">저장</button>
+        </div>
+        <p id="korualModalMsg" class="mt-2 text-xs text-rose-300 min-h-[1rem]"></p>
+      </div>
+    `;
+    document.body.appendChild(root);
+
+    $("#korualModalClose").addEventListener("click", closeModal);
+    root.addEventListener("click", (e) => { if (e.target === root) closeModal(); });
+
+    return root;
+  }
+
+  let modalState = null;
+
+  function openModal({ title, sheetKey, rowIndex, rowObject }) {
+    const root = ensureModal();
+    $("#korualModalTitle").textContent = title || "Edit row";
+    $("#korualModalMsg").textContent = "";
+    const body = $("#korualModalBody");
+    body.innerHTML = "";
+
+    const keys = Object.keys(rowObject || {}).filter(k => k !== "_row");
+    const fields = {};
+
+    keys.forEach((k) => {
+      const wrap = document.createElement("div");
+      wrap.className = "grid grid-cols-1 sm:grid-cols-[180px,1fr] gap-2 items-center";
+      wrap.innerHTML = `
+        <div class="text-xs text-slate-300 break-all">${escapeHtml(k)}</div>
+        <input class="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-900/70 text-slate-100 text-sm outline-none focus:border-sky-400"
+               value="${escapeHtml(String(rowObject[k] ?? ""))}" />
+      `;
+      const input = wrap.querySelector("input");
+      fields[k] = input;
+      body.appendChild(wrap);
+    });
+
+    modalState = { sheetKey, rowIndex, fields };
+
+    $("#korualModalSave").onclick = async () => {
+      $("#korualModalMsg").textContent = "";
+      try {
+        const rowObject = {};
+        Object.keys(fields).forEach((k) => (rowObject[k] = fields[k].value));
+        await apiPost({ target: "updateRow", key: sheetKey, row: rowIndex, rowObject });
+        closeModal();
+        await reloadCurrentTable();
+      } catch (e) {
+        $("#korualModalMsg").textContent = e.message || "저장 실패";
       }
-    }
+    };
 
-    if (pingEl && state.pingMs != null) pingEl.textContent = state.pingMs + " ms";
+    $("#korualModalDelete").onclick = async () => {
+      $("#korualModalMsg").textContent = "";
+      try {
+        await apiPost({ target: "deleteRow", key: sheetKey, row: rowIndex });
+        closeModal();
+        await reloadCurrentTable();
+      } catch (e) {
+        $("#korualModalMsg").textContent = e.message || "삭제 실패";
+      }
+    };
+
+    root.classList.remove("hidden");
+    root.classList.add("flex");
   }
 
-  async function pingApi() {
-    try {
-      const res = await apiGet("ping");
-      updateApiStatus(true, "LIVE " + (res.version || ""));
-      return res;
-    } catch (err) {
-      console.error(err);
-      updateApiStatus(false, "Ping 실패");
-      showToast("API 연결에 실패했습니다.", "error");
-      throw err;
-    }
+  function closeModal() {
+    const root = $("#korualModalRoot");
+    if (!root) return;
+    root.classList.add("hidden");
+    root.classList.remove("flex");
+    modalState = null;
   }
 
-  // =========================
-  // DATE / FORMAT
-  // =========================
-  function formatDateLabel(date = new Date()) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
-    const day = dayNames[date.getDay()];
-    return `${y}-${m}-${d} (${day})`;
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  }
-
-  function formatCurrency(value) {
-    if (value == null || isNaN(Number(value))) return "-";
-    return Number(value).toLocaleString("ko-KR") + "원";
-  }
-
-  function updateLastSyncLabel() {
-    const el = $("#last-sync");
-    if (!el) return;
-    if (!state.lastSync) {
-      el.textContent = "마지막 동기화 대기 중…";
-      return;
-    }
-    const d = state.lastSync;
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    el.textContent = `마지막 동기화 ${hh}:${mm}`;
-  }
-
-  // =========================
-  // DASHBOARD
-  // =========================
+  // ---- Dashboard ----
   async function loadDashboard() {
-    const todayLabelEl = $("#todayDateLabel");
-    if (todayLabelEl) todayLabelEl.textContent = formatDateLabel();
+    const data = await apiGet("dashboard");
+    const d = data.data || {};
 
-    try {
-      const res = await apiGet("dashboard");
-      const d = res.data || {};
+    // 네가 쓰는 dashboard.html에 맞춰 id를 연결하면 됨
+    setText("#kpiProducts", d.totals?.products ?? "-");
+    setText("#kpiOrders", d.totals?.orders ?? "-");
+    setText("#kpiMembers", d.totals?.members ?? "-");
+    setText("#kpiRevenue", formatNumber(d.totals?.revenue ?? 0));
 
-      const totals = d.totals || {};
-      setText("cardTotalProducts", totals.products ?? "-");
-      setText("cardTotalOrders", totals.orders ?? "-");
-      setText("cardTotalMembers", totals.members ?? "-");
-      setText("cardTotalRevenue", totals.revenue != null ? formatCurrency(totals.revenue) : "-");
+    setText("#todayOrders", d.today?.orders ?? "-");
+    setText("#todayRevenue", formatNumber(d.today?.revenue ?? 0));
+    setText("#todayPending", d.today?.pending ?? "-");
 
-      const today = d.today || {};
-      setText("todayOrders", today.orders ?? "-");
-      setText("todayRevenue", today.revenue != null ? formatCurrency(today.revenue) : "-");
-      setText("todayPending", today.pending ?? "-");
+    renderRecentOrders(d.recentOrders || []);
+  }
 
-      renderRecentOrders(d.recentOrders || []);
+  function setText(sel, v) {
+    const el = $(sel);
+    if (el) el.textContent = String(v);
+  }
 
-      state.lastSync = new Date();
-      updateLastSyncLabel();
-    } catch (err) {
-      console.error(err);
-      showToast("대시보드 데이터를 불러오지 못했습니다.", "error");
-    }
+  function formatNumber(n) {
+    const x = Number(n || 0);
+    return isNaN(x) ? "0" : x.toLocaleString("ko-KR");
   }
 
   function renderRecentOrders(rows) {
-    const tbody = $("#recentOrdersBody");
-    if (!tbody) return;
+    const root = $("#recentOrders");
+    if (!root) return;
+    root.innerHTML = "";
 
-    tbody.innerHTML = "";
+    rows.forEach((r) => {
+      const item = document.createElement("div");
+      item.className = "flex items-center justify-between gap-3 rounded-xl border border-slate-800/70 bg-slate-950/60 px-3 py-2";
+      item.innerHTML = `
+        <div class="min-w-0">
+          <div class="text-xs text-slate-300">${escapeHtml(r.orderDate || "")} · ${escapeHtml(r.orderNo || "")}</div>
+          <div class="text-sm text-slate-100 truncate">${escapeHtml(r.productName || "")}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-slate-400">${escapeHtml(r.channel || "")} · ${escapeHtml(r.status || "")}</div>
+          <div class="text-sm font-semibold text-sky-200">${formatNumber(r.amount || 0)}</div>
+        </div>
+      `;
+      root.appendChild(item);
+    });
 
     if (!rows.length) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 7;
-      td.className = "empty-state px-3 py-6 text-center text-slate-500";
-      td.textContent = "최근 주문 데이터가 없습니다.";
-      tr.appendChild(td);
-      tbody.appendChild(tr);
-      return;
+      root.innerHTML = `<div class="text-xs text-slate-500 px-2 py-6">최근 주문이 없습니다.</div>`;
     }
-
-    rows.forEach((row) => {
-      const tr = document.createElement("tr");
-      tr.className =
-        "border-b border-slate-800/70 last:border-b-0 hover:bg-slate-900/70 transition-colors";
-
-      const cells = [
-        row.orderDate || row.date || "",
-        row.orderNo || row.orderNumber || "",
-        row.productName || "",
-        row.qty != null ? String(row.qty) : "",
-        row.amount != null ? formatCurrency(row.amount) : "",
-        row.channel || "",
-        row.status || "",
-      ];
-
-      cells.forEach((val, idx) => {
-        const td = document.createElement("td");
-        td.className = "px-2 py-1.5" + (idx === 3 || idx === 4 ? " text-right" : " text-left");
-        td.textContent = val;
-        tr.appendChild(td);
-      });
-
-      tbody.appendChild(tr);
-    });
   }
 
-  // =========================
-  // TABLE LOADER (list endpoints)
-  // =========================
-  async function loadEntityTable(options) {
-    const {
-      entity,
-      target,   // GET target: products/orders/members/stock/logs (lowercase)
-      sheetKey, // POST key: PRODUCTS/ORDERS/... (uppercase sheet name)
-      tbodyId,
-      pagerId,
-      searchInputId,
-      columns,
-    } = options;
+  // ---- Entity table ----
+  let current = { key: "PRODUCTS", target: "products", page: 1, size: 50, q: "" };
 
-    const tbody = document.getElementById(tbodyId);
-    const pager = document.getElementById(pagerId);
-    const searchInput = searchInputId ? document.getElementById(searchInputId) : null;
-    if (!tbody) return;
+  async function loadEntityTable({ target, key, page = 1, size = 50, q = "" }) {
+    current = { target, key, page, size, q };
 
-    const paging = { page: 1, pageSize: 50, q: "" };
+    const data = await apiGet(target, { page, size, q });
+    const payload = data.data || {};
+    const rows = payload.rows || payload.data?.rows || payload.rows || payload.data || payload; // 방어적
+    const list = payload.rows || rows || [];
 
-    async function fetchAndRender() {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="${columns.length}" class="empty-state px-3 py-6 text-center text-slate-500">
-            데이터를 불러오는 중입니다…
-          </td>
+    renderTable(key, list);
+    renderPager(payload);
+  }
+
+  function renderTable(sheetKey, rows) {
+    const tableRoot = $("#entityTable");
+    if (!tableRoot) return;
+
+    const cols = rows.length ? Object.keys(rows[0]).filter(k => k !== "_row") : [];
+    const head = `
+      <thead>
+        <tr class="text-left text-xs text-slate-400">
+          <th class="py-2 px-2">Actions</th>
+          ${cols.map(c => `<th class="py-2 px-2">${escapeHtml(c)}</th>`).join("")}
         </tr>
-      `;
+      </thead>
+    `;
 
-      try {
-        const res = await apiGet(target, {
-          page: paging.page,
-          pageSize: paging.pageSize,
-          q: paging.q,
-        });
+    const body = `
+      <tbody>
+        ${rows.map(r => {
+          const rowIndex = r._row;
+          const cells = cols.map(c => `<td class="py-2 px-2 text-xs text-slate-200 max-w-[280px] truncate">${escapeHtml(r[c])}</td>`).join("");
+          return `
+            <tr class="border-t border-slate-800/70 hover:bg-slate-900/40">
+              <td class="py-2 px-2">
+                <button class="korualEdit px-2 py-1 rounded-lg border border-slate-700 text-xs text-slate-200 hover:border-sky-400"
+                        data-key="${escapeHtml(sheetKey)}"
+                        data-row="${rowIndex}">
+                  Edit
+                </button>
+              </td>
+              ${cells}
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    `;
 
-        const data = res.data || {};
-        const rows = data.rows || data.items || [];
-        const page = data.page || paging.page;
-        const pageSize = data.pageSize || paging.pageSize;
-        const total = data.total ?? rows.length;
+    tableRoot.innerHTML = `
+      <div class="overflow-auto rounded-2xl border border-slate-800/70 bg-slate-950/40">
+        <table class="min-w-full">${head}${body}</table>
+      </div>
+    `;
 
-        paging.page = page;
-        paging.pageSize = pageSize;
-
-        renderTableRows(rows);
-        updatePager(page, pageSize, total);
-
-        state.lastSync = new Date();
-        updateLastSyncLabel();
-      } catch (err) {
-        console.error(err);
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="${columns.length}" class="empty-state px-3 py-6 text-center text-rose-400">
-              데이터를 불러오지 못했습니다.
-            </td>
-          </tr>
-        `;
-      }
-    }
-
-    function renderTableRows(rows) {
-      tbody.innerHTML = "";
-
-      if (!rows.length) {
-        const tr = document.createElement("tr");
-        const td = document.createElement("td");
-        td.colSpan = columns.length;
-        td.className = "empty-state px-3 py-6 text-center text-slate-500";
-        td.textContent = "데이터가 없습니다.";
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-        return;
-      }
-
-      const manageCol = columns.find((c) => c.type === "manage");
-
-      rows.forEach((row, idx) => {
-        const tr = document.createElement("tr");
-        tr.className =
-          "border-b border-slate-800/70 last:border-b-0 hover:bg-slate-900/70 transition-colors";
-
-        columns.forEach((col) => {
-          if (col.type === "manage") return;
-
-          const td = document.createElement("td");
-          td.className = "px-2 py-1.5 " + (col.align === "right" ? "text-right" : "text-left");
-          let value = row[col.key];
-
-          if (col.format === "currency") value = formatCurrency(value);
-          else if (col.format === "date") value = value || "";
-          else if (value == null) value = "";
-
-          td.textContent = value;
-          tr.appendChild(td);
-        });
-
-        if (manageCol) {
-          const td = document.createElement("td");
-          td.className = "px-2 py-1.5 text-center";
-
-          const btnEdit = document.createElement("button");
-          btnEdit.type = "button";
-          btnEdit.className =
-            "inline-flex items-center px-2 py-0.5 rounded-full border border-slate-600/80 text-[10px] text-slate-200 bg-slate-900/80 mr-1";
-          btnEdit.textContent = "수정";
-          btnEdit.addEventListener("click", () => {
-            window.KORUAL_MODAL?.openEdit?.({
-              entity,
-              sheetKey,
-              rowIndex: row._row || row.rowIndex || idx + 2,
-              data: row,
-            });
-          });
-
-          const btnDel = document.createElement("button");
-          btnDel.type = "button";
-          btnDel.className =
-            "inline-flex items-center px-2 py-0.5 rounded-full border border-rose-500/70 text-[10px] text-rose-200 bg-rose-950/70";
-          btnDel.textContent = "삭제";
-          btnDel.addEventListener("click", () => {
-            window.KORUAL_MODAL?.openDelete?.({
-              entity,
-              sheetKey,
-              rowIndex: row._row || row.rowIndex || idx + 2,
-              title: row[manageCol.titleKey || ""] || "",
-            });
-          });
-
-          td.appendChild(btnEdit);
-          td.appendChild(btnDel);
-          tr.appendChild(td);
-        }
-
-        tbody.appendChild(tr);
-      });
-    }
-
-    function updatePager(page, pageSize, total) {
-      if (!pager) return;
-      const label = pager.querySelector("[data-page-label]");
-      if (!label) return;
-
-      const start = (page - 1) * pageSize + 1;
-      const end = Math.min(total, page * pageSize);
-      label.textContent = total ? `${start}–${end} / ${total}` : `${page} 페이지`;
-    }
-
-    if (pager) {
-      pager.addEventListener("click", (e) => {
-        const btn = e.target.closest("button[data-page]");
-        if (!btn) return;
-        const dir = btn.dataset.page;
-        if (dir === "prev") paging.page = Math.max(1, paging.page - 1);
-        if (dir === "next") paging.page = paging.page + 1;
-        fetchAndRender();
-      });
-    }
-
-    if (searchInput) {
-      let timer = null;
-      searchInput.addEventListener("input", () => {
-        paging.q = searchInput.value.trim();
-        paging.page = 1;
-        clearTimeout(timer);
-        timer = setTimeout(fetchAndRender, 250);
-      });
-    }
-
-    await fetchAndRender();
-
-    return { reload: fetchAndRender, state: paging };
-  }
-
-  function initTables() {
-    loadEntityTable({
-      entity: "products",
-      target: "products",
-      sheetKey: "PRODUCTS",
-      tbodyId: "productsBody",
-      pagerId: "productsPager",
-      searchInputId: "searchProducts",
-      columns: [
-        { key: "productCode" },
-        { key: "productName" },
-        { key: "optionName" },
-        { key: "price", align: "right", format: "currency" },
-        { key: "stock", align: "right" },
-        { key: "channel" },
-      ],
-    });
-
-    loadEntityTable({
-      entity: "orders",
-      target: "orders",
-      sheetKey: "ORDERS",
-      tbodyId: "ordersBody",
-      pagerId: "ordersPager",
-      searchInputId: "searchOrders",
-      columns: [
-        { key: "memberNo" },
-        { key: "date" },
-        { key: "orderNo" },
-        { key: "customerName" },
-        { key: "productName" },
-        { key: "qty", align: "right" },
-        { key: "amount", align: "right", format: "currency" },
-        { key: "status" },
-        { key: "channel" },
-      ],
-    });
-
-    loadEntityTable({
-      entity: "members",
-      target: "members",
-      sheetKey: "MEMBERS",
-      tbodyId: "membersBody",
-      pagerId: "membersPager",
-      searchInputId: "searchMembers",
-      columns: [
-        { key: "memberNo" },
-        { key: "name" },
-        { key: "phone" },
-        { key: "email" },
-        { key: "joinedAt" },
-        { key: "channel" },
-        { key: "grade" },
-        { key: "totalSales", align: "right", format: "currency" },
-        { key: "point", align: "right" },
-        { key: "lastOrderAt" },
-        { key: "memo" },
-        { type: "manage", titleKey: "name" },
-      ],
-    });
-
-    loadEntityTable({
-      entity: "stock",
-      target: "stock",
-      sheetKey: "STOCK",
-      tbodyId: "stockBody",
-      pagerId: "stockPager",
-      searchInputId: "searchStock",
-      columns: [
-        { key: "productCode" },
-        { key: "productName" },
-        { key: "currentStock", align: "right" },
-        { key: "safetyStock", align: "right" },
-        { key: "status" },
-        { key: "warehouse" },
-        { key: "channel" },
-        { type: "manage", titleKey: "productName" },
-      ],
-    });
-
-    loadEntityTable({
-      entity: "logs",
-      target: "logs",
-      sheetKey: "LOGS",
-      tbodyId: "logsBody",
-      pagerId: "logsPager",
-      searchInputId: "searchLogs",
-      columns: [
-        { key: "time" },
-        { key: "type" },
-        { key: "message" },
-        { key: "detail" },
-      ],
-    });
-  }
-
-  // =========================
-  // THEME TOGGLE
-  // =========================
-  function initThemeToggle() {
-    const btn = $("#themeToggle");
-    const label = btn?.querySelector(".theme-toggle-label");
-    const thumb = btn?.querySelector(".theme-toggle-thumb");
-    const body = document.body;
-    if (!btn || !label || !thumb || !body) return;
-
-    const saved = localStorage.getItem("korual_theme");
-    if (saved === "light") {
-      body.classList.remove("theme-dark");
-      body.classList.add("theme-light", "bg-slate-50", "text-slate-900");
-      label.textContent = label.dataset.light || "Light";
-      thumb.style.transform = "translateX(1.5rem)";
-    } else {
-      body.classList.add("theme-dark");
-      label.textContent = label.dataset.dark || "Dark";
-      thumb.style.transform = "translateX(0.25rem)";
-    }
-
-    btn.addEventListener("click", () => {
-      const isDark = body.classList.contains("theme-dark");
-      if (isDark) {
-        body.classList.remove("theme-dark");
-        body.classList.add("theme-light", "bg-slate-50", "text-slate-900");
-        localStorage.setItem("korual_theme", "light");
-        label.textContent = label.dataset.light || "Light";
-        thumb.style.transform = "translateX(1.5rem)";
-      } else {
-        body.classList.remove("theme-light", "bg-slate-50", "text-slate-900");
-        body.classList.add("theme-dark");
-        localStorage.setItem("korual_theme", "dark");
-        label.textContent = label.dataset.dark || "Dark";
-        thumb.style.transform = "translateX(0.25rem)";
-      }
-    });
-  }
-
-  // =========================
-  // NAVIGATION
-  // =========================
-  function initNavigation() {
-    const links = $$(".nav-link");
-    const sections = $$(".section");
-
-    links.forEach((btn) => {
+    tableRoot.querySelectorAll(".korualEdit").forEach(btn => {
       btn.addEventListener("click", () => {
-        const target = btn.dataset.section;
-        links.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-
-        sections.forEach((sec) => {
-          if (sec.id === "section-" + target) {
-            sec.classList.remove("hidden");
-            sec.classList.add("active");
-          } else {
-            sec.classList.add("hidden");
-            sec.classList.remove("active");
-          }
+        const rowIndex = Number(btn.getAttribute("data-row"));
+        const rowObj = rows.find(x => Number(x._row) === rowIndex) || {};
+        openModal({
+          title: `${sheetKey} · row ${rowIndex}`,
+          sheetKey,
+          rowIndex,
+          rowObject: rowObj
         });
       });
     });
 
-    const goOrders = $("#goOrders");
-    if (goOrders) {
-      goOrders.addEventListener("click", () => {
-        const ordersBtn = $('.nav-link[data-section="orders"]');
-        if (ordersBtn) ordersBtn.click();
-      });
+    if (!rows.length) {
+      tableRoot.innerHTML = `<div class="text-xs text-slate-500 px-2 py-10">데이터가 없습니다.</div>`;
     }
   }
 
-  // =========================
-  // TOPBAR
-  // =========================
-  function initTopbar() {
-    const btnRefresh = $("#btnRefreshAll");
-    const btnLogout = $("#btnLogout");
-    const menuToggle = $("#menuToggle");
-    const sidebar = $(".sidebar");
-    const backdrop = $("#sidebarBackdrop");
+  function renderPager(payload) {
+    const pager = $("#entityPager");
+    if (!pager) return;
 
-    if (btnRefresh) {
-      btnRefresh.addEventListener("click", async () => {
-        showSpinner();
-        try {
-          await pingApi();
-          await loadDashboard();
-          initTables();
-          showToast("전체 데이터를 새로 불러왔습니다.", "success");
-        } catch (_) {
-        } finally {
-          hideSpinner();
-        }
-      });
-    }
+    const page = payload.page || current.page;
+    const pageCount = payload.pageCount || 1;
 
-    if (btnLogout) {
-      btnLogout.addEventListener("click", () => {
-        localStorage.removeItem("korual_user");
-        location.replace("index.html");
-      });
-    }
+    pager.innerHTML = `
+      <div class="flex items-center justify-between gap-2 text-xs text-slate-400">
+        <div>Page ${page} / ${pageCount}</div>
+        <div class="flex gap-2">
+          <button id="pgPrev" class="px-3 py-2 rounded-xl border border-slate-700 hover:border-sky-400">Prev</button>
+          <button id="pgNext" class="px-3 py-2 rounded-xl border border-slate-700 hover:border-sky-400">Next</button>
+        </div>
+      </div>
+    `;
 
-    if (menuToggle && sidebar && backdrop) {
-      const closeSidebar = () => {
-        sidebar.classList.add("hidden");
-        backdrop.classList.add("hidden");
-      };
-      const openSidebar = () => {
-        sidebar.classList.remove("hidden");
-        backdrop.classList.remove("hidden");
-      };
-
-      menuToggle.addEventListener("click", () => {
-        const isHidden = sidebar.classList.contains("hidden");
-        if (isHidden) openSidebar();
-        else closeSidebar();
-      });
-
-      backdrop.addEventListener("click", closeSidebar);
-    }
-
-    try {
-      const raw = localStorage.getItem("korual_user");
-      if (raw) {
-        const user = JSON.parse(raw);
-        if (user?.username) {
-          const el = $("#welcomeUser");
-          if (el) el.textContent = user.username;
-        }
-      }
-    } catch (e) {}
+    $("#pgPrev").onclick = () => {
+      if (page <= 1) return;
+      loadEntityTable({ ...current, page: page - 1 });
+    };
+    $("#pgNext").onclick = () => {
+      if (page >= pageCount) return;
+      loadEntityTable({ ...current, page: page + 1 });
+    };
   }
 
-  // =========================
-  // MODAL ACTIONS (requires modal.js providing window.KORUAL_MODAL)
-  // =========================
-  function initModalActions() {
-    const btnSave = $("#rowEditSave");
-    const btnDel = $("#rowDeleteConfirm");
+  async function reloadCurrentTable() {
+    return loadEntityTable(current);
+  }
 
-    if (btnSave) {
-      btnSave.addEventListener("click", async () => {
-        const sheetKey = btnSave.dataset.sheetKey; // ex) "MEMBERS"
-        const rowIndex = Number(btnSave.dataset.rowIndex || "0");
-        const fieldsWrap = $("#rowEditFields");
-        if (!sheetKey || !rowIndex || !fieldsWrap) return;
+  // ---- Wire UI ----
+  function wireNav() {
+    // 너 dashboard.html에서 버튼 id를 아래처럼 맞추면 바로 작동
+    bind("#navDashboard", async () => { await loadDashboard(); });
+    bind("#navProducts", () => loadEntityTable({ target: "products", key: "PRODUCTS" }));
+    bind("#navOrders",   () => loadEntityTable({ target: "orders",   key: "ORDERS" }));
+    bind("#navMembers",  () => loadEntityTable({ target: "members",  key: "MEMBERS" }));
+    bind("#navStock",    () => loadEntityTable({ target: "stock",    key: "STOCK" }));
+    bind("#navLogs",     () => loadEntityTable({ target: "logs",     key: "LOGS" }));
 
-        const inputs = $$("input[data-field-key]", fieldsWrap);
-        const rowObject = {};
-        inputs.forEach((input) => {
-          const key = input.dataset.fieldKey;
-          rowObject[key] = input.value ?? "";
-        });
+    bind("#btnLogout", logout);
 
-        showSpinner();
-        try {
-          await apiPost({
-            target: "updateRow",
-            key: sheetKey,
-            row: rowIndex,
-            rowObject,
-          });
-          showToast("수정이 저장되었습니다.", "success");
-          window.KORUAL_MODAL?.closeAll?.();
-        } catch (err) {
-          console.error(err);
-          showToast("저장 중 오류가 발생했습니다.", "error");
-        } finally {
-          hideSpinner();
-        }
-      });
-    }
-
-    if (btnDel) {
-      btnDel.addEventListener("click", async () => {
-        const sheetKey = btnDel.dataset.sheetKey;
-        const rowIndex = Number(btnDel.dataset.rowIndex || "0");
-        if (!sheetKey || !rowIndex) return;
-
-        showSpinner();
-        try {
-          await apiPost({
-            target: "deleteRow",
-            key: sheetKey,
-            row: rowIndex,
-          });
-          showToast("행이 삭제되었습니다.", "success");
-          window.KORUAL_MODAL?.closeAll?.();
-        } catch (err) {
-          console.error(err);
-          showToast("삭제 중 오류가 발생했습니다.", "error");
-        } finally {
-          hideSpinner();
-        }
-      });
+    function bind(sel, fn) {
+      const el = $(sel);
+      if (!el) return;
+      el.addEventListener("click", fn);
     }
   }
 
-  // =========================
-  // INIT
-  // =========================
-  async function init() {
-    if (!requireAuthOrRedirect()) return;
+  async function boot() {
+    const user = requireAuth();
+    setText("#currentUser", user.displayName || user.username || "KORUAL");
 
-    showSpinner();
-    try {
-      initNavigation();
-      initThemeToggle();
-      initTopbar();
-      initModalActions();
+    wireNav();
 
-      await pingApi();
-      await loadDashboard();
-      initTables();
-    } catch (_) {
-    } finally {
-      hideSpinner();
-    }
+    // 최초 로딩: 대시보드 + 기본 테이블(제품)
+    try { await loadDashboard(); } catch (e) { console.error(e); }
+    try { await loadEntityTable({ target: "products", key: "PRODUCTS" }); } catch (e) { console.error(e); }
   }
 
-  document.addEventListener("DOMContentLoaded", init);
+  boot();
 })();
