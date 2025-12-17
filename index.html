@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
 
-  <!-- 이미 로그인된 경우 바로 대시보드로 이동 -->
+  <!-- 이미 로그인된 경우 대시보드로 이동 -->
   <script>
     (function () {
       try {
@@ -15,168 +15,309 @@
     })();
   </script>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KORUAL Control Center – Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>KORUAL Control Center · Login</title>
+
+  <meta name="description" content="KORUAL Control Center – Secure Login" />
+  <meta name="theme-color" content="#020617" />
+  <link rel="icon" href="data:," />
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- KORUAL META (로직용) -->
+  <!-- KORUAL META (auth.js에서 사용) -->
   <script>
     window.KORUAL_META_APP = {
-      api: {
-        baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec"
-        // secret는 CORS 안정성을 위해 auth.js 기본 설정에서는 사용하지 않음
-      },
-      ui: {
-        defaultTheme: "dark",
-        defaultLang: "ko"
-      }
+      app: { id: "korual-auth", name: "KORUAL Control Center – Login", version: "v2.0-ultra", env: "prod" },
+      api: { baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec" },
+      ui: { defaultTheme: "dark", defaultLang: "ko" }
     };
   </script>
 
   <style>
-    :root { color-scheme: dark; }
+    :root {
+      color-scheme: dark;
+      --bg: #020617;
+      --card: rgba(2, 6, 23, 0.78);
+      --stroke: rgba(148, 163, 184, 0.22);
+      --stroke2: rgba(148, 163, 184, 0.35);
+      --text: #e5e7eb;
+      --muted: rgba(226, 232, 240, 0.55);
+      --brand: #38bdf8;
+      --brand2: #2563eb;
+      --violet: rgba(139, 92, 246, 0.28);
+      --cyan: rgba(56, 189, 248, 0.22);
+    }
 
+    * { box-sizing: border-box; }
     body {
-      background:
-        radial-gradient(circle at 20% 20%, rgba(56,189,248,0.18), transparent 60%),
-        radial-gradient(circle at 80% 70%, rgba(139,92,246,0.18), transparent 60%),
-        #020617;
+      margin: 0;
       min-height: 100vh;
-      color: #e5e7eb;
-      font-family: system-ui, Pretendard, sans-serif;
       overflow-x: hidden;
+      background:
+        radial-gradient(1200px 820px at 0% 0%, rgba(56,189,248,0.18), transparent 62%),
+        radial-gradient(1000px 760px at 100% 100%, rgba(139,92,246,0.18), transparent 62%),
+        linear-gradient(180deg, #020617 0%, #040a1a 50%, #020617 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif;
     }
 
-    .radar-ring {
-      position: fixed;
-      inset: 0;
-      margin: auto;
-      width: min(640px, 95vw);
-      height: min(640px, 95vw);
+    /* Subtle grid */
+    .grid-overlay{
+      position: fixed; inset: -260px;
+      pointer-events: none; z-index: -5;
+      background-image:
+        linear-gradient(rgba(15,23,42,0.70) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15,23,42,0.70) 1px, transparent 1px);
+      background-size: 84px 84px;
+      opacity: .55;
+      mask-image: radial-gradient(circle at center, black 0%, transparent 68%);
+      mix-blend-mode: soft-light;
+    }
+
+    /* Radar */
+    .radar{
+      position: fixed; inset: 0; margin: auto;
+      width: min(680px, 94vw); height: min(680px, 94vw);
       border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.18);
-      opacity: 0.16;
+      border: 1px solid rgba(148,163,184,0.16);
+      background: radial-gradient(circle at center, rgba(15,23,42,0.48), transparent 62%);
+      opacity: .16;
       pointer-events: none;
-      z-index: -1;
+      z-index: -4;
+      box-shadow: 0 0 0 1px rgba(2,6,23,0.9), 0 0 120px rgba(56,189,248,0.18);
     }
-    .radar-sweep {
-      position: absolute;
-      inset: 0;
-      border-radius: 999px;
-      background: conic-gradient(
-        from 180deg,
-        rgba(56,189,248,0.4),
-        transparent 40%,
-        transparent
-      );
+    .radar::after{
+      content:"";
+      position:absolute; inset:-12%;
+      border-radius:999px;
+      background: conic-gradient(from 230deg, rgba(56,189,248,0.34), transparent 46%, transparent 100%);
+      filter: blur(7px);
       animation: sweep 18s linear infinite;
-      filter: blur(6px);
     }
-    @keyframes sweep {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+    @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* Orbs */
+    .orb{
+      position: fixed; border-radius: 999px;
+      filter: blur(28px);
+      opacity: .7;
+      mix-blend-mode: screen;
+      pointer-events:none;
+      z-index:-3;
+    }
+    .orb.a{
+      width: 260px; height: 260px; left: 7%; top: 10%;
+      background: radial-gradient(circle at 30% 30%, rgba(56,189,248,.75), transparent 62%);
+      animation: floatA 16s ease-in-out infinite alternate;
+    }
+    .orb.b{
+      width: 320px; height: 320px; right: 7%; bottom: 8%;
+      background: radial-gradient(circle at 70% 55%, rgba(129,140,248,.75), transparent 62%);
+      animation: floatB 18s ease-in-out infinite alternate;
+    }
+    @keyframes floatA { from{ transform: translate3d(0,0,0);} to{ transform: translate3d(24px,44px,0);} }
+    @keyframes floatB { from{ transform: translate3d(0,0,0);} to{ transform: translate3d(-32px,-30px,0);} }
+
+    /* Noise overlay (CSS only) */
+    .noise{
+      position: fixed; inset: 0;
+      pointer-events:none;
+      opacity: .06;
+      mix-blend-mode: overlay;
+      z-index:-2;
+      background-image:
+        repeating-radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06) 0 1px, transparent 1px 3px);
+      filter: blur(0.3px);
     }
 
-    .input {
-      width: 100%;
-      padding: 0.8rem 1rem;
-      border-radius: 0.9rem;
-      background: rgba(15,23,42,0.92);
+    /* Glass card */
+    .glass{
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      backdrop-filter: blur(26px);
+      -webkit-backdrop-filter: blur(26px);
+      box-shadow:
+        0 32px 90px rgba(15,23,42,0.96),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .brand-badge{
+      display:inline-flex; align-items:center; gap:.55rem;
+      padding: .42rem .85rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.26);
+      background: linear-gradient(135deg, rgba(15,23,42,0.92), rgba(15,23,42,0.74));
+      color: rgba(226,232,240,0.78);
+      font-size: .72rem;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .brand-badge::before{
+      content:"";
+      width: 7px; height: 7px; border-radius:999px;
+      background: radial-gradient(circle, var(--brand), var(--brand2));
+      box-shadow: 0 0 12px rgba(56,189,248,0.92);
+    }
+
+    .input{
+      width:100%;
+      padding:.82rem 1rem;
+      border-radius: 1rem;
       border: 1px solid rgba(148,163,184,0.55);
-      color: #e5e7eb;
-      font-size: 0.9rem;
-      transition: .2s;
-    }
-    .input:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 4px rgba(56,189,248,0.22);
+      background: rgba(15,23,42,0.96);
+      color: var(--text);
+      font-size: .92rem;
       outline: none;
+      transition: .16s;
+    }
+    .input::placeholder{ color: rgba(148,163,184,0.55); }
+    .input:focus{
+      border-color: rgba(56,189,248,0.98);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.98), 0 0 0 10px rgba(37,99,235,0.13);
     }
 
-    .btn {
-      width: 100%;
-      padding: 0.8rem 1rem;
-      border-radius: 0.9rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-      background: linear-gradient(135deg, #2563eb, #0ea5e9);
-      transition: .2s;
-      box-shadow: 0 18px 48px rgba(15,23,42,0.95);
+    .btn{
+      width:100%;
+      padding:.86rem 1rem;
+      border-radius: 1rem;
+      font-weight: 800;
+      font-size: .95rem;
+      color:#fff;
+      border:0;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.22), transparent 55%),
+        linear-gradient(135deg, var(--brand2), var(--brand));
+      box-shadow: 0 20px 56px rgba(15,23,42,0.96), 0 0 0 1px rgba(148,163,184,0.18);
+      transition: .18s;
     }
-    .btn:hover {
+    .btn:hover{
       transform: translateY(-1px);
-      box-shadow: 0 26px 60px rgba(15,23,42,1);
+      filter: saturate(1.05);
+      box-shadow: 0 28px 64px rgba(15,23,42,0.98), 0 0 0 1px rgba(129,140,248,0.60);
+    }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+
+    .subline{
+      color: rgba(226,232,240,0.55);
+      font-size: .78rem;
+      line-height: 1.4;
     }
 
-    .glass {
-      background: rgba(15,23,42,0.85);
-      backdrop-filter: blur(24px);
-      border: 1px solid rgba(148,163,184,0.2);
+    .status-pill{
+      display:inline-flex; align-items:center; gap:.45rem;
+      padding:.36rem .7rem;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.22);
+      background: rgba(2,6,23,0.55);
+      font-size:.72rem;
+      color: rgba(226,232,240,0.62);
     }
+    .dot{
+      width: 8px; height: 8px; border-radius: 999px;
+      background: rgba(251,191,36,0.9);
+      box-shadow: 0 0 0 5px rgba(251,191,36,0.25);
+    }
+
+    /* Loading overlay */
+    .overlay{
+      position:absolute; inset:0;
+      background: rgba(2,6,23,0.72);
+      backdrop-filter: blur(10px);
+      display:flex; align-items:center; justify-content:center;
+      flex-direction: column;
+      gap: .7rem;
+      z-index: 10;
+    }
+    .spinner{
+      width: 40px; height: 40px;
+      border-radius:999px;
+      border: 2px solid rgba(148,163,184,0.35);
+      border-top-color: rgba(56,189,248,0.95);
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 
 <body>
-  <div class="radar-ring">
-    <div class="radar-sweep"></div>
-  </div>
+  <div class="grid-overlay"></div>
+  <div class="radar"></div>
+  <div class="orb a"></div>
+  <div class="orb b"></div>
+  <div class="noise"></div>
 
-  <!-- Toast root -->
-  <div id="toastRoot" class="fixed inset-x-0 bottom-6 z-40 flex justify-center pointer-events-none"></div>
+  <!-- Toast root (auth.js 사용) -->
+  <div id="toastRoot" class="fixed inset-x-0 bottom-6 z-40 flex justify-center pointer-events-none px-4"></div>
 
-  <!-- MAIN LOGIN CARD -->
-  <main class="max-w-5xl mx-auto px-6 pt-16">
-    <div class="text-center mb-10">
-      <div class="inline-flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-white grid place-content-center text-slate-900 font-bold text-xl shadow-lg">K</div>
-        <div class="text-left">
-          <p class="text-[11px] uppercase tracking-[0.3em] text-slate-400">Korual Control Center</p>
-          <h1 class="text-2xl font-semibold">24h 자동화 커머스 레이더</h1>
-        </div>
+  <!-- Top bar -->
+  <header class="max-w-6xl mx-auto px-4 md:px-8 pt-5 pb-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-2xl bg-slate-950/95 text-white grid place-content-center text-xl font-black shadow-[0_18px_40px_rgba(15,23,42,0.95)] ring-1 ring-slate-700/90">
+        K
+      </div>
+      <div>
+        <div class="brand-badge">Korual Control Center</div>
+        <h1 class="text-xl md:text-2xl font-semibold mt-1">24h 자동화 커머스 레이더</h1>
+        <p class="subline mt-1">Secure access · Internal console · High-end glass interface</p>
       </div>
     </div>
 
-    <section class="glass rounded-3xl max-w-xl mx-auto px-6 py-7 shadow-[0_32px_90px_rgba(15,23,42,0.98)]">
-      <h2 class="text-xl font-semibold mb-6">KORUAL 로그인</h2>
+    <!-- API status placeholder (auth.js에서 핸들링해도 되고, 옵션) -->
+    <div class="hidden sm:flex items-center gap-2">
+      <span class="dot" id="apiStatusDot"></span>
+      <span class="status-pill" id="apiStatusText">Auth API 체크 중…</span>
+    </div>
+  </header>
 
-      <div class="space-y-4">
-        <div>
-          <label class="text-sm mb-1 block">아이디</label>
-          <div class="relative">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">@</span>
-            <input id="loginUsername" class="input pl-8" placeholder="예: KORUAL" />
+  <main class="max-w-6xl mx-auto px-4 md:px-8 py-10">
+    <section class="glass relative w-full max-w-md mx-auto rounded-3xl overflow-hidden">
+      <!-- loading overlay (auth.js가 토글) -->
+      <div id="loadingOverlay" class="overlay hidden">
+        <div class="spinner"></div>
+        <p class="text-xs text-slate-200/70">KORUAL 계정 확인 중…</p>
+      </div>
+
+      <div class="px-6 py-7">
+        <div class="flex items-start justify-between mb-5">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.26em] text-slate-400">SIGN IN</p>
+            <h2 class="text-lg font-semibold mt-1">KORUAL 계정으로 접속</h2>
+          </div>
+          <span class="status-pill">CONTROL ACCESS</span>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block mb-1.5 text-sm text-slate-200/80">아이디</label>
+            <input id="loginUsername" class="input" autocomplete="username" placeholder="예: KORUAL" />
+          </div>
+
+          <div>
+            <label class="block mb-1.5 text-sm text-slate-200/80">비밀번호</label>
+            <input id="loginPassword" type="password" class="input" autocomplete="current-password" placeholder="••••••••" />
+          </div>
+
+          <button id="btnLogin" type="button" class="btn">로그인</button>
+
+          <div class="flex items-center justify-between">
+            <button id="btnFillDemo" type="button" class="text-[11px] text-sky-300 underline decoration-dotted">
+              테스트 계정 자동 입력
+            </button>
+            <p id="loginMsg" class="text-xs text-rose-400 min-h-[1rem] text-right"></p>
           </div>
         </div>
 
-        <div>
-          <label class="text-sm mb-1 block">비밀번호</label>
-          <input id="loginPassword" type="password" class="input" placeholder="••••••••" />
-        </div>
-
-        <button id="btnLogin" class="btn mt-2">로그인</button>
-
-        <p id="loginMsg" class="text-sm text-rose-400 h-4 mt-1"></p>
-      </div>
-
-      <!-- 샘플 계정 -->
-      <div class="mt-6 text-xs text-slate-400">
-        <p class="font-medium text-slate-300">테스트용 기본 계정</p>
-        <div class="inline-flex gap-2 items-center bg-slate-900/80 px-3 py-2 mt-2 rounded-xl border border-slate-700/70">
-          <span>ID:</span><code class="bg-slate-800 px-1.5 py-0.5 rounded">KORUAL</code>
-          <span>/ PW:</span><code class="bg-slate-800 px-1.5 py-0.5 rounded">GUEST</code>
-          <button
-            id="btnFillDemo"
-            class="underline decoration-dotted ml-2 text-sky-300"
-            type="button"
-          >
-            자동 입력
-          </button>
+        <div class="mt-6 text-[11px] text-slate-500">
+          © <span id="year"></span> KORUAL CONTROL CENTER · Internal Use Only
         </div>
       </div>
     </section>
   </main>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 
   <!-- 로그인 로직 -->
   <script src="auth.js"></script>
