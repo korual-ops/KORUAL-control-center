@@ -1,8 +1,8 @@
 /* =========================
    KORUAL Auth Controller
    File: auth.js
-   - UI는 index.html 유지
-   - 로그인/잠금/상태체크/토스트 관리
+   - index.html UI 유지
+   - CORS preflight 최소화 (ping: GET no custom headers)
    ========================= */
 
 (() => {
@@ -10,21 +10,23 @@
   const API_BASE = (META.api && META.api.baseUrl) ? String(META.api.baseUrl).replace(/\/+$/, "") : "";
   const API_SECRET = (META.api && META.api.secret) ? String(META.api.secret) : "";
 
-  // 저장 키(기존 index.html과 호환)
+  // 커스텀 헤더를 쓰면 브라우저가 OPTIONS(preflight)를 먼저 보냅니다.
+  // GAS에서 doOptions/CORS를 완벽히 처리하지 않으면 "연결 실패"가 나기 쉬워서,
+  // 기본은 OFF. (서버가 CORS 완비되면 true로 바꾸세요.)
+  const USE_CUSTOM_HEADER = false;
+
   const LS = {
     USER: "korual_user",
-    LOCK: "korual_auth_lock",       // { until:number(ms), fails:number }
-    FAILS: "korual_auth_fails"       // number
+    FAILS: "korual_auth_fails",
+    LOCK: "korual_auth_lock" // { until:number(ms), fails:number }
   };
 
-  // 정책(요구사항 문구와 일치)
   const POLICY = {
     maxFails: 5,
     lockMinutes: 30,
     pingIntervalMs: 15000
   };
 
-  // DOM
   const el = {
     username: document.getElementById("loginUsername"),
     password: document.getElementById("loginPassword"),
@@ -37,8 +39,17 @@
     statusText: document.getElementById("apiStatusText")
   };
 
-  // ============ Helpers ============
+  // ---------- utils ----------
   function now() { return Date.now(); }
+
+  function safeJsonParse(raw, fallback = null) {
+    try { return JSON.parse(raw); } catch { return fallback; }
+  }
+
+  function setLoading(on) {
+    if (el.overlay) el.overlay.classList.toggle("hidden", !on);
+    if (el.btnLogin) el.btnLogin.disabled = !!on;
+  }
 
   function setMsg(text, type = "error") {
     if (!el.msg) return;
@@ -46,12 +57,6 @@
     el.msg.className = type === "ok"
       ? "text-xs text-emerald-300 min-h-[1rem]"
       : "text-xs text-rose-400 min-h-[1rem]";
-  }
-
-  function setLoading(on) {
-    if (!el.overlay) return;
-    el.overlay.classList.toggle("hidden", !on);
-    if (el.btnLogin) el.btnLogin.disabled = !!on;
   }
 
   function toast(message, kind = "info") {
@@ -76,35 +81,59 @@
     }, 2200);
   }
 
-  function safeJsonParse(raw, fallback = null) {
-    try { return JSON.parse(raw); } catch { return fallback; }
+  function buildHeaders() {
+    const h = { "Accept": "application/json" };
+    // GET ping에서는 절대 커스텀 헤더를 안 씁니다.
+    // POST에서도 기본은 커스텀 헤더 없이 갑니다(프리플라이트 회피).
+    if (USE_CUSTOM_HEADER && API_SECRET) h["X-KORUAL-SECRET"] = API_SECRET;
+    return h;
   }
 
-  function getLock() {
-    const raw = localStorage.getItem(LS.LOCK);
-    return safeJsonParse(raw, null);
+  async function fetchJson(url, options = {}) {
+    const res = await fetch(url, options);
+    const text = await res.text();
+    const json = safeJsonParse(text, null);
+
+    // GAS가 HTML(에러/로그인)로 돌려도 여기서 감지 가능
+    if (!res.ok) {
+      const msg = (json && (json.message || json.error)) ? (json.message || json.error) : `HTTP_${res.status}`;
+      throw new Error(msg);
+    }
+    if (json == null) {
+      // JSON이 아니면(대부분 권한/리디렉트/HTML 에러)
+      throw new Error("NON_JSON_RESPONSE");
+    }
+    return json;
   }
 
-  function setLock(lockObj) {
-    localStorage.setItem(LS.LOCK, JSON.stringify(lockObj));
-  }
-
-  function clearLock() {
-    localStorage.removeItem(LS.LOCK);
-    localStorage.removeItem(LS.FAILS);
-  }
-
-  function incFail() {
-    const n = parseInt(localStorage.getItem(LS.FAILS) || "0", 10) || 0;
-    const next = n + 1;
-    localStorage.setItem(LS.FAILS, String(next));
-    return next;
-  }
-
+  // ---------- lock ----------
   function getFailCount() {
     return parseInt(localStorage.getItem(LS.FAILS) || "0", 10) || 0;
   }
+  function incFail() {
+    const next = getFailCount() + 1;
+    localStorage.setItem(LS.FAILS, String(next));
+    return next;
+  }
+  function clearFails() {
+    localStorage.removeItem(LS.FAILS);
+  }
 
+  function getLock() {
+    return safeJsonParse(localStorage.getItem(LS.LOCK) || "", null);
+  }
+  function setLock(lockObj) {
+    localStorage.setItem(LS.LOCK, JSON.stringify(lockObj));
+  }
+  function clearLock() {
+    localStorage.removeItem(LS.LOCK);
+  }
+  function lockRemainingMs() {
+    const lock = getLock();
+    if (!lock || !lock.until) return 0;
+    const remain = lock.until - now();
+    return remain > 0 ? remain : 0;
+  }
   function lockIfNeeded(fails) {
     if (fails < POLICY.maxFails) return null;
     const until = now() + POLICY.lockMinutes * 60 * 1000;
@@ -112,38 +141,12 @@
     setLock(lock);
     return lock;
   }
-
-  function lockRemainingMs() {
-    const lock = getLock();
-    if (!lock || !lock.until) return 0;
-    const remain = lock.until - now();
-    return remain > 0 ? remain : 0;
-  }
-
   function formatRemain(ms) {
     const m = Math.ceil(ms / 60000);
     return `${m}분`;
   }
 
-  async function fetchJson(url, opts = {}) {
-    const res = await fetch(url, opts);
-    const text = await res.text();
-    const json = safeJsonParse(text, null);
-    if (!res.ok) {
-      const msg = (json && (json.message || json.error)) ? (json.message || json.error) : `HTTP_${res.status}`;
-      throw new Error(msg);
-    }
-    return json ?? { ok: false, raw: text };
-  }
-
-  function authHeaders() {
-    const h = { "Content-Type": "application/json", "Accept": "application/json" };
-    // secret은 "운영 편의용" 수준으로만 사용(완전한 보안 수단은 아님)
-    if (API_SECRET) h["X-KORUAL-SECRET"] = API_SECRET;
-    return h;
-  }
-
-  // ============ API Status Ping ============
+  // ---------- API status ----------
   function setApiStatus(state, text) {
     if (el.dot) {
       el.dot.className =
@@ -163,21 +166,23 @@
       return;
     }
 
+    // ping은 CORS preflight를 유발하지 않도록 "GET + 기본 헤더"만 사용
+    const url = `${API_BASE}?route=auth.ping&_=${Date.now()}`;
+
     try {
       setApiStatus("warm", "Auth API 체크 중…");
-      // 권장: 서버에 /auth/ping 라우트 구현
-      // 없으면 GAS에서 doGet에 ?ping=1 같은 형태로 우회도 가능
-      const url = `${API_BASE}?route=auth.ping`;
-      const json = await fetchJson(url, { method: "GET", headers: authHeaders() });
+      const json = await fetchJson(url, { method: "GET", headers: { "Accept": "application/json" } });
 
       if (json && json.ok) setApiStatus("ok", "Auth API 정상");
       else setApiStatus("down", "Auth API 응답 오류");
-    } catch (_) {
+
+    } catch (err) {
+      // 가장 흔한 케이스: CORS/권한(로그인 필요)/라우트 미구현/HTML 응답
       setApiStatus("down", "Auth API 연결 실패");
     }
   }
 
-  // ============ Login ============
+  // ---------- login ----------
   async function login() {
     const remain = lockRemainingMs();
     if (remain > 0) {
@@ -194,9 +199,8 @@
       setMsg("아이디와 비밀번호를 입력하세요.", "error");
       return;
     }
-
     if (!API_BASE) {
-      setMsg("Auth API가 설정되지 않았습니다. (baseUrl)", "error");
+      setMsg("Auth API가 설정되지 않았습니다.(baseUrl)", "error");
       return;
     }
 
@@ -204,41 +208,37 @@
     setMsg("");
 
     try {
-      // 권장: GAS에서 route=auth.login 처리
-      const url = `${API_BASE}`;
-      const body = {
-        route: "auth.login",
-        username,
-        password
-      };
+      // login은 POST JSON (서버가 CORS 처리되어 있지 않다면 커스텀 헤더는 피하는 게 안전)
+      const url = API_BASE;
+      const body = { route: "auth.login", username, password };
 
       const json = await fetchJson(url, {
         method: "POST",
-        headers: authHeaders(),
+        headers: {
+          ...buildHeaders(),
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify(body)
       });
 
-      if (!json || !json.ok) {
-        throw new Error((json && (json.message || json.error)) ? (json.message || json.error) : "LOGIN_FAILED");
+      if (!json.ok) {
+        throw new Error(json.message || json.error || "LOGIN_FAILED");
       }
 
-      // 기대 응답 예시:
-      // { ok:true, user:{ username, role, tier }, token:"...", issuedAt:"..." }
+      // 성공 시 user 저장
       const user = json.user || { username };
       localStorage.setItem(LS.USER, JSON.stringify(user));
 
-      // 토큰 기반 app.js를 같이 쓰는 구조라면, token도 저장(옵션)
-      if (json.token) {
-        localStorage.setItem("korual_api_token", String(json.token));
-      }
+      // app.js가 Bearer 토큰을 쓰는 구조면 token도 저장(옵션)
+      if (json.token) localStorage.setItem("korual_api_token", String(json.token));
 
+      clearFails();
       clearLock();
+
       setMsg("로그인 성공", "ok");
       toast("로그인 성공", "ok");
 
-      setTimeout(() => {
-        location.replace("dashboard.html");
-      }, 350);
+      setTimeout(() => location.replace("dashboard.html"), 350);
 
     } catch (err) {
       const fails = incFail();
@@ -270,7 +270,6 @@
     if (el.btnLogin) el.btnLogin.addEventListener("click", login);
     if (el.btnFillDemo) el.btnFillDemo.addEventListener("click", fillDemo);
 
-    // Enter key submit
     [el.username, el.password].forEach(input => {
       if (!input) return;
       input.addEventListener("keydown", (e) => {
@@ -279,7 +278,7 @@
     });
   }
 
-  // ============ Boot ============
+  // ---------- boot ----------
   bind();
   pingAuthApi();
   setInterval(pingAuthApi, POLICY.pingIntervalMs);
