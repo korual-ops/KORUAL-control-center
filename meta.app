@@ -1,89 +1,161 @@
-/*************************************************
- * KORUAL META.APP – Global App Meta / Config
- * - 프론트에서 공통으로 쓰는 메타 정보
- * - 백엔드 APP_META와 값 맞춰서 관리
- *************************************************/
-
 /**
- * 백엔드 code.gs 의 APP_META 와 맞춰서 쓸 것
- * const APP_META = {
- *   name: "KORUAL CONTROL CENTER API",
- *   version: "v4.1",
- *   env: "prod"
- * };
+ * KORUAL CONTROL CENTER
+ * meta.app
+ * Single Source of Truth (SSOT)
  */
-const KORUAL_META_APP = {
+
+window.KORUAL_META_APP = {
+  // ===============================
+  // APP INFO
+  // ===============================
   app: {
-    id: "korual-control-center",
-    name: "KORUAL CONTROL CENTER",
-    tagline: "All Systems Automated",
-    version: "v4.1",
-    env: "prod"
+    name: "KORUAL Control Center",
+    code: "KORUAL_CC",
+    version: "1.0.0",
+    environment: "production", // development | staging | production
+    build: "2025-01",
   },
 
-  brand: {
-    primary: "#f5f5f7",
-    accent: "#facc15",
-    accentSoft: "rgba(250, 204, 21, 0.14)",
-    textMain: "#f9fafb",
-    textMuted: "#9ca3af",
-    bgElevated: "rgba(15, 23, 42, 0.78)",
-    borderSubtle: "rgba(148, 163, 184, 0.45)"
-  },
-
+  // ===============================
+  // API CONFIG
+  // ===============================
   api: {
-    baseUrl: "https://script.google.com/macros/s/AKfycbyYWVWNZ8hjn2FFuPhy4OAltjRx70vEHJk5DPgOtf1Lf4rHy8KqrRR5XXmqIz9WHxIEQw/exec",
-    timeoutMs: 12000,
+    /**
+     * 중요
+     * - 브라우저 → GAS 직접 호출 ❌
+     * - 반드시 Vercel API Route 프록시 경유 ⭕
+     */
+    baseUrl: "/api/korual",
+
+    /**
+     * 내부 시크릿 (프론트 → 프록시 → GAS)
+     * 실제 보안은 서버단에서 처리
+     */
     secret: "KORUAL-ONLY",
-    targets: {
-      ping: "ping",
-      dashboard: "dashboard",
-      members: "members",
-      orders: "orders",
-      products: "products",
-      stock: "stock",
-      logs: "logs",
-      deleteRow: "deleteRow",
-      updateCell: "updateCell",
-      addRow: "addRow",
-      bulkReplace: "bulkReplace"
-    }
+
+    timeout: 15000,
   },
 
-  routes: {
-    auth: "index.html",
-    dashboard: "dashboard.html"
+  // ===============================
+  // AUTH / SECURITY
+  // ===============================
+  auth: {
+    storageKey: "korual_user",
+    sessionTTL: 1000 * 60 * 60 * 8, // 8시간
+
+    roles: {
+      SUPER_ADMIN: "SUPER_ADMIN",
+      ADMIN: "ADMIN",
+      STAFF: "STAFF",
+      VIEWER: "VIEWER",
+    },
+
+    /**
+     * PW 정책 (프론트 기준)
+     * 실제 검증은 hash.gs + code.gs
+     */
+    password: {
+      type: "SHA256",
+      minLength: 8,
+    },
   },
 
+  // ===============================
+  // UI / UX
+  // ===============================
   ui: {
-    compactRowHeight: 40,
-    defaultPageSize: 200,
-    maxPageSize: 2000,
-    dateFormat: "yyyy-MM-dd",
-    currency: "KRW",
-    locale: "ko-KR"
+    defaultTheme: "dark",
+    supportedThemes: ["dark", "light"],
+
+    language: "ko",
+
+    toast: {
+      duration: 3000,
+    },
+
+    table: {
+      pageSize: 20,
+      maxPageSize: 100,
+    },
+
+    modal: {
+      animation: true,
+      backdropClose: true,
+    },
   },
 
-  featureFlags: {
-    enableLogsView: true,
-    enableInlineEdit: true,
-    enableDeleteRow: true,
-    enablePagination: true,
-    enableSearch: true
-  }
+  // ===============================
+  // ENTITY DEFINITIONS
+  // (board.js / app.js 공통 사용)
+  // ===============================
+  entities: {
+    products: {
+      key: "PRODUCTS",
+      label: "상품",
+      editable: true,
+      deletable: true,
+    },
+    orders: {
+      key: "ORDERS",
+      label: "주문",
+      editable: true,
+      deletable: false,
+    },
+    members: {
+      key: "MEMBERS",
+      label: "회원",
+      editable: true,
+      deletable: false,
+    },
+    stock: {
+      key: "STOCK",
+      label: "재고",
+      editable: true,
+      deletable: false,
+    },
+    logs: {
+      key: "LOGS",
+      label: "로그",
+      editable: false,
+      deletable: false,
+    },
+    staff: {
+      key: "STAFF",
+      label: "직원",
+      editable: true,
+      deletable: true,
+    },
+  },
+
+  // ===============================
+  // DASHBOARD CONFIG
+  // ===============================
+  dashboard: {
+    refreshInterval: 60_000, // 1분
+    widgets: {
+      totals: true,
+      today: true,
+      recentOrders: true,
+    },
+  },
+
+  // ===============================
+  // FEATURE FLAGS
+  // ===============================
+  features: {
+    enableCRUD: true,
+    enableCSVExport: true,
+    enableDragAndDrop: true,
+    enableRealtimePing: true,
+    enableAuditLog: true,
+  },
+
+  // ===============================
+  // DEV / DEBUG
+  // ===============================
+  debug: {
+    logApi: true,
+    logAuth: true,
+    logPerformance: false,
+  },
 };
-
-/**
- * 전역으로 노출
- * - window.KORUAL_META_APP 으로 어디서든 접근 가능
- */
-(function exposeKorualMetaAppToWindow(meta) {
-  try {
-    if (typeof window !== "undefined") {
-      window.KORUAL_META_APP = meta;
-    }
-  } catch (_) {
-    // 서버 사이드 환경일 경우 조용히 무시
-  }
-})(KORUAL_META_APP);
-
