@@ -1,241 +1,193 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
+  <title>KORUAL Control Center · Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- 이미 로그인된 경우 바로 대시보드로 이동 -->
-  <script>
-    (function () {
-      try {
-        const raw = localStorage.getItem("korual_user");
-        if (!raw) return;
-        const user = JSON.parse(raw);
-        if (user && user.username) location.replace("dashboard.html");
-      } catch (_) {}
-    })();
-  </script>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>KORUAL Control Center – Login</title>
-
-  <meta name="description" content="KORUAL CONTROL CENTER – 로그인" />
-  <meta name="theme-color" content="#020617" />
-  <link rel="icon" href="data:," />
-
-  <!-- Tailwind -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- KORUAL META APP -->
-  <script>
-    window.KORUAL_META_APP = {
-      app: { id: "korual-auth", name: "KORUAL Control Center – Auth", version: "v1.2-ultra", env: "prod" },
-      api: {
-        baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
-        secret: "KORUAL-ONLY"
-      },
-      ui: { defaultTheme: "dark", defaultLang: "ko" }
-    };
-  </script>
-
+  <!-- 기본 스타일 (간단 / 로그인 전용) -->
   <style>
-    :root { color-scheme: dark; --bg:#020617; --acc:#38bdf8; }
+    :root {
+      --bg-dark: #0b0f1a;
+      --card-dark: rgba(255,255,255,0.06);
+      --border-dark: rgba(255,255,255,0.15);
+      --accent: #3aa0ff;
+      --text-main: #ffffff;
+      --text-sub: rgba(255,255,255,0.65);
+    }
 
-    body{
-      min-height:100vh; overflow-x:hidden;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif;
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
       background:
-        radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.22), transparent 65%),
-        radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.26), transparent 65%),
-        linear-gradient(to bottom right, var(--bg), var(--bg));
-      color:#e5e7eb;
+        radial-gradient(circle at top, rgba(58,160,255,0.15), transparent 60%),
+        linear-gradient(180deg, #050812, #0b0f1a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main);
     }
 
-    .grid-overlay{
-      position:fixed; inset:-200px; pointer-events:none; z-index:-3;
-      background-image:
-        linear-gradient(rgba(15,23,42,0.72) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(15,23,42,0.72) 1px, transparent 1px);
-      background-size:80px 80px;
-      opacity:.65;
-      mix-blend-mode:soft-light;
-      mask-image: radial-gradient(circle at center, black 0%, transparent 65%);
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      padding: 36px 34px 40px;
+      background: var(--card-dark);
+      border: 1px solid var(--border-dark);
+      border-radius: 18px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
     }
 
-    .radar-ring{
-      position:fixed; inset:0; margin:auto; z-index:-2; pointer-events:none;
-      width:min(640px, 92vw); height:min(640px, 92vw);
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,0.18);
-      background: radial-gradient(circle at center, rgba(15,23,42,0.4), transparent 60%);
-      opacity:.16;
-      box-shadow: 0 0 0 1px rgba(15,23,42,0.9), 0 0 120px rgba(56,189,248,0.18);
-    }
-    .radar-sweep{
-      position:absolute; inset:-10%; border-radius:999px;
-      background: conic-gradient(from 220deg, rgba(56,189,248,0.35), transparent 45%, transparent 100%);
-      filter: blur(6px);
-      animation: radar 18s linear infinite;
-    }
-    @keyframes radar { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
-
-    .orb{ position:fixed; border-radius:999px; filter:blur(26px); opacity:.7; mix-blend-mode:screen; z-index:-1; pointer-events:none; }
-    .orb-1{ width:220px; height:220px; top:6%; left:8%;
-      background: radial-gradient(circle at 30% 30%, rgba(56,189,248,.75), transparent 60%);
-      animation: f1 16s ease-in-out infinite alternate;
-    }
-    .orb-2{ width:260px; height:260px; bottom:4%; right:10%;
-      background: radial-gradient(circle at 70% 60%, rgba(129,140,248,.85), transparent 60%);
-      animation: f2 18s ease-in-out infinite alternate;
-    }
-    @keyframes f1{0%{transform:translate3d(0,0,0);}100%{transform:translate3d(20px,40px,0);}}
-    @keyframes f2{0%{transform:translate3d(0,0,0);}100%{transform:translate3d(-30px,-30px,0);}}
-
-    .glass{
-      background: rgba(2,6,23,0.86);
-      border: 1px solid rgba(148,163,184,0.22);
-      backdrop-filter: blur(26px);
-      -webkit-backdrop-filter: blur(26px);
-      box-shadow: 0 32px 90px rgba(15,23,42,0.98);
+    .brand {
+      text-align: center;
+      margin-bottom: 28px;
     }
 
-    .input{
-      width:100%;
-      padding:.78rem .95rem;
-      border-radius:.95rem;
-      border:1px solid rgba(148,163,184,0.55);
-      background: rgba(15,23,42,0.95);
-      color:#e5e7eb;
-      font-size:.9rem;
-      outline:none;
-      transition:.16s;
-    }
-    .input:focus{
-      border-color: rgba(56,189,248,0.98);
-      box-shadow: 0 0 0 1px rgba(56,189,248,0.98), 0 0 0 9px rgba(37,99,235,0.13);
+    .brand h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
     }
 
-    .btn{
-      width:100%;
-      padding:.8rem 1rem;
-      border-radius: .95rem;
-      font-size:.95rem;
-      font-weight:700;
-      color:#fff;
-      border:0;
-      background:
-        radial-gradient(circle at 0% 0%, rgba(255,255,255,0.22), transparent 55%),
-        linear-gradient(135deg, #2563eb, #0ea5e9);
-      box-shadow: 0 20px 48px rgba(15,23,42,0.95), 0 0 0 1px rgba(148,163,184,0.18);
-      transition: .18s;
+    .brand p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--text-sub);
     }
-    .btn:hover{ transform: translateY(-1px); filter:saturate(1.06); box-shadow: 0 26px 58px rgba(15,23,42,0.98), 0 0 0 1px rgba(129,140,248,0.65); }
-    .btn:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
 
-    .pill{
-      display:inline-flex; align-items:center; gap:.4rem;
-      padding:.35rem .85rem; border-radius:999px;
-      border:1px solid rgba(148,163,184,0.55);
-      background: linear-gradient(135deg, rgba(15,23,42,0.97), rgba(15,23,42,0.82));
-      color:#cbd5f5; font-size:.72rem;
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--text-sub);
     }
-    .pill::before{
-      content:""; width:6px; height:6px; border-radius:999px;
-      background: radial-gradient(circle, #38bdf8, #1d4ed8);
-      box-shadow: 0 0 12px rgba(56,189,248,0.96);
+
+    input {
+      width: 100%;
+      padding: 14px 14px;
+      font-size: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-dark);
+      background: rgba(0,0,0,0.35);
+      color: var(--text-main);
+      outline: none;
+      margin-bottom: 18px;
+    }
+
+    input::placeholder {
+      color: rgba(255,255,255,0.35);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #3aa0ff, #1f6dff);
+      color: #fff;
+      box-shadow: 0 12px 30px rgba(58,160,255,0.35);
+    }
+
+    button:hover {
+      filter: brightness(1.05);
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 13px;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .status.error { color: #ff6b6b; }
+    .status.ok { color: #4ade80; }
+
+    .footer {
+      margin-top: 28px;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
     }
   </style>
 </head>
 
 <body>
-  <div class="grid-overlay"></div>
-  <div class="radar-ring"><div class="radar-sweep"></div></div>
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
 
-  <!-- Toast root -->
-  <div id="toastRoot" class="fixed inset-x-0 bottom-5 z-40 flex justify-center pointer-events-none px-4"></div>
-
-  <header class="max-w-6xl mx-auto px-4 md:px-8 pt-4 pb-3 flex items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <div class="w-11 h-11 rounded-2xl bg-slate-950/95 text-white grid place-content-center text-xl font-bold shadow-[0_18px_40px_rgba(15,23,42,0.95)] ring-1 ring-slate-700/90">K</div>
-      <div>
-        <p class="text-[11px] uppercase tracking-[0.3em] text-slate-400">Korual Control Center</p>
-        <h1 class="text-xl md:text-2xl font-semibold leading-tight">24h 자동화 커머스 레이더</h1>
-      </div>
+  <div class="login-card">
+    <div class="brand">
+      <h1>KORUAL</h1>
+      <p>Control Center · Secure Login</p>
     </div>
 
-    <div class="hidden sm:flex items-center gap-2 text-[11px]" aria-live="polite">
-      <span id="apiStatusDot" class="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.35)]"></span>
-      <span id="apiStatusText" class="text-slate-400">Auth API 체크 중…</span>
+    <label for="tokenInput">API Access Token</label>
+    <input
+      id="tokenInput"
+      type="password"
+      placeholder="Enter your KORUAL API token"
+      autocomplete="off"
+    />
+
+    <button id="btnLogin">Login</button>
+
+    <div id="status" class="status"></div>
+
+    <div class="footer">
+      © KORUAL Control Center
     </div>
-  </header>
+  </div>
 
-  <main class="max-w-6xl mx-auto px-4 md:px-8 py-10">
-    <section class="glass relative w-full max-w-md mx-auto rounded-3xl overflow-hidden">
-      <div class="pointer-events-none absolute inset-0 border border-sky-500/14 rounded-[1.45rem]"></div>
-      <div class="pointer-events-none absolute -inset-px rounded-[1.6rem] bg-gradient-to-br from-sky-500/12 via-transparent to-violet-500/14 mix-blend-screen opacity-70"></div>
-
-      <!-- Loading overlay -->
-      <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3">
-        <div class="w-10 h-10 border-2 border-slate-600 border-t-sky-400 rounded-full animate-spin"></div>
-        <p class="text-xs text-slate-300">KORUAL 계정 확인 중...</p>
-      </div>
-
-      <div class="relative px-6 py-6">
-        <div class="flex items-center justify-between mb-5">
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-slate-400">SIGN IN TO KORUAL</p>
-            <h2 class="text-lg font-semibold">KORUAL 계정으로 접속</h2>
-          </div>
-          <span class="pill">Control Center 입장</span>
-        </div>
-
-        <div class="space-y-4">
-          <div>
-            <label class="block mb-1.5 text-sm" for="loginUsername">아이디</label>
-            <div class="relative">
-              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">@</span>
-              <input id="loginUsername" class="input pl-7" placeholder="예: KORUAL" autocomplete="username" />
-            </div>
-          </div>
-
-          <div>
-            <label class="block mb-1.5 text-sm" for="loginPassword">비밀번호</label>
-            <input id="loginPassword" class="input" type="password" placeholder="••••••••" autocomplete="current-password" />
-          </div>
-
-          <div class="flex items-center justify-between gap-2">
-            <button id="btnFillDemo" class="text-[11px] text-sky-300 underline decoration-dotted" type="button">테스트 계정 자동 입력</button>
-            <button id="btnLogin" class="btn" type="button">로그인</button>
-          </div>
-
-          <p id="loginMsg" class="text-xs text-rose-400 min-h-[1rem]" aria-live="polite"></p>
-
-          <p class="text-[11px] text-amber-400">
-            5회 이상 연속 실패 시 보안 잠금이 30분 동안 걸릴 수 있습니다.
-          </p>
-
-          <div class="mt-2 text-[11px] text-slate-400">
-            테스트용: <code class="px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-700/70 text-slate-100">KORUAL</code>
-            /
-            <code class="px-1.5 py-0.5 rounded-md bg-slate-900 border border-slate-700/70 text-slate-100">GUEST</code>
-          </div>
-        </div>
-
-        <div class="mt-6 flex items-center justify-between text-[11px] text-slate-500">
-          <p>© <span id="year"></span> KORUAL CONTROL CENTER · Internal Use Only</p>
-          <p>v1.2 · KORUAL</p>
-        </div>
-      </div>
-    </section>
-  </main>
+  <!-- app.js -->
+  <script src="app.js"></script>
 
   <script>
-    // year
-    (function(){ const y = document.getElementById("year"); if(y) y.textContent = new Date().getFullYear(); })();
+    const statusEl = document.getElementById("status");
+
+    function setStatus(msg, type) {
+      statusEl.textContent = msg || "";
+      statusEl.className = "status " + (type || "");
+    }
+
+    async function login() {
+      const token = document.getElementById("tokenInput").value.trim();
+      if (!token) {
+        setStatus("토큰을 입력하세요.", "error");
+        return;
+      }
+
+      // app.js 함수 사용
+      setToken(token);
+
+      try {
+        // 간단 검증 (실제로는 /products 1건 호출)
+        await apiGet("/products", { limit: 1 });
+        setStatus("로그인 성공", "ok");
+
+        // 로그인 성공 후 이동
+        setTimeout(() => {
+          window.location.href = "dashboard.html";
+        }, 600);
+
+      } catch (err) {
+        setToken("");
+        setStatus("토큰이 유효하지 않습니다.", "error");
+      }
+    }
+
+    document.getElementById("btnLogin").addEventListener("click", login);
+    document.getElementById("tokenInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") login();
+    });
   </script>
 
-  <!-- 로그인 로직 -->
-  <script src="auth.js"></script>
 </body>
 </html>
