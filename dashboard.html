@@ -2,116 +2,185 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- 로그인 체크 (미로그인 시 index로) -->
+  <script>
+    (function () {
+      try {
+        const raw = localStorage.getItem("korual_user");
+        if (!raw) return location.replace("index.html");
+        const user = JSON.parse(raw);
+        if (!user || !user.username) location.replace("index.html");
+      } catch (_) {
+        location.replace("index.html");
+      }
+    })();
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>KORUAL Control Center – Dashboard</title>
+
+  <meta name="theme-color" content="#020617" />
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <script>
-    window.KORUAL_META_APP = {
-      api: {
-        baseUrl: "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec",
-        secret: "KORUAL-ONLY"
-      }
-    };
-  </script>
+  <style>
+    :root { color-scheme: dark; }
+
+    body{
+      min-height:100vh;
+      background:
+        radial-gradient(1200px 800px at 0% 0%, rgba(59,130,246,.18), transparent 65%),
+        radial-gradient(900px 700px at 100% 100%, rgba(168,85,247,.2), transparent 65%),
+        #020617;
+      color:#e5e7eb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif;
+    }
+
+    .glass{
+      background: rgba(2,6,23,0.82);
+      border: 1px solid rgba(148,163,184,0.22);
+      backdrop-filter: blur(24px);
+      box-shadow: 0 32px 90px rgba(15,23,42,0.95);
+    }
+
+    .nav-item{
+      padding:.6rem .9rem;
+      border-radius:.75rem;
+      font-size:.85rem;
+      color:#cbd5f5;
+      cursor:pointer;
+    }
+    .nav-item:hover{
+      background: rgba(56,189,248,.12);
+      color:#fff;
+    }
+    .nav-item.active{
+      background: rgba(56,189,248,.2);
+      color:#fff;
+      font-weight:600;
+    }
+  </style>
 </head>
 
-<body class="bg-slate-950 text-slate-100">
-  <header class="max-w-6xl mx-auto p-6 flex items-center justify-between">
+<body>
+
+<!-- HEADER -->
+<header class="max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-3 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl bg-slate-950 text-white grid place-content-center font-bold">K</div>
     <div>
-      <h1 class="text-xl font-semibold">KORUAL Control Center</h1>
-      <p class="text-xs text-slate-400">Dashboard</p>
-    </div>
-    <div class="flex items-center gap-2">
-      <span id="apiStatusText" class="text-xs text-slate-400">API 체크 중…</span>
-      <button id="btnLogout" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm">로그아웃</button>
-    </div>
-  </header>
-
-  <main class="max-w-6xl mx-auto p-6 space-y-6">
-    <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
-        <div class="text-xs text-slate-400">총 매출</div>
-        <div id="cardTotalRevenue" class="text-lg font-semibold">-</div>
-      </div>
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
-        <div class="text-xs text-slate-400">총 주문</div>
-        <div id="cardTotalOrders" class="text-lg font-semibold">-</div>
-      </div>
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
-        <div class="text-xs text-slate-400">총 회원</div>
-        <div id="cardTotalMembers" class="text-lg font-semibold">-</div>
-      </div>
-      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
-        <div class="text-xs text-slate-400">총 상품</div>
-        <div id="cardTotalProducts" class="text-lg font-semibold">-</div>
-      </div>
-    </section>
-
-    <section class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="font-semibold">MEMBERS</h2>
-        <input id="searchMembers" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" placeholder="검색"/>
-      </div>
-
-      <div class="overflow-auto">
-        <table class="min-w-full text-sm">
-          <thead class="text-slate-400">
-            <tr>
-              <th class="text-left p-2">memberNo</th>
-              <th class="text-left p-2">name</th>
-              <th class="text-left p-2">phone</th>
-              <th class="text-left p-2">grade</th>
-              <th class="text-right p-2">totalSales</th>
-              <th class="text-center p-2">관리</th>
-            </tr>
-          </thead>
-          <tbody id="membersBody"></tbody>
-        </table>
-      </div>
-      <div id="membersPager" class="mt-3 flex items-center justify-between">
-        <button data-page="prev" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs">이전</button>
-        <span data-page-label class="text-xs text-slate-400">-</span>
-        <button data-page="next" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs">다음</button>
-      </div>
-    </section>
-  </main>
-
-  <div id="kanbanRoot" class="mt-4"></div>
-<script src="modal.js"></script>
-<script src="board.js"></script>
-
-  <!-- CRUD MODAL -->
-  <div id="modalBackdrop" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"></div>
-
-  <div id="modalEdit" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
-    <div class="w-full max-w-lg rounded-2xl bg-slate-950 border border-slate-700 p-4">
-      <div class="flex items-center justify-between">
-        <h3 class="font-semibold">행 수정</h3>
-        <button id="modalClose" class="text-slate-400 hover:text-slate-200">닫기</button>
-      </div>
-      <div id="rowEditFields" class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-
-      <div class="mt-4 flex justify-end gap-2">
-        <button id="rowEditSave" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-sm">저장</button>
-      </div>
+      <p class="text-[11px] uppercase tracking-[0.28em] text-slate-400">Korual Control Center</p>
+      <h1 class="text-lg font-semibold leading-tight">Dashboard</h1>
     </div>
   </div>
 
-  <div id="modalDelete" class="hidden fixed inset-0 z-50 items-center justify-center p-4">
-    <div class="w-full max-w-md rounded-2xl bg-slate-950 border border-slate-700 p-4">
-      <div class="flex items-center justify-between">
-        <h3 class="font-semibold">삭제 확인</h3>
-        <button id="modalDeleteClose" class="text-slate-400 hover:text-slate-200">닫기</button>
+  <div class="flex items-center gap-4 text-sm">
+    <span id="userInfo" class="text-slate-300"></span>
+    <button id="btnLogout" class="text-rose-400 hover:text-rose-300 text-sm">Logout</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="max-w-7xl mx-auto px-4 md:px-8 py-8 grid grid-cols-12 gap-6">
+
+  <!-- SIDEBAR -->
+  <aside class="glass col-span-12 md:col-span-3 lg:col-span-2 rounded-2xl p-4 space-y-1">
+    <div class="nav-item active" data-page="overview">Overview</div>
+    <div class="nav-item" data-page="products">Products</div>
+    <div class="nav-item" data-page="orders">Orders</div>
+    <div class="nav-item" data-page="members">Members</div>
+    <div class="nav-item" data-page="stock">Stock</div>
+    <div class="nav-item" data-page="logs">Logs</div>
+  </aside>
+
+  <!-- CONTENT -->
+  <section class="col-span-12 md:col-span-9 lg:col-span-10 space-y-6">
+
+    <!-- KPI -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="glass rounded-xl p-4">
+        <p class="text-xs text-slate-400">Products</p>
+        <p id="kpiProducts" class="text-2xl font-semibold">–</p>
       </div>
-      <p id="rowDeleteText" class="text-sm text-slate-300 mt-3">정말 삭제하시겠습니까?</p>
-      <div class="mt-4 flex justify-end gap-2">
-        <button id="rowDeleteConfirm" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-sm">삭제</button>
+      <div class="glass rounded-xl p-4">
+        <p class="text-xs text-slate-400">Orders</p>
+        <p id="kpiOrders" class="text-2xl font-semibold">–</p>
+      </div>
+      <div class="glass rounded-xl p-4">
+        <p class="text-xs text-slate-400">Members</p>
+        <p id="kpiMembers" class="text-2xl font-semibold">–</p>
+      </div>
+      <div class="glass rounded-xl p-4">
+        <p class="text-xs text-slate-400">Stock Alerts</p>
+        <p id="kpiStock" class="text-2xl font-semibold">–</p>
       </div>
     </div>
-  </div>
 
-  <script src="app.js"></script>
+    <!-- TABLE AREA -->
+    <div class="glass rounded-2xl p-4">
+      <h2 id="sectionTitle" class="text-sm font-semibold mb-3">Overview</h2>
+      <div id="tableArea" class="text-sm text-slate-300">
+        데이터를 불러오는 중…
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- JS -->
+<script src="app.js"></script>
+
+<script>
+  // ===== 사용자 정보 표시 =====
+  const user = JSON.parse(localStorage.getItem("korual_user") || "{}");
+  document.getElementById("userInfo").textContent =
+    `${user.username || "UNKNOWN"}${user.role ? " · " + user.role : ""}`;
+
+  // ===== 로그아웃 =====
+  document.getElementById("btnLogout").addEventListener("click", () => {
+    localStorage.removeItem("korual_user");
+    localStorage.removeItem("korual_api_token");
+    location.replace("index.html");
+  });
+
+  // ===== 네비게이션 =====
+  const navItems = document.querySelectorAll(".nav-item");
+  const sectionTitle = document.getElementById("sectionTitle");
+  const tableArea = document.getElementById("tableArea");
+
+  navItems.forEach(item => {
+    item.addEventListener("click", () => {
+      navItems.forEach(i => i.classList.remove("active"));
+      item.classList.add("active");
+
+      const page = item.dataset.page;
+      sectionTitle.textContent = page.charAt(0).toUpperCase() + page.slice(1);
+      loadPage(page);
+    });
+  });
+
+  // ===== 페이지별 로딩 =====
+  async function loadPage(page) {
+    tableArea.textContent = "Loading…";
+
+    try {
+      if (page === "overview") {
+        tableArea.textContent = "KORUAL Control Center Overview";
+        return;
+      }
+
+      const res = await apiGet("/" + page, { limit: 50 });
+      renderTable("#tableArea", res.items || []);
+
+    } catch (err) {
+      tableArea.textContent = "데이터 로드 실패";
+    }
+  }
+
+  // ===== 초기 로드 =====
+  loadDashboard(); // KPI
+  loadPage("overview");
+</script>
+
 </body>
 </html>
-
