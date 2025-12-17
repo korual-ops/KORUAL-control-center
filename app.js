@@ -341,3 +341,19 @@
 
   boot();
 })();
+window.KORUAL_MODAL.open({
+  title: `${sheetKey} · row ${rowIndex}`,
+  sub: "Table edit",
+  sheetKey,
+  rowIndex,
+  rowObject: rowObj,
+  onSave: async ({ sheetKey, rowIndex, rowObject }) => {
+    await apiPost({ target: "updateRow", key: sheetKey, row: rowIndex, rowObject });
+    await reloadCurrentTable();
+  },
+  onDelete: async ({ sheetKey, rowIndex }) => {
+    await apiPost({ target: "deleteRow", key: sheetKey, row: rowIndex });
+    await reloadCurrentTable();
+  },
+});
+
