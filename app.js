@@ -354,6 +354,9 @@ window.KORUAL_MODAL.open({
   onDelete: async ({ sheetKey, rowIndex }) => {
     await apiPost({ target: "deleteRow", key: sheetKey, row: rowIndex });
     await reloadCurrentTable();
+    window.KORUAL_BOARD?.reload?.();
+
   },
 });
+
 
