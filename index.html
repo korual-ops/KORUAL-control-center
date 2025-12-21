@@ -2,420 +2,643 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex,nofollow" />
-  <title>KORUAL Control Center – Login</title>
-
-  <!-- Tailwind CDN (프로토타입용) -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>KORUAL Control Center | Secure Login</title>
 
   <style>
-    :root { color-scheme: dark; }
+    :root{
+      --bg0:#050812;
+      --bg1:#071022;
+      --bg2:#030615;
+      --glass: rgba(255,255,255,.06);
+      --glass2: rgba(255,255,255,.10);
+      --stroke: rgba(255,255,255,.12);
+      --stroke2: rgba(255,255,255,.18);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --muted2: rgba(255,255,255,.42);
+      --danger: rgba(255,80,80,.92);
+      --ok: rgba(120,255,210,.9);
+
+      --cyan: #2EE9FF;
+      --blue: #4C7DFF;
+      --navy: #06102A;
+
+      --shadow: 0 30px 90px rgba(0,0,0,.55);
+      --shadow2: 0 20px 60px rgba(0,0,0,.45);
+
+      --r: 22px;
+      --r2: 16px;
+      --pad: 22px;
+      --pad2: 16px;
+
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      min-height:100vh;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, "Noto Sans KR", "Malgun Gothic", Arial, sans-serif;
-      color: #e5e7eb;
+      font-family: var(--font);
+      color: var(--text);
       background:
-        radial-gradient(1000px 700px at 18% 20%, rgba(99,102,241,.16), transparent 60%),
-        radial-gradient(900px 600px at 82% 65%, rgba(34,211,238,.14), transparent 62%),
-        radial-gradient(650px 420px at 55% 25%, rgba(56,189,248,.10), transparent 62%),
-        linear-gradient(180deg, #020617, #040B1E 55%, #020617);
-      overflow-x:hidden;
+        radial-gradient(1200px 900px at 15% 10%, rgba(46,233,255,.16), transparent 55%),
+        radial-gradient(900px 800px at 85% 20%, rgba(76,125,255,.14), transparent 55%),
+        radial-gradient(900px 900px at 50% 120%, rgba(255,255,255,.06), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1) 52%, var(--bg2));
+      overflow:hidden;
     }
 
-    /* Shopee-like soft gradient veil */
-    .veil{
-      position:fixed;
-      inset:-20%;
-      z-index:-2;
-      background:
-        radial-gradient(1200px 900px at 12% 86%, rgba(129,140,248,.12), transparent 55%),
-        radial-gradient(900px 700px at 86% 18%, rgba(16,185,129,.10), transparent 55%),
-        radial-gradient(900px 700px at 84% 84%, rgba(34,211,238,.10), transparent 55%);
-      filter: blur(1px);
-      opacity: .9;
-      pointer-events:none;
-    }
-
-    /* Ultra subtle grain */
+    /* Subtle animated grain */
     .grain{
-      position:fixed;
-      inset:0;
-      z-index:-1;
       pointer-events:none;
-      opacity:.10;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+      position:fixed; inset:-20%;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
       mix-blend-mode: overlay;
+      opacity:.22;
+      transform: translateZ(0);
+      animation: grainMove 10s steps(6) infinite;
+    }
+    @keyframes grainMove{
+      0%{transform:translate(-2%, -2%)}
+      20%{transform:translate(2%, -3%)}
+      40%{transform:translate(-3%, 1%)}
+      60%{transform:translate(3%, 2%)}
+      80%{transform:translate(-1%, 3%)}
+      100%{transform:translate(-2%, -2%)}
     }
 
-    /* Floating ring (high-end ambient) */
-    .ring{
+    /* Floating “orbs” */
+    .orb{
       position:fixed;
-      inset:0;
-      margin:auto;
-      width:min(860px, 120vw);
-      height:min(860px, 120vw);
-      border-radius:9999px;
-      border:1px solid rgba(148,163,184,0.14);
-      opacity:.28;
+      width: 520px; height: 520px;
+      border-radius: 50%;
+      filter: blur(24px);
+      opacity: .55;
+      transform: translateZ(0);
+      background:
+        radial-gradient(circle at 30% 30%, rgba(46,233,255,.55), transparent 55%),
+        radial-gradient(circle at 70% 70%, rgba(76,125,255,.45), transparent 60%);
+      animation: float 10s ease-in-out infinite;
+    }
+    .orb.o1{left:-180px; top:-200px; animation-duration: 14s}
+    .orb.o2{right:-220px; top:-130px; width: 620px; height: 620px; animation-duration: 16s; opacity:.45}
+    .orb.o3{left: 35%; bottom:-380px; width: 780px; height: 780px; animation-duration: 18s; opacity:.30}
+    @keyframes float{
+      0%,100%{transform:translate(0,0)}
+      50%{transform:translate(12px, -16px)}
+    }
+
+    .wrap{
+      position:relative;
+      height:100%;
+      display:grid;
+      place-items:center;
+      padding: 28px 16px;
+    }
+
+    .shell{
+      width:min(1020px, 100%);
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel{
+      border-radius: var(--r);
+      border: 1px solid var(--stroke);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .panel::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(800px 500px at 20% 10%, rgba(46,233,255,.12), transparent 60%),
+        radial-gradient(800px 520px at 90% 30%, rgba(76,125,255,.12), transparent 60%);
+      opacity:.9;
       pointer-events:none;
-      z-index:-1;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
-    }
-    .sweep{
-      position:absolute;
-      inset:0;
-      border-radius:9999px;
-      background: conic-gradient(from 180deg,
-        rgba(34,211,238,.46),
-        rgba(34,211,238,.14) 10%,
-        transparent 34%,
-        transparent
-      );
-      animation: sweep 18s linear infinite;
-      filter: blur(10px);
-      mix-blend-mode: screen;
-      opacity:.7;
-    }
-    @keyframes sweep { from { transform: rotate(0) } to { transform: rotate(360deg) } }
-
-    /* Glass card */
-    .glass{
-      background: rgba(3, 8, 23, 0.62);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(148,163,184,0.18);
-      box-shadow:
-        0 46px 140px rgba(0,0,0,0.68),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-    .sheen{
-      position:absolute;
-      left:18px;
-      right:18px;
-      top:14px;
-      height:1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
-      opacity:.8;
-      pointer-events:none;
     }
 
-    /* Inputs */
-    .input{
-      width:100%;
-      padding:.92rem 1.05rem;
-      border-radius: 1rem;
-      background: rgba(2,6,23,0.50);
-      border: 1px solid rgba(148,163,184,0.28);
-      color:#e5e7eb;
-      font-size:.95rem;
-      outline:none;
-      transition: .18s ease;
-    }
-    .input:focus{
-      border-color: rgba(34,211,238,0.70);
-      box-shadow: 0 0 0 4px rgba(34,211,238,0.16);
-    }
-
-    /* Button */
-    .btn{
-      width:100%;
-      padding:.98rem 1.05rem;
-      border-radius: 1rem;
-      font-weight: 800;
-      letter-spacing: .02em;
-      background: linear-gradient(135deg, #2563eb, #06b6d4);
-      box-shadow:
-        0 26px 84px rgba(2,6,23,0.95),
-        0 0 0 1px rgba(148,163,184,0.12);
-      transition: transform .12s ease, filter .18s ease, opacity .18s ease;
-    }
-    .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
-    .btn:active{ transform: translateY(0px); filter: brightness(.98); }
-    .btn:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
-
-    /* Toast */
-    #toastRoot{
-      position:fixed;
-      inset-inline:0;
-      bottom: 22px;
-      z-index:50;
+    .left{
+      padding: 26px;
+      min-height: 520px;
       display:flex;
-      justify-content:center;
-      pointer-events:none;
+      flex-direction:column;
+      justify-content:space-between;
     }
-    .toast{
-      pointer-events:auto;
-      max-width: 560px;
-      width: min(92vw, 560px);
-      border-radius: 18px;
-      border: 1px solid rgba(148,163,184,0.22);
-      background: rgba(2,6,23,0.68);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 26px 90px rgba(0,0,0,0.6);
-      padding: 14px 16px;
-    }
-    .dot{ width:10px; height:10px; border-radius:9999px; margin-top:3px; }
-  </style>
 
-  <script>
-    // 이미 로그인된 경우 대시보드로 이동
-    (function () {
-      try {
-        const raw = localStorage.getItem("korual_user");
-        if (!raw) return;
-        const user = JSON.parse(raw);
-        if (user && user.username) location.replace("dashboard.html");
-      } catch (_) {}
-    })();
-  </script>
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 14px;
+      position:relative;
+      z-index:1;
+    }
+
+    .mark{
+      width: 44px; height: 44px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke2);
+      background:
+        radial-gradient(circle at 35% 30%, rgba(46,233,255,.38), transparent 55%),
+        radial-gradient(circle at 70% 70%, rgba(76,125,255,.28), transparent 60%),
+        rgba(255,255,255,.05);
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      position:relative;
+      overflow:hidden;
+    }
+    .mark::after{
+      content:"";
+      position:absolute;
+      inset:-30%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.20), transparent);
+      transform: rotate(25deg);
+      animation: sheen 6s ease-in-out infinite;
+    }
+    @keyframes sheen{
+      0%{transform:translateX(-40%) rotate(25deg)}
+      40%{transform:translateX(40%) rotate(25deg)}
+      100%{transform:translateX(40%) rotate(25deg)}
+    }
+
+    .brand h1{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: .38em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.82);
+    }
+    .brand .sub{
+      margin-top:4px;
+      font-size: 12px;
+      color: var(--muted2);
+      letter-spacing: .12em;
+    }
+
+    .hero{
+      position:relative;
+      z-index:1;
+      margin-top: 18px;
+    }
+
+    .hero .kicker{
+      font-size: 12px;
+      color: rgba(46,233,255,.78);
+      letter-spacing: .34em;
+      text-transform: uppercase;
+    }
+    .hero .title{
+      margin: 10px 0 0 0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      font-weight: 650;
+    }
+    .hero .desc{
+      margin: 12px 0 0 0;
+      max-width: 52ch;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .badges{
+      margin-top: 18px;
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.16);
+      color: rgba(255,255,255,.72);
+      font-size: 12px;
+      letter-spacing: .08em;
+      user-select:none;
+    }
+    .dot{
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(46,233,255,1), rgba(76,125,255,1));
+      box-shadow: 0 0 0 4px rgba(46,233,255,.10);
+    }
+
+    .footerline{
+      position:relative;
+      z-index:1;
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      color: rgba(255,255,255,.42);
+      font-size: 12px;
+    }
+    .mono{font-family: var(--mono)}
+
+    /* Right panel (login) */
+    .right{
+      padding: 26px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap: 14px;
+      min-height: 520px;
+      position:relative;
+      z-index:1;
+    }
+
+    .card{
+      border-radius: var(--r2);
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+      box-shadow: var(--shadow2);
+      padding: 18px;
+    }
+
+    .card h2{
+      margin:0;
+      font-size: 16px;
+      letter-spacing: .02em;
+      font-weight: 650;
+    }
+    .card p{
+      margin: 8px 0 0 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    form{
+      margin-top: 10px;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+
+    label{
+      font-size: 11px;
+      letter-spacing: .22em;
+      color: rgba(255,255,255,.65);
+    }
+
+    .input{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.22);
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+    .input:focus-within{
+      border-color: rgba(46,233,255,.45);
+      background: rgba(0,0,0,.28);
+      transform: translateY(-1px);
+    }
+
+    .input svg{
+      width: 18px;
+      height: 18px;
+      opacity: .75;
+      flex: 0 0 auto;
+    }
+
+    input{
+      width:100%;
+      border:0;
+      outline:0;
+      background:transparent;
+      color: rgba(255,255,255,.92);
+      font-size: 14px;
+      letter-spacing: .01em;
+    }
+    input::placeholder{color: rgba(255,255,255,.35)}
+
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .hint{
+      font-size: 12px;
+      color: rgba(255,255,255,.50);
+    }
+    .hint strong{color: rgba(255,255,255,.72); font-weight: 600}
+
+    .btn{
+      margin-top: 8px;
+      border: 1px solid rgba(46,233,255,.28);
+      background:
+        radial-gradient(120% 140% at 20% 10%, rgba(46,233,255,.22), transparent 50%),
+        radial-gradient(120% 140% at 80% 30%, rgba(76,125,255,.18), transparent 55%),
+        rgba(0,0,0,.18);
+      color: rgba(255,255,255,.92);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: .02em;
+      cursor:pointer;
+      transition: transform .16s ease, border-color .16s ease, background .16s ease;
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(46,233,255,.55);
+      background:
+        radial-gradient(120% 140% at 20% 10%, rgba(46,233,255,.28), transparent 50%),
+        radial-gradient(120% 140% at 80% 30%, rgba(76,125,255,.22), transparent 55%),
+        rgba(0,0,0,.20);
+    }
+    .btn:active{transform: translateY(0px) scale(.995)}
+    .btn:disabled{
+      cursor:not-allowed;
+      opacity:.65;
+      transform:none;
+    }
+
+    .alert{
+      border-radius: 14px;
+      border: 1px solid rgba(255,80,80,.25);
+      background: rgba(255,80,80,.10);
+      color: rgba(255,180,180,.92);
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      display:none;
+    }
+    .alert.ok{
+      border-color: rgba(120,255,210,.22);
+      background: rgba(120,255,210,.10);
+      color: rgba(185,255,235,.92);
+    }
+
+    .meta{
+      margin-top: 12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      color: rgba(255,255,255,.40);
+      font-size: 12px;
+    }
+    .pill{
+      border-radius: 999px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.14);
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .pill b{color: rgba(255,255,255,.72); font-weight: 650}
+
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 7px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.75);
+    }
+
+    /* Responsive */
+    @media (max-width: 920px){
+      body{overflow:auto}
+      .shell{grid-template-columns: 1fr}
+      .left,.right{min-height:auto}
+    }
+  </style>
 </head>
 
 <body>
-  <div class="veil"></div>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
   <div class="grain"></div>
 
-  <div class="ring">
-    <div class="sweep"></div>
+  <div class="wrap">
+    <div class="shell">
+      <section class="panel left" aria-label="Brand Panel">
+        <div class="brand">
+          <div class="mark" aria-hidden="true"></div>
+          <div>
+            <h1>KORUAL</h1>
+            <div class="sub">CONTROL CENTER • SECURE ACCESS</div>
+          </div>
+        </div>
+
+        <div class="hero">
+          <div class="kicker">Private Console</div>
+          <h2 class="title">Secure Admin Login</h2>
+          <p class="desc">
+            This interface is restricted to authorized personnel. All access attempts are monitored and recorded for audit and security compliance.
+          </p>
+
+          <div class="badges" aria-label="Security Badges">
+            <span class="badge"><span class="dot"></span>Encrypted Session</span>
+            <span class="badge"><span class="dot"></span>Audit Logging</span>
+            <span class="badge"><span class="dot"></span>IP Policy Ready</span>
+            <span class="badge"><span class="dot"></span>Role-Based Access</span>
+          </div>
+        </div>
+
+        <div class="footerline">
+          <div>Environment <span class="mono" id="envLabel">PROD</span></div>
+          <div class="mono" id="clock">--:--:--</div>
+        </div>
+      </section>
+
+      <section class="panel right" aria-label="Login Panel">
+        <div class="card">
+          <h2>Sign in</h2>
+          <p>
+            Enter your credentials to continue. If you are locked out, contact the system administrator.
+          </p>
+
+          <div class="alert" id="alert"></div>
+
+          <form id="loginForm" autocomplete="on" novalidate>
+            <div class="field">
+              <label for="username">USERNAME</label>
+              <div class="input">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <input id="username" name="username" type="text" placeholder="KORUAL" autocomplete="username" required />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="password">PASSWORD</label>
+              <div class="input">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <path d="M6.5 10h11A2.5 2.5 0 0 1 20 12.5v6A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-6A2.5 2.5 0 0 1 6.5 10Z" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M12 15v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="hint">Tip <strong>Enter</strong> to submit</div>
+              <div class="hint"><span class="kbd">CTRL</span> + <span class="kbd">L</span> focus address</div>
+            </div>
+
+            <button class="btn" id="submitBtn" type="submit">Authenticate</button>
+
+            <div class="meta">
+              <span class="pill"><b>Mode</b> <span id="mode">Cookie Session</span></span>
+              <span class="pill"><b>API</b> <span class="mono" id="apiShort">unset</span></span>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="hint" style="margin:0">
+            Monitoring notice: this system records IP address, user-agent, and login outcomes.
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 
-  <div id="toastRoot"></div>
-
-  <main class="max-w-6xl mx-auto px-6 pt-14 pb-16">
-    <!-- Header (Shopee-like: clean, minimal) -->
-    <header class="text-center mb-10">
-      <div class="inline-flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-white text-slate-900 grid place-content-center font-extrabold text-xl shadow-lg">K</div>
-        <div class="text-left">
-          <div class="text-[11px] uppercase tracking-[0.32em] text-slate-400">Korual Control Center</div>
-          <div class="text-2xl font-semibold leading-tight">운영 로그인</div>
-        </div>
-      </div>
-      <p class="mt-3 text-sm text-slate-200/70">승인된 운영자만 접근할 수 있습니다.</p>
-    </header>
-
-    <!-- Card -->
-    <section class="relative glass rounded-[28px] max-w-xl mx-auto px-6 sm:px-8 py-7 sm:py-8">
-      <div class="sheen"></div>
-
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-xl font-semibold">KORUAL 로그인</h1>
-          <p class="text-sm text-slate-200/70 mt-1">인증 후 Control Center로 이동합니다.</p>
-        </div>
-
-        <div class="hidden sm:flex items-center gap-2 rounded-2xl px-3 py-2 border border-white/10 bg-white/5">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400/80"></div>
-          <div class="text-xs text-slate-200/80">Secure Session</div>
-        </div>
-      </div>
-
-      <div class="space-y-4">
-        <div>
-          <label class="text-sm text-slate-200/90 mb-1.5 block">아이디</label>
-          <div class="relative">
-            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">@</span>
-            <input id="loginUsername" class="input pl-9" placeholder="예: KORUAL" autocomplete="username" />
-          </div>
-        </div>
-
-        <div>
-          <label class="text-sm text-slate-200/90 mb-1.5 block">비밀번호</label>
-          <input id="loginPassword" type="password" class="input" placeholder="••••••••" autocomplete="current-password" />
-        </div>
-
-        <button id="btnLogin" class="btn mt-1">로그인</button>
-
-        <p id="loginMsg" class="text-sm text-rose-300 h-5 mt-1"></p>
-
-        <!-- Test account -->
-        <div class="pt-2">
-          <div class="text-xs text-slate-200/60 mb-2">테스트용 기본 계정</div>
-          <div class="flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2.5 border border-white/10 bg-white/5">
-            <span class="text-xs text-slate-200/60">ID</span>
-            <code class="text-xs bg-slate-800/70 px-2 py-1 rounded-lg border border-slate-700/60">KORUAL</code>
-            <span class="text-xs text-slate-200/60">PW</span>
-            <code class="text-xs bg-slate-800/70 px-2 py-1 rounded-lg border border-slate-700/60">GUEST</code>
-            <button id="btnFillDemo" class="text-xs text-cyan-300 underline decoration-dotted underline-offset-4 ml-auto" type="button">
-              자동 입력
-            </button>
-          </div>
-        </div>
-
-        <!-- Footer row -->
-        <div class="pt-2 flex items-center justify-between text-xs text-slate-200/60">
-          <span class="truncate" id="apiHint">API: /api/korual/login</span>
-          <button id="btnPing" type="button" class="text-xs text-slate-200/80 hover:text-cyan-300 transition underline decoration-dotted underline-offset-4">
-            연결 테스트
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <footer class="text-center mt-10 text-xs text-slate-200/60">
-      © KORUAL. Unauthorized access is prohibited.
-    </footer>
-  </main>
-
   <script>
-    /************************************************************
-     * Login-only index.html (High-end)
-     * - 프론트는 GAS 직접 호출 금지 (CORS 때문에)
-     * - 반드시 동일 오리진 프록시가 있어야 함:
-     *   POST /api/korual/login
-     *   GET  /api/korual/ping (선택)
-     ************************************************************/
+    /*
+      High-end login index.html
+      - Default: Cloud Run API (cookie session) -> POST {API_BASE}/auth/login
+      - If you keep Apps Script endpoint, you can switch API_BASE accordingly.
+      - This file does NOT use '●' bullets.
+    */
 
-    const TOKEN_KEY = "korual_token";
-    const USER_KEY  = "korual_user";
+    // Set your API base here (Cloud Run URL)
+    const API_BASE = "https://your-cloud-run-url"; // TODO: replace
+    const AFTER_LOGIN_REDIRECT = "/";              // TODO: replace if needed
 
-    const LOGIN_ENDPOINT = "/api/korual/login";
-    const PING_ENDPOINT  = "/api/korual/ping";
+    const $ = (id) => document.getElementById(id);
 
-    const elU = document.getElementById("loginUsername");
-    const elP = document.getElementById("loginPassword");
-    const elBtn = document.getElementById("btnLogin");
-    const elMsg = document.getElementById("loginMsg");
-    const elDemo = document.getElementById("btnFillDemo");
-    const elPing = document.getElementById("btnPing");
-    const elApiHint = document.getElementById("apiHint");
-    const toastRoot = document.getElementById("toastRoot");
+    const envLabel = $("envLabel");
+    const clock = $("clock");
+    const apiShort = $("apiShort");
+    const mode = $("mode");
 
-    elApiHint.textContent = "API: " + LOGIN_ENDPOINT;
+    const form = $("loginForm");
+    const btn = $("submitBtn");
+    const alertBox = $("alert");
 
-    function setMsg(text){ elMsg.textContent = text || ""; }
+    const userEl = $("username");
+    const passEl = $("password");
 
-    function setLoading(loading){
-      elBtn.disabled = !!loading;
-      elBtn.textContent = loading ? "로그인 중..." : "로그인";
+    // Initialize UI
+    apiShort.textContent = API_BASE.replace(/^https?:\/\//, "").slice(0, 32) + (API_BASE.length > 36 ? "…" : "");
+    mode.textContent = "HttpOnly Cookie Session";
+
+    // Environment label inference
+    envLabel.textContent = (location.hostname === "localhost" || location.hostname === "127.0.0.1") ? "DEV" : "PROD";
+
+    // Clock
+    function tick(){
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      const ss = String(d.getSeconds()).padStart(2, "0");
+      clock.textContent = `${hh}:${mm}:${ss}`;
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // Helpers
+    function showAlert(message, ok=false){
+      alertBox.classList.toggle("ok", !!ok);
+      alertBox.textContent = message;
+      alertBox.style.display = "block";
+    }
+    function hideAlert(){
+      alertBox.style.display = "none";
+      alertBox.textContent = "";
+      alertBox.classList.remove("ok");
     }
 
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, (m) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
-      }[m]));
-    }
+    // Default values
+    userEl.value = "KORUAL";
 
-    function toast(text, kind){
-      const wrap = document.createElement("div");
-      wrap.className = "toast";
-      const dot =
-        kind === "ok" ? "bg-emerald-400" :
-        kind === "warn" ? "bg-amber-400" :
-        kind === "err" ? "bg-rose-400" : "bg-cyan-400";
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert();
 
-      wrap.innerHTML = `
-        <div class="flex items-start gap-3">
-          <div class="dot ${dot}"></div>
-          <div class="text-sm text-slate-100 whitespace-pre-line">${escapeHtml(text)}</div>
-        </div>
-      `;
-      toastRoot.appendChild(wrap);
-
-      setTimeout(() => {
-        wrap.style.opacity = "0";
-        wrap.style.transform = "translateY(6px)";
-        wrap.style.transition = "all .35s ease";
-      }, 2400);
-      setTimeout(() => wrap.remove(), 2850);
-    }
-
-    async function postJson(url, body){
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body || {}),
-      });
-      const data = await res.json().catch(() => ({}));
-      return { res, data };
-    }
-
-    async function getJson(url){
-      const res = await fetch(url, { method: "GET" });
-      const data = await res.json().catch(() => ({}));
-      return { res, data };
-    }
-
-    function saveSession(data){
-      if (data && data.token) localStorage.setItem(TOKEN_KEY, data.token);
-      if (data && data.user)  localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    }
-
-    function normalizeError(data){
-      const err = (data && data.error) ? String(data.error) : "LOGIN_FAILED";
-      let extra = "";
-      if (err === "ACCOUNT_LOCKED" && data.lockedUntil) extra = `\n잠금 해제: ${data.lockedUntil}`;
-      if (err === "INVALID_PASSWORD" && typeof data.failCount === "number") extra = `\n실패 횟수: ${data.failCount}`;
-      return { err, extra };
-    }
-
-    async function handleLogin(){
-      setMsg("");
-      const username = String(elU.value || "").trim();
-      const password = String(elP.value || "");
+      const username = userEl.value.trim();
+      const password = passEl.value;
 
       if (!username || !password){
-        setMsg("아이디/비밀번호를 입력하세요.");
-        toast("아이디/비밀번호를 입력하세요.", "warn");
+        showAlert("USERNAME 및 PASSWORD를 입력하세요.");
         return;
       }
 
-      setLoading(true);
-      try{
-        const { data } = await postJson(LOGIN_ENDPOINT, { username, password });
+      btn.disabled = true;
+      btn.textContent = "Authenticating...";
 
-        if (!data || !data.ok){
-          const { err, extra } = normalizeError(data || {});
-          setMsg("로그인 실패: " + err);
-          toast("로그인 실패: " + err + extra, "err");
+      try{
+        const r = await fetch(`${API_BASE}/auth/login`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        const j = await r.json().catch(() => ({}));
+
+        if (!j.ok){
+          // Map common errors
+          const err = j.error || "LOGIN_FAILED";
+          if (err === "LOCKED"){
+            showAlert(`계정이 잠겼습니다. 해제 시간: ${j.locked_until || "unknown"}`);
+          } else if (err === "INACTIVE_USER"){
+            showAlert("비활성화된 계정입니다. 관리자에게 문의하세요.");
+          } else if (err === "INVALID_CREDENTIALS"){
+            const fc = (typeof j.fail_count === "number") ? ` (fail_count: ${j.fail_count})` : "";
+            showAlert(`인증 실패: 자격 증명이 올바르지 않습니다.${fc}`);
+          } else {
+            showAlert(`인증 실패: ${err}`);
+          }
           return;
         }
 
-        saveSession(data);
-        const display = (data.user && (data.user.displayName || data.user.username)) || username;
+        showAlert("인증 성공. 이동합니다...", true);
+        setTimeout(() => {
+          window.location.href = AFTER_LOGIN_REDIRECT;
+        }, 450);
 
-        toast(`로그인 성공\nWelcome, ${display}`, "ok");
-        location.replace("dashboard.html");
-      } catch (e){
-        setMsg("서버 통신 실패");
-        toast("서버 통신 실패\n" + String(e), "err");
+      } catch (err){
+        showAlert("네트워크 오류. API 접근을 확인하세요.");
       } finally{
-        setLoading(false);
-      }
-    }
-
-    // Enter로 로그인
-    [elU, elP].forEach(el => {
-      el.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") {
-          ev.preventDefault();
-          handleLogin();
-        }
-      });
-    });
-
-    elBtn.addEventListener("click", handleLogin);
-
-    // 데모 자동 입력
-    elDemo.addEventListener("click", () => {
-      elU.value = "KORUAL";
-      elP.value = "GUEST";
-      setMsg("");
-      toast("데모 계정 자동 입력 완료", "warn");
-      elP.focus();
-    });
-
-    // 연결 테스트 (ping 프록시가 없으면 404 날 수 있음)
-    elPing.addEventListener("click", async () => {
-      setMsg("");
-      try{
-        const { data } = await getJson(PING_ENDPOINT);
-        if (data && data.ok) toast("연결 정상 (PING OK)", "ok");
-        else toast("연결 실패 (PING FAIL)", "err");
-      } catch (e){
-        toast("연결 실패\n" + String(e), "err");
+        btn.disabled = false;
+        btn.textContent = "Authenticate";
       }
     });
   </script>
