@@ -15,7 +15,7 @@
 
   const CONFIG = {
     MODE: 'GAS', // 'GAS' or 'CLOUD'
-    GAS_WEBAPP_URL: 'https://script.google.com/macros/s/REPLACE_ME/exec',
+    GAS_WEBAPP_URL: 'https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec',
     CLOUD_API_BASE: 'https://your-cloud-run-url',
     AFTER_LOGIN_REDIRECT: '/',       // where to go after login success (optional)
     SESSION_KEY: 'KORUAL_SID',       // used only in GAS mode
@@ -219,3 +219,4 @@
     }
   };
 })();
+
