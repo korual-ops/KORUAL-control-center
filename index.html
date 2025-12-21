@@ -8,57 +8,75 @@
 
   <style>
     :root{
-      --bg0:#050812;
-      --bg1:#071022;
+      --bg0:#02040c;
+      --bg1:#050a18;
       --bg2:#030615;
-      --glass: rgba(255,255,255,.06);
-      --glass2: rgba(255,255,255,.10);
-      --stroke: rgba(255,255,255,.12);
-      --stroke2: rgba(255,255,255,.18);
-      --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.62);
-      --muted2: rgba(255,255,255,.42);
-      --danger: rgba(255,80,80,.92);
-      --ok: rgba(120,255,210,.9);
 
-      --cyan: #2EE9FF;
-      --blue: #4C7DFF;
-      --navy: #06102A;
+      --cyan:#2EE9FF;
+      --blue:#4C7DFF;
+      --ice:#A7F3FF;
 
-      --shadow: 0 30px 90px rgba(0,0,0,.55);
-      --shadow2: 0 20px 60px rgba(0,0,0,.45);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.62);
+      --muted2:rgba(255,255,255,.40);
 
-      --r: 22px;
-      --r2: 16px;
-      --pad: 22px;
-      --pad2: 16px;
+      --glass:rgba(255,255,255,.06);
+      --glass2:rgba(255,255,255,.10);
+      --stroke:rgba(255,255,255,.12);
+      --stroke2:rgba(255,255,255,.18);
+
+      --danger:rgba(255,90,90,.95);
+      --dangerBg:rgba(255,80,80,.10);
+
+      --ok:rgba(120,255,210,.95);
+      --okBg:rgba(120,255,210,.10);
+
+      --shadow: 0 40px 120px rgba(0,0,0,.60);
+      --shadow2: 0 24px 70px rgba(0,0,0,.45);
+
+      --r: 26px;
+      --r2: 18px;
 
       --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     }
 
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
     body{
       margin:0;
-      font-family: var(--font);
-      color: var(--text);
+      font-family:var(--font);
+      color:var(--text);
       background:
-        radial-gradient(1200px 900px at 15% 10%, rgba(46,233,255,.16), transparent 55%),
-        radial-gradient(900px 800px at 85% 20%, rgba(76,125,255,.14), transparent 55%),
+        radial-gradient(1200px 900px at 15% 10%, rgba(46,233,255,.14), transparent 55%),
+        radial-gradient(900px 800px at 85% 20%, rgba(76,125,255,.12), transparent 55%),
         radial-gradient(900px 900px at 50% 120%, rgba(255,255,255,.06), transparent 60%),
         linear-gradient(180deg, var(--bg0), var(--bg1) 52%, var(--bg2));
       overflow:hidden;
     }
 
-    /* Subtle animated grain */
+    /* Starfield grid */
+    .bgGrid{
+      position:fixed; inset:0;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.10), transparent 40%),
+        radial-gradient(circle at 70% 20%, rgba(255,255,255,.08), transparent 44%),
+        radial-gradient(circle at 60% 80%, rgba(255,255,255,.10), transparent 40%),
+        repeating-linear-gradient(90deg, rgba(46,233,255,.06) 0px, rgba(46,233,255,.06) 1px, transparent 1px, transparent 64px),
+        repeating-linear-gradient(0deg, rgba(76,125,255,.05) 0px, rgba(76,125,255,.05) 1px, transparent 1px, transparent 64px);
+      opacity:.20;
+      mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 95%);
+      pointer-events:none;
+      transform: translateZ(0);
+    }
+
+    /* Grain */
     .grain{
       pointer-events:none;
       position:fixed; inset:-20%;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.20'/%3E%3C/svg%3E");
       mix-blend-mode: overlay;
       opacity:.22;
-      transform: translateZ(0);
       animation: grainMove 10s steps(6) infinite;
     }
     @keyframes grainMove{
@@ -70,25 +88,26 @@
       100%{transform:translate(-2%, -2%)}
     }
 
-    /* Floating “orbs” */
+    /* Orbs */
     .orb{
       position:fixed;
-      width: 520px; height: 520px;
+      width: 640px; height: 640px;
       border-radius: 50%;
       filter: blur(24px);
       opacity: .55;
       transform: translateZ(0);
       background:
-        radial-gradient(circle at 30% 30%, rgba(46,233,255,.55), transparent 55%),
-        radial-gradient(circle at 70% 70%, rgba(76,125,255,.45), transparent 60%);
-      animation: float 10s ease-in-out infinite;
+        radial-gradient(circle at 30% 30%, rgba(46,233,255,.50), transparent 55%),
+        radial-gradient(circle at 70% 70%, rgba(76,125,255,.42), transparent 60%);
+      animation: float 12s ease-in-out infinite;
+      pointer-events:none;
     }
-    .orb.o1{left:-180px; top:-200px; animation-duration: 14s}
-    .orb.o2{right:-220px; top:-130px; width: 620px; height: 620px; animation-duration: 16s; opacity:.45}
-    .orb.o3{left: 35%; bottom:-380px; width: 780px; height: 780px; animation-duration: 18s; opacity:.30}
+    .orb.o1{left:-220px; top:-240px; animation-duration: 16s; opacity:.48;}
+    .orb.o2{right:-260px; top:-190px; width: 760px; height: 760px; animation-duration: 18s; opacity:.42;}
+    .orb.o3{left: 35%; bottom:-520px; width: 980px; height: 980px; animation-duration: 20s; opacity:.30;}
     @keyframes float{
       0%,100%{transform:translate(0,0)}
-      50%{transform:translate(12px, -16px)}
+      50%{transform:translate(14px, -18px)}
     }
 
     .wrap{
@@ -96,96 +115,151 @@
       height:100%;
       display:grid;
       place-items:center;
-      padding: 28px 16px;
+      padding: 32px 16px;
     }
 
-    .shell{
-      width:min(1020px, 100%);
-      display:grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap: 18px;
-      align-items: stretch;
+    /* Frame (legend feel) */
+    .frame{
+      width:min(720px, 100%);
+      border-radius: 34px;
+      padding: 1px;
+      background:
+        linear-gradient(135deg, rgba(46,233,255,.45), rgba(76,125,255,.25), rgba(255,255,255,.10));
+      box-shadow: var(--shadow);
     }
 
     .panel{
-      border-radius: var(--r);
-      border: 1px solid var(--stroke);
-      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-      box-shadow: var(--shadow);
+      border-radius: 33px;
+      border: 1px solid rgba(255,255,255,.08);
+      background:
+        radial-gradient(1200px 600px at 30% 10%, rgba(46,233,255,.12), transparent 60%),
+        radial-gradient(900px 520px at 90% 30%, rgba(76,125,255,.12), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       overflow:hidden;
       position:relative;
+      padding: 24px;
     }
 
+    /* Neon edge */
     .panel::before{
       content:"";
-      position:absolute; inset:0;
+      position:absolute; inset:-2px;
+      border-radius: 34px;
       background:
-        radial-gradient(800px 500px at 20% 10%, rgba(46,233,255,.12), transparent 60%),
-        radial-gradient(800px 520px at 90% 30%, rgba(76,125,255,.12), transparent 60%);
-      opacity:.9;
+        radial-gradient(600px 240px at 20% 15%, rgba(46,233,255,.14), transparent 60%),
+        radial-gradient(600px 240px at 80% 20%, rgba(76,125,255,.12), transparent 60%);
       pointer-events:none;
+      opacity:.95;
+      filter: blur(8px);
     }
 
-    .left{
-      padding: 26px;
-      min-height: 520px;
+    /* Top bar */
+    .top{
+      position:relative;
+      z-index:2;
       display:flex;
-      flex-direction:column;
+      align-items:center;
       justify-content:space-between;
+      gap: 14px;
+      padding: 6px 8px 14px 8px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
     }
 
     .brand{
       display:flex;
       align-items:center;
       gap: 14px;
-      position:relative;
-      z-index:1;
+      min-width: 0;
     }
 
     .mark{
-      width: 44px; height: 44px;
-      border-radius: 14px;
+      width: 46px; height: 46px;
+      border-radius: 16px;
       border: 1px solid var(--stroke2);
       background:
-        radial-gradient(circle at 35% 30%, rgba(46,233,255,.38), transparent 55%),
-        radial-gradient(circle at 70% 70%, rgba(76,125,255,.28), transparent 60%),
-        rgba(255,255,255,.05);
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+        radial-gradient(circle at 35% 30%, rgba(46,233,255,.50), transparent 55%),
+        radial-gradient(circle at 70% 70%, rgba(76,125,255,.35), transparent 60%),
+        rgba(0,0,0,.20);
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
       position:relative;
       overflow:hidden;
+      flex: 0 0 auto;
     }
     .mark::after{
       content:"";
       position:absolute;
-      inset:-30%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.20), transparent);
+      inset:-40%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
       transform: rotate(25deg);
       animation: sheen 6s ease-in-out infinite;
     }
     @keyframes sheen{
-      0%{transform:translateX(-40%) rotate(25deg)}
-      40%{transform:translateX(40%) rotate(25deg)}
-      100%{transform:translateX(40%) rotate(25deg)}
+      0%{transform:translateX(-44%) rotate(25deg)}
+      42%{transform:translateX(44%) rotate(25deg)}
+      100%{transform:translateX(44%) rotate(25deg)}
     }
 
-    .brand h1{
-      margin:0;
+    .brandTxt{
+      min-width:0;
+    }
+
+    .brandTxt .t1{
       font-size: 14px;
       letter-spacing: .38em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.82);
+      color: rgba(255,255,255,.84);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    .brand .sub{
-      margin-top:4px;
+    .brandTxt .t2{
+      margin-top: 4px;
       font-size: 12px;
-      color: var(--muted2);
-      letter-spacing: .12em;
+      letter-spacing: .14em;
+      color: rgba(255,255,255,.42);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
-    .hero{
+    .statusLine{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      text-align:right;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.16);
+      color: rgba(255,255,255,.70);
+      font-size: 12px;
+      letter-spacing: .12em;
+      user-select:none;
+    }
+    .dot{
+      width: 8px; height: 8px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(46,233,255,1), rgba(76,125,255,1));
+      box-shadow: 0 0 0 4px rgba(46,233,255,.10);
+    }
+    .mono{ font-family:var(--mono); }
+
+    /* Main body */
+    .body{
       position:relative;
-      z-index:1;
-      margin-top: 18px;
+      z-index:2;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      padding: 18px 8px 10px 8px;
     }
 
     .hero .kicker{
@@ -194,106 +268,50 @@
       letter-spacing: .34em;
       text-transform: uppercase;
     }
-    .hero .title{
-      margin: 10px 0 0 0;
-      font-size: 34px;
-      line-height: 1.15;
-      letter-spacing: -0.02em;
-      font-weight: 650;
-    }
-    .hero .desc{
+    .hero h1{
       margin: 12px 0 0 0;
-      max-width: 52ch;
+      font-size: 38px;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      font-weight: 700;
+    }
+    .hero p{
+      margin: 12px 0 0 0;
+      max-width: 60ch;
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.65;
       color: var(--muted);
-    }
-
-    .badges{
-      margin-top: 18px;
-      display:flex;
-      flex-wrap:wrap;
-      gap: 10px;
-    }
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap: 10px;
-      padding: 10px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.16);
-      color: rgba(255,255,255,.72);
-      font-size: 12px;
-      letter-spacing: .08em;
-      user-select:none;
-    }
-    .dot{
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, rgba(46,233,255,1), rgba(76,125,255,1));
-      box-shadow: 0 0 0 4px rgba(46,233,255,.10);
-    }
-
-    .footerline{
-      position:relative;
-      z-index:1;
-      margin-top: 22px;
-      padding-top: 14px;
-      border-top: 1px solid rgba(255,255,255,.08);
-      display:flex;
-      justify-content:space-between;
-      gap: 12px;
-      color: rgba(255,255,255,.42);
-      font-size: 12px;
-    }
-    .mono{font-family: var(--mono)}
-
-    /* Right panel (login) */
-    .right{
-      padding: 26px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      gap: 14px;
-      min-height: 520px;
-      position:relative;
-      z-index:1;
     }
 
     .card{
       border-radius: var(--r2);
       border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.18);
+      background: rgba(0,0,0,.16);
       box-shadow: var(--shadow2);
       padding: 18px;
     }
 
     .card h2{
-      margin:0;
+      margin: 0;
       font-size: 16px;
-      letter-spacing: .02em;
-      font-weight: 650;
+      font-weight: 700;
+      letter-spacing: .01em;
     }
-    .card p{
-      margin: 8px 0 0 0;
+    .card .sub{
+      margin-top: 8px;
       font-size: 13px;
       line-height: 1.55;
       color: var(--muted);
     }
 
     form{
-      margin-top: 10px;
+      margin-top: 12px;
       display:flex;
       flex-direction:column;
       gap: 12px;
     }
 
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap: 8px;
-    }
+    .field{ display:flex; flex-direction:column; gap: 8px; }
 
     label{
       font-size: 11px;
@@ -304,22 +322,22 @@
     .input{
       display:flex;
       align-items:center;
-      gap: 10px;
+      gap: 12px;
       padding: 12px 14px;
-      border-radius: 14px;
+      border-radius: 16px;
       border: 1px solid rgba(255,255,255,.12);
       background: rgba(0,0,0,.22);
       transition: border-color .18s ease, background .18s ease, transform .18s ease;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
     }
     .input:focus-within{
-      border-color: rgba(46,233,255,.45);
+      border-color: rgba(46,233,255,.50);
       background: rgba(0,0,0,.28);
       transform: translateY(-1px);
     }
 
     .input svg{
-      width: 18px;
-      height: 18px;
+      width: 18px; height: 18px;
       opacity: .75;
       flex: 0 0 auto;
     }
@@ -333,7 +351,7 @@
       font-size: 14px;
       letter-spacing: .01em;
     }
-    input::placeholder{color: rgba(255,255,255,.35)}
+    input::placeholder{ color: rgba(255,255,255,.35); }
 
     .row{
       display:flex;
@@ -341,96 +359,79 @@
       justify-content:space-between;
       gap: 12px;
       margin-top: 6px;
-    }
-
-    .hint{
-      font-size: 12px;
-      color: rgba(255,255,255,.50);
-    }
-    .hint strong{color: rgba(255,255,255,.72); font-weight: 600}
-
-    .btn{
-      margin-top: 8px;
-      border: 1px solid rgba(46,233,255,.28);
-      background:
-        radial-gradient(120% 140% at 20% 10%, rgba(46,233,255,.22), transparent 50%),
-        radial-gradient(120% 140% at 80% 30%, rgba(76,125,255,.18), transparent 55%),
-        rgba(0,0,0,.18);
-      color: rgba(255,255,255,.92);
-      border-radius: 14px;
-      padding: 12px 14px;
-      font-size: 14px;
-      font-weight: 650;
-      letter-spacing: .02em;
-      cursor:pointer;
-      transition: transform .16s ease, border-color .16s ease, background .16s ease;
-      box-shadow: 0 18px 50px rgba(0,0,0,.35);
-    }
-    .btn:hover{
-      transform: translateY(-1px);
-      border-color: rgba(46,233,255,.55);
-      background:
-        radial-gradient(120% 140% at 20% 10%, rgba(46,233,255,.28), transparent 50%),
-        radial-gradient(120% 140% at 80% 30%, rgba(76,125,255,.22), transparent 55%),
-        rgba(0,0,0,.20);
-    }
-    .btn:active{transform: translateY(0px) scale(.995)}
-    .btn:disabled{
-      cursor:not-allowed;
-      opacity:.65;
-      transform:none;
-    }
-
-    .alert{
-      border-radius: 14px;
-      border: 1px solid rgba(255,80,80,.25);
-      background: rgba(255,80,80,.10);
-      color: rgba(255,180,180,.92);
-      padding: 10px 12px;
-      font-size: 13px;
-      line-height: 1.4;
-      display:none;
-    }
-    .alert.ok{
-      border-color: rgba(120,255,210,.22);
-      background: rgba(120,255,210,.10);
-      color: rgba(185,255,235,.92);
-    }
-
-    .meta{
-      margin-top: 12px;
-      display:flex;
-      flex-wrap:wrap;
-      gap: 10px;
-      color: rgba(255,255,255,.40);
+      color: rgba(255,255,255,.52);
       font-size: 12px;
     }
-    .pill{
-      border-radius: 999px;
-      padding: 8px 10px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.14);
-      display:inline-flex;
-      align-items:center;
-      gap: 10px;
-    }
-    .pill b{color: rgba(255,255,255,.72); font-weight: 650}
 
     .kbd{
       font-family: var(--mono);
       font-size: 11px;
       padding: 3px 7px;
-      border-radius: 8px;
+      border-radius: 9px;
       border: 1px solid rgba(255,255,255,.14);
       background: rgba(0,0,0,.18);
       color: rgba(255,255,255,.75);
     }
 
+    .btn{
+      margin-top: 8px;
+      border: 1px solid rgba(46,233,255,.32);
+      background:
+        radial-gradient(120% 140% at 18% 10%, rgba(46,233,255,.26), transparent 50%),
+        radial-gradient(120% 140% at 84% 30%, rgba(76,125,255,.20), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      color: rgba(255,255,255,.94);
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 750;
+      letter-spacing: .02em;
+      cursor:pointer;
+      transition: transform .16s ease, border-color .16s ease, filter .16s ease;
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(46,233,255,.60);
+      filter: brightness(1.04);
+    }
+    .btn:active{ transform: translateY(0px) scale(.995); }
+    .btn:disabled{ cursor:not-allowed; opacity:.65; transform:none; }
+
+    .alert{
+      border-radius: 16px;
+      border: 1px solid rgba(255,90,90,.25);
+      background: var(--dangerBg);
+      color: rgba(255,185,185,.92);
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      display:none;
+    }
+    .alert.ok{
+      border-color: rgba(120,255,210,.22);
+      background: var(--okBg);
+      color: rgba(185,255,235,.92);
+    }
+
+    .foot{
+      position:relative;
+      z-index:2;
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      padding: 14px 8px 0 8px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.42);
+      font-size: 12px;
+    }
+
     /* Responsive */
-    @media (max-width: 920px){
-      body{overflow:auto}
-      .shell{grid-template-columns: 1fr}
-      .left,.right{min-height:auto}
+    @media (max-width: 620px){
+      body{ overflow:auto; }
+      .panel{ padding: 18px; }
+      .hero h1{ font-size: 30px; }
+      .statusLine{ justify-content:flex-start; text-align:left; }
     }
   </style>
 </head>
@@ -439,91 +440,87 @@
   <div class="orb o1"></div>
   <div class="orb o2"></div>
   <div class="orb o3"></div>
+  <div class="bgGrid"></div>
   <div class="grain"></div>
 
   <div class="wrap">
-    <div class="shell">
-      <section class="panel left" aria-label="Brand Panel">
-        <div class="brand">
-          <div class="mark" aria-hidden="true"></div>
-          <div>
-            <h1>KORUAL</h1>
-            <div class="sub">CONTROL CENTER • SECURE ACCESS</div>
+    <div class="frame">
+      <section class="panel" aria-label="KORUAL Login">
+        <div class="top">
+          <div class="brand">
+            <div class="mark" aria-hidden="true"></div>
+            <div class="brandTxt">
+              <div class="t1">KORUAL</div>
+              <div class="t2">CONTROL CENTER • SECURE ACCESS</div>
+            </div>
+          </div>
+
+          <div class="statusLine" aria-label="Status">
+            <span class="chip"><span class="dot"></span>HYPER-SAFE PROTOCOL</span>
+            <span class="chip"><span class="dot"></span>ENV <span class="mono" id="envLabel">PROD</span></span>
+            <span class="chip"><span class="dot"></span>SESSION ENCRYPTED</span>
           </div>
         </div>
 
-        <div class="hero">
-          <div class="kicker">Private Console</div>
-          <h2 class="title">Secure Admin Login</h2>
-          <p class="desc">
-            This interface is restricted to authorized personnel. All access attempts are monitored and recorded for audit and security compliance.
-          </p>
+        <div class="body">
+          <div class="hero">
+            <div class="kicker">PRIVATE CONSOLE</div>
+            <h1>System Login</h1>
+            <p>
+              Login is restricted. Unauthorized attempts are logged and reported for audit and security compliance.
+            </p>
+          </div>
 
-          <div class="badges" aria-label="Security Badges">
-            <span class="badge"><span class="dot"></span>Encrypted Session</span>
-            <span class="badge"><span class="dot"></span>Audit Logging</span>
-            <span class="badge"><span class="dot"></span>IP Policy Ready</span>
-            <span class="badge"><span class="dot"></span>Role-Based Access</span>
+          <div class="card">
+            <h2>Sign in</h2>
+            <div class="sub">
+              Enter your credentials to continue. If you are locked out, contact the system administrator.
+            </div>
+
+            <div class="alert" id="alert"></div>
+
+            <form id="loginForm" autocomplete="on" novalidate>
+              <div class="field">
+                <label for="username">USERNAME</label>
+                <div class="input">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <input id="username" name="username" type="text" placeholder="KORUAL" autocomplete="username" required />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="password">PASSWORD</label>
+                <div class="input">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M6.5 10h11A2.5 2.5 0 0 1 20 12.5v6A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-6A2.5 2.5 0 0 1 6.5 10Z" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M12 15v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+                </div>
+              </div>
+
+              <div class="row">
+                <div>Tip <b>Enter</b> to submit</div>
+                <div><span class="kbd">CTRL</span> + <span class="kbd">L</span> focus address</div>
+              </div>
+
+              <button class="btn" id="submitBtn" type="submit">Authenticate</button>
+
+              <div class="row" style="margin-top:10px; color: rgba(255,255,255,.40);">
+                <div>Mode <span class="mono" id="mode">cookie session</span></div>
+                <div>API <span class="mono" id="apiShort">unset</span></div>
+              </div>
+            </form>
           </div>
         </div>
 
-        <div class="footerline">
-          <div>Environment <span class="mono" id="envLabel">PROD</span></div>
+        <div class="foot">
+          <div>Environment <span class="mono" id="envLabel2">PROD</span></div>
           <div class="mono" id="clock">--:--:--</div>
-        </div>
-      </section>
-
-      <section class="panel right" aria-label="Login Panel">
-        <div class="card">
-          <h2>Sign in</h2>
-          <p>
-            Enter your credentials to continue. If you are locked out, contact the system administrator.
-          </p>
-
-          <div class="alert" id="alert"></div>
-
-          <form id="loginForm" autocomplete="on" novalidate>
-            <div class="field">
-              <label for="username">USERNAME</label>
-              <div class="input">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                <input id="username" name="username" type="text" placeholder="KORUAL" autocomplete="username" required />
-              </div>
-            </div>
-
-            <div class="field">
-              <label for="password">PASSWORD</label>
-              <div class="input">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  <path d="M6.5 10h11A2.5 2.5 0 0 1 20 12.5v6A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-6A2.5 2.5 0 0 1 6.5 10Z" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M12 15v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="hint">Tip <strong>Enter</strong> to submit</div>
-              <div class="hint"><span class="kbd">CTRL</span> + <span class="kbd">L</span> focus address</div>
-            </div>
-
-            <button class="btn" id="submitBtn" type="submit">Authenticate</button>
-
-            <div class="meta">
-              <span class="pill"><b>Mode</b> <span id="mode">Cookie Session</span></span>
-              <span class="pill"><b>API</b> <span class="mono" id="apiShort">unset</span></span>
-            </div>
-          </form>
-        </div>
-
-        <div class="card">
-          <div class="hint" style="margin:0">
-            Monitoring notice: this system records IP address, user-agent, and login outcomes.
-          </div>
         </div>
       </section>
     </div>
@@ -531,38 +528,38 @@
 
   <script>
     /*
-      High-end login index.html
-      - Default: Cloud Run API (cookie session) -> POST {API_BASE}/auth/login
-      - If you keep Apps Script endpoint, you can switch API_BASE accordingly.
-      - This file does NOT use '●' bullets.
+      Login-only index.html (legend high-end)
+      - Cloud Run API (cookie session): POST {API_BASE}/auth/login
+      - Change API_BASE to your Cloud Run Service URL
     */
 
-    // Set your API base here (Cloud Run URL)
-    const API_BASE = "https://your-cloud-run-url"; // TODO: replace
-    const AFTER_LOGIN_REDIRECT = "/";              // TODO: replace if needed
+    const API_BASE = "https://your-cloud-run-url"; // TODO: replace with real Cloud Run URL
+    const AFTER_LOGIN_REDIRECT = "/";              // TODO: change if needed
 
     const $ = (id) => document.getElementById(id);
 
     const envLabel = $("envLabel");
-    const clock = $("clock");
+    const envLabel2 = $("envLabel2");
     const apiShort = $("apiShort");
     const mode = $("mode");
+    const clock = $("clock");
 
     const form = $("loginForm");
     const btn = $("submitBtn");
     const alertBox = $("alert");
-
     const userEl = $("username");
     const passEl = $("password");
 
-    // Initialize UI
-    apiShort.textContent = API_BASE.replace(/^https?:\/\//, "").slice(0, 32) + (API_BASE.length > 36 ? "…" : "");
+    // Init
+    userEl.value = "KORUAL";
+
+    const envText = (location.hostname === "localhost" || location.hostname === "127.0.0.1") ? "DEV" : "PROD";
+    envLabel.textContent = envText;
+    envLabel2.textContent = envText;
+
+    apiShort.textContent = API_BASE.replace(/^https?:\/\//, "").slice(0, 40) + (API_BASE.length > 44 ? "…" : "");
     mode.textContent = "HttpOnly Cookie Session";
 
-    // Environment label inference
-    envLabel.textContent = (location.hostname === "localhost" || location.hostname === "127.0.0.1") ? "DEV" : "PROD";
-
-    // Clock
     function tick(){
       const d = new Date();
       const hh = String(d.getHours()).padStart(2, "0");
@@ -573,7 +570,6 @@
     tick();
     setInterval(tick, 1000);
 
-    // Helpers
     function showAlert(message, ok=false){
       alertBox.classList.toggle("ok", !!ok);
       alertBox.textContent = message;
@@ -585,15 +581,12 @@
       alertBox.classList.remove("ok");
     }
 
-    // Default values
-    userEl.value = "KORUAL";
-
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       hideAlert();
 
-      const username = userEl.value.trim();
-      const password = passEl.value;
+      const username = String(userEl.value || "").trim();
+      const password = String(passEl.value || "");
 
       if (!username || !password){
         showAlert("USERNAME 및 PASSWORD를 입력하세요.");
@@ -614,7 +607,6 @@
         const j = await r.json().catch(() => ({}));
 
         if (!j.ok){
-          // Map common errors
           const err = j.error || "LOGIN_FAILED";
           if (err === "LOCKED"){
             showAlert(`계정이 잠겼습니다. 해제 시간: ${j.locked_until || "unknown"}`);
@@ -623,6 +615,8 @@
           } else if (err === "INVALID_CREDENTIALS"){
             const fc = (typeof j.fail_count === "number") ? ` (fail_count: ${j.fail_count})` : "";
             showAlert(`인증 실패: 자격 증명이 올바르지 않습니다.${fc}`);
+          } else if (err === "IP_NOT_ALLOWED"){
+            showAlert(`허용되지 않은 IP 입니다. (${j.ip || ""})`);
           } else {
             showAlert(`인증 실패: ${err}`);
           }
@@ -632,7 +626,7 @@
         showAlert("인증 성공. 이동합니다...", true);
         setTimeout(() => {
           window.location.href = AFTER_LOGIN_REDIRECT;
-        }, 450);
+        }, 420);
 
       } catch (err){
         showAlert("네트워크 오류. API 접근을 확인하세요.");
