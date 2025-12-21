@@ -1,423 +1,189 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex,nofollow" />
-  <title>KORUAL Control Center – Login</title>
+// auth.js
+// KORUAL Control Center - Auth Client Helper
+// - Frontend(브라우저) 전용 유틸
+// - CORS 방지: 반드시 동일 오리진 프록시(/api/korual/...)로 호출
+//   POST /api/korual/login
+//   GET  /api/korual/whoami?token=...
+//   GET  /api/korual/ping (선택)
 
-  <!-- Tailwind CDN (프로토타입용) -->
-  <script src="https://cdn.tailwindcss.com"></script>
+export const AUTH = {
+  TOKEN_KEY: "korual_token",
+  USER_KEY: "korual_user",
 
-  <style>
-    :root { color-scheme: dark; }
-    body{
-      margin:0;
-      min-height:100vh;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Apple SD Gothic Neo, "Noto Sans KR", "Malgun Gothic", Arial, sans-serif;
-      color: #e5e7eb;
-      background:
-        radial-gradient(1000px 700px at 18% 20%, rgba(99,102,241,.16), transparent 60%),
-        radial-gradient(900px 600px at 82% 65%, rgba(34,211,238,.14), transparent 62%),
-        radial-gradient(650px 420px at 55% 25%, rgba(56,189,248,.10), transparent 62%),
-        linear-gradient(180deg, #020617, #040B1E 55%, #020617);
-      overflow-x:hidden;
+  endpoints: {
+    login: "/api/korual/login",
+    whoami: "/api/korual/whoami",
+    ping: "/api/korual/ping",
+  },
+
+  getToken() {
+    try {
+      return localStorage.getItem(this.TOKEN_KEY) || "";
+    } catch {
+      return "";
+    }
+  },
+
+  getUser() {
+    try {
+      const raw = localStorage.getItem(this.USER_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  },
+
+  setSession({ token, user }) {
+    try {
+      if (token) localStorage.setItem(this.TOKEN_KEY, String(token));
+      if (user) localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    } catch {
+      // ignore
+    }
+  },
+
+  clearSession() {
+    try {
+      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.USER_KEY);
+    } catch {
+      // ignore
+    }
+  },
+
+  isLoggedIn() {
+    const t = this.getToken();
+    const u = this.getUser();
+    return !!(t && u && u.username);
+  },
+
+  async ping() {
+    const r = await fetch(this.endpoints.ping, { method: "GET" });
+    const data = await r.json().catch(() => ({}));
+    return { ok: !!data.ok, data, status: r.status };
+  },
+
+  async login(username, password) {
+    const payload = {
+      username: String(username || "").trim(),
+      password: String(password || ""),
+    };
+
+    if (!payload.username || !payload.password) {
+      return { ok: false, error: "MISSING_CREDENTIALS" };
     }
 
-    /* Shopee-like soft gradient veil */
-    .veil{
-      position:fixed;
-      inset:-20%;
-      z-index:-2;
-      background:
-        radial-gradient(1200px 900px at 12% 86%, rgba(129,140,248,.12), transparent 55%),
-        radial-gradient(900px 700px at 86% 18%, rgba(16,185,129,.10), transparent 55%),
-        radial-gradient(900px 700px at 84% 84%, rgba(34,211,238,.10), transparent 55%);
-      filter: blur(1px);
-      opacity: .9;
-      pointer-events:none;
+    const r = await fetch(this.endpoints.login, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await r.json().catch(() => ({}));
+
+    if (!data || !data.ok) {
+      return {
+        ok: false,
+        error: data?.error || "LOGIN_FAILED",
+        failCount: data?.failCount,
+        lockedUntil: data?.lockedUntil,
+        status: r.status,
+        data,
+      };
     }
 
-    /* Ultra subtle grain */
-    .grain{
-      position:fixed;
-      inset:0;
-      z-index:-1;
-      pointer-events:none;
-      opacity:.10;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
-      mix-blend-mode: overlay;
+    this.setSession({ token: data.token, user: data.user });
+
+    return {
+      ok: true,
+      token: data.token,
+      user: data.user,
+      status: r.status,
+      data,
+    };
+  },
+
+  async whoami(token) {
+    const t = token || this.getToken();
+    if (!t) return { ok: false, error: "NO_TOKEN" };
+
+    const url =
+      this.endpoints.whoami + "?token=" + encodeURIComponent(String(t));
+
+    const r = await fetch(url, { method: "GET" });
+    const data = await r.json().catch(() => ({}));
+
+    if (!data || !data.ok) {
+      return {
+        ok: false,
+        error: data?.error || "WHOAMI_FAILED",
+        status: r.status,
+        data,
+      };
     }
 
-    /* Floating ring (high-end ambient) */
-    .ring{
-      position:fixed;
-      inset:0;
-      margin:auto;
-      width:min(860px, 120vw);
-      height:min(860px, 120vw);
-      border-radius:9999px;
-      border:1px solid rgba(148,163,184,0.14);
-      opacity:.28;
-      pointer-events:none;
-      z-index:-1;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
-    }
-    .sweep{
-      position:absolute;
-      inset:0;
-      border-radius:9999px;
-      background: conic-gradient(from 180deg,
-        rgba(34,211,238,.46),
-        rgba(34,211,238,.14) 10%,
-        transparent 34%,
-        transparent
-      );
-      animation: sweep 18s linear infinite;
-      filter: blur(10px);
-      mix-blend-mode: screen;
-      opacity:.7;
-    }
-    @keyframes sweep { from { transform: rotate(0) } to { transform: rotate(360deg) } }
-
-    /* Glass card */
-    .glass{
-      background: rgba(3, 8, 23, 0.62);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(148,163,184,0.18);
-      box-shadow:
-        0 46px 140px rgba(0,0,0,0.68),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-    .sheen{
-      position:absolute;
-      left:18px;
-      right:18px;
-      top:14px;
-      height:1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
-      opacity:.8;
-      pointer-events:none;
+    // 서버 응답으로 user 동기화
+    if (data.user) {
+      this.setSession({ token: t, user: data.user });
     }
 
-    /* Inputs */
-    .input{
-      width:100%;
-      padding:.92rem 1.05rem;
-      border-radius: 1rem;
-      background: rgba(2,6,23,0.50);
-      border: 1px solid rgba(148,163,184,0.28);
-      color:#e5e7eb;
-      font-size:.95rem;
-      outline:none;
-      transition: .18s ease;
-    }
-    .input:focus{
-      border-color: rgba(34,211,238,0.70);
-      box-shadow: 0 0 0 4px rgba(34,211,238,0.16);
-    }
+    return { ok: true, user: data.user, status: r.status, data };
+  },
 
-    /* Button */
-    .btn{
-      width:100%;
-      padding:.98rem 1.05rem;
-      border-radius: 1rem;
-      font-weight: 800;
-      letter-spacing: .02em;
-      background: linear-gradient(135deg, #2563eb, #06b6d4);
-      box-shadow:
-        0 26px 84px rgba(2,6,23,0.95),
-        0 0 0 1px rgba(148,163,184,0.12);
-      transition: transform .12s ease, filter .18s ease, opacity .18s ease;
-    }
-    .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
-    .btn:active{ transform: translateY(0px); filter: brightness(.98); }
-    .btn:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
+  // 라우트 가드(순수 JS)
+  // - 유효 토큰 확인까지 수행(권장)
+  // - 실패 시 redirect
+  async requireAuth({ redirectTo = "/", role } = {}) {
+    const token = this.getToken();
+    const cached = this.getUser();
 
-    /* Toast */
-    #toastRoot{
-      position:fixed;
-      inset-inline:0;
-      bottom: 22px;
-      z-index:50;
-      display:flex;
-      justify-content:center;
-      pointer-events:none;
-    }
-    .toast{
-      pointer-events:auto;
-      max-width: 560px;
-      width: min(92vw, 560px);
-      border-radius: 18px;
-      border: 1px solid rgba(148,163,184,0.22);
-      background: rgba(2,6,23,0.68);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 26px 90px rgba(0,0,0,0.6);
-      padding: 14px 16px;
-    }
-    .dot{ width:10px; height:10px; border-radius:9999px; margin-top:3px; }
-  </style>
-
-  <script>
-    // 이미 로그인된 경우 대시보드로 이동
-    (function () {
-      try {
-        const raw = localStorage.getItem("korual_user");
-        if (!raw) return;
-        const user = JSON.parse(raw);
-        if (user && user.username) location.replace("dashboard.html");
-      } catch (_) {}
-    })();
-  </script>
-</head>
-
-<body>
-  <div class="veil"></div>
-  <div class="grain"></div>
-
-  <div class="ring">
-    <div class="sweep"></div>
-  </div>
-
-  <div id="toastRoot"></div>
-
-  <main class="max-w-6xl mx-auto px-6 pt-14 pb-16">
-    <!-- Header (Shopee-like: clean, minimal) -->
-    <header class="text-center mb-10">
-      <div class="inline-flex items-center gap-3">
-        <div class="w-12 h-12 rounded-2xl bg-white text-slate-900 grid place-content-center font-extrabold text-xl shadow-lg">K</div>
-        <div class="text-left">
-          <div class="text-[11px] uppercase tracking-[0.32em] text-slate-400">Korual Control Center</div>
-          <div class="text-2xl font-semibold leading-tight">운영 로그인</div>
-        </div>
-      </div>
-      <p class="mt-3 text-sm text-slate-200/70">승인된 운영자만 접근할 수 있습니다.</p>
-    </header>
-
-    <!-- Card -->
-    <section class="relative glass rounded-[28px] max-w-xl mx-auto px-6 sm:px-8 py-7 sm:py-8">
-      <div class="sheen"></div>
-
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h1 class="text-xl font-semibold">KORUAL 로그인</h1>
-          <p class="text-sm text-slate-200/70 mt-1">인증 후 Control Center로 이동합니다.</p>
-        </div>
-
-        <div class="hidden sm:flex items-center gap-2 rounded-2xl px-3 py-2 border border-white/10 bg-white/5">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400/80"></div>
-          <div class="text-xs text-slate-200/80">Secure Session</div>
-        </div>
-      </div>
-
-      <div class="space-y-4">
-        <div>
-          <label class="text-sm text-slate-200/90 mb-1.5 block">아이디</label>
-          <div class="relative">
-            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">@</span>
-            <input id="loginUsername" class="input pl-9" placeholder="예: KORUAL" autocomplete="username" />
-          </div>
-        </div>
-
-        <div>
-          <label class="text-sm text-slate-200/90 mb-1.5 block">비밀번호</label>
-          <input id="loginPassword" type="password" class="input" placeholder="••••••••" autocomplete="current-password" />
-        </div>
-
-        <button id="btnLogin" class="btn mt-1">로그인</button>
-
-        <p id="loginMsg" class="text-sm text-rose-300 h-5 mt-1"></p>
-
-        <!-- Test account -->
-        <div class="pt-2">
-          <div class="text-xs text-slate-200/60 mb-2">테스트용 기본 계정</div>
-          <div class="flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2.5 border border-white/10 bg-white/5">
-            <span class="text-xs text-slate-200/60">ID</span>
-            <code class="text-xs bg-slate-800/70 px-2 py-1 rounded-lg border border-slate-700/60">KORUAL</code>
-            <span class="text-xs text-slate-200/60">PW</span>
-            <code class="text-xs bg-slate-800/70 px-2 py-1 rounded-lg border border-slate-700/60">GUEST</code>
-            <button id="btnFillDemo" class="text-xs text-cyan-300 underline decoration-dotted underline-offset-4 ml-auto" type="button">
-              자동 입력
-            </button>
-          </div>
-        </div>
-
-        <!-- Footer row -->
-        <div class="pt-2 flex items-center justify-between text-xs text-slate-200/60">
-          <span class="truncate" id="apiHint">API: /api/korual/login</span>
-          <button id="btnPing" type="button" class="text-xs text-slate-200/80 hover:text-cyan-300 transition underline decoration-dotted underline-offset-4">
-            연결 테스트
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <footer class="text-center mt-10 text-xs text-slate-200/60">
-      © KORUAL. Unauthorized access is prohibited.
-    </footer>
-  </main>
-
-  <script>
-    /************************************************************
-     * Login-only index.html (High-end)
-     * - 프론트는 GAS 직접 호출 금지 (CORS 때문에)
-     * - 반드시 동일 오리진 프록시가 있어야 함:
-     *   POST /api/korual/login
-     *   GET  /api/korual/ping (선택)
-     ************************************************************/
-
-    const TOKEN_KEY = "korual_token";
-    const USER_KEY  = "korual_user";
-
-    const LOGIN_ENDPOINT = "/api/korual/login";
-    const PING_ENDPOINT  = "/api/korual/ping";
-
-    const elU = document.getElementById("loginUsername");
-    const elP = document.getElementById("loginPassword");
-    const elBtn = document.getElementById("btnLogin");
-    const elMsg = document.getElementById("loginMsg");
-    const elDemo = document.getElementById("btnFillDemo");
-    const elPing = document.getElementById("btnPing");
-    const elApiHint = document.getElementById("apiHint");
-    const toastRoot = document.getElementById("toastRoot");
-
-    elApiHint.textContent = "API: " + LOGIN_ENDPOINT;
-
-    function setMsg(text){ elMsg.textContent = text || ""; }
-
-    function setLoading(loading){
-      elBtn.disabled = !!loading;
-      elBtn.textContent = loading ? "로그인 중..." : "로그인";
+    if (!token || !cached) {
+      this.clearSession();
+      if (redirectTo) location.replace(redirectTo);
+      return { ok: false, error: "NO_SESSION" };
     }
 
-    function escapeHtml(s){
-      return String(s).replace(/[&<>"']/g, (m) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
-      }[m]));
+    const w = await this.whoami(token);
+    if (!w.ok) {
+      this.clearSession();
+      if (redirectTo) location.replace(redirectTo);
+      return { ok: false, error: w.error };
     }
 
-    function toast(text, kind){
-      const wrap = document.createElement("div");
-      wrap.className = "toast";
-      const dot =
-        kind === "ok" ? "bg-emerald-400" :
-        kind === "warn" ? "bg-amber-400" :
-        kind === "err" ? "bg-rose-400" : "bg-cyan-400";
-
-      wrap.innerHTML = `
-        <div class="flex items-start gap-3">
-          <div class="dot ${dot}"></div>
-          <div class="text-sm text-slate-100 whitespace-pre-line">${escapeHtml(text)}</div>
-        </div>
-      `;
-      toastRoot.appendChild(wrap);
-
-      setTimeout(() => {
-        wrap.style.opacity = "0";
-        wrap.style.transform = "translateY(6px)";
-        wrap.style.transition = "all .35s ease";
-      }, 2400);
-      setTimeout(() => wrap.remove(), 2850);
-    }
-
-    async function postJson(url, body){
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body || {}),
-      });
-      const data = await res.json().catch(() => ({}));
-      return { res, data };
-    }
-
-    async function getJson(url){
-      const res = await fetch(url, { method: "GET" });
-      const data = await res.json().catch(() => ({}));
-      return { res, data };
-    }
-
-    function saveSession(data){
-      if (data && data.token) localStorage.setItem(TOKEN_KEY, data.token);
-      if (data && data.user)  localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    }
-
-    function normalizeError(data){
-      const err = (data && data.error) ? String(data.error) : "LOGIN_FAILED";
-      let extra = "";
-      if (err === "ACCOUNT_LOCKED" && data.lockedUntil) extra = `\n잠금 해제: ${data.lockedUntil}`;
-      if (err === "INVALID_PASSWORD" && typeof data.failCount === "number") extra = `\n실패 횟수: ${data.failCount}`;
-      return { err, extra };
-    }
-
-    async function handleLogin(){
-      setMsg("");
-      const username = String(elU.value || "").trim();
-      const password = String(elP.value || "");
-
-      if (!username || !password){
-        setMsg("아이디/비밀번호를 입력하세요.");
-        toast("아이디/비밀번호를 입력하세요.", "warn");
-        return;
-      }
-
-      setLoading(true);
-      try{
-        const { data } = await postJson(LOGIN_ENDPOINT, { username, password });
-
-        if (!data || !data.ok){
-          const { err, extra } = normalizeError(data || {});
-          setMsg("로그인 실패: " + err);
-          toast("로그인 실패: " + err + extra, "err");
-          return;
-        }
-
-        saveSession(data);
-        const display = (data.user && (data.user.displayName || data.user.username)) || username;
-
-        toast(`로그인 성공\nWelcome, ${display}`, "ok");
-        location.replace("dashboard.html");
-      } catch (e){
-        setMsg("서버 통신 실패");
-        toast("서버 통신 실패\n" + String(e), "err");
-      } finally{
-        setLoading(false);
+    if (role) {
+      const userRole = String(w.user?.role || "").toUpperCase();
+      const needRole = String(role).toUpperCase();
+      if (userRole !== needRole) {
+        if (redirectTo) location.replace(redirectTo);
+        return { ok: false, error: "FORBIDDEN", user: w.user };
       }
     }
 
-    // Enter로 로그인
-    [elU, elP].forEach(el => {
-      el.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") {
-          ev.preventDefault();
-          handleLogin();
-        }
-      });
-    });
+    return { ok: true, user: w.user };
+  },
 
-    elBtn.addEventListener("click", handleLogin);
+  logout(redirectTo = "/") {
+    this.clearSession();
+    if (redirectTo) location.replace(redirectTo);
+  },
 
-    // 데모 자동 입력
-    elDemo.addEventListener("click", () => {
-      elU.value = "KORUAL";
-      elP.value = "GUEST";
-      setMsg("");
-      toast("데모 계정 자동 입력 완료", "warn");
-      elP.focus();
-    });
+  // 에러 메시지 표준화 (UI 표시용)
+  formatError(result) {
+    const err = String(result?.error || "ERROR");
+    if (err === "MISSING_CREDENTIALS") return "아이디/비밀번호를 입력하세요.";
+    if (err === "INVALID_PASSWORD") return "비밀번호가 올바르지 않습니다.";
+    if (err === "INVALID_CREDENTIALS") return "계정 정보가 올바르지 않습니다.";
+    if (err === "ACCOUNT_LOCKED") {
+      const until = result?.lockedUntil ? ` (해제: ${result.lockedUntil})` : "";
+      return "계정이 잠겼습니다." + until;
+    }
+    if (err === "ACCOUNT_INACTIVE") return "비활성화된 계정입니다.";
+    if (err === "TOKEN_EXPIRED") return "세션이 만료되었습니다. 다시 로그인하세요.";
+    if (err === "TOKEN_REVOKED") return "세션이 해제되었습니다. 다시 로그인하세요.";
+    if (err === "FORBIDDEN") return "권한이 없습니다.";
+    return "요청 처리 중 오류가 발생했습니다: " + err;
+  },
+};
 
-    // 연결 테스트 (ping 프록시가 없으면 404 날 수 있음)
-    elPing.addEventListener("click", async () => {
-      setMsg("");
-      try{
-        const { data } = await getJson(PING_ENDPOINT);
-        if (data && data.ok) toast("연결 정상 (PING OK)", "ok");
-        else toast("연결 실패 (PING FAIL)", "err");
-      } catch (e){
-        toast("연결 실패\n" + String(e), "err");
-      }
-    });
-  </script>
-</body>
-</html>
+export default AUTH;
