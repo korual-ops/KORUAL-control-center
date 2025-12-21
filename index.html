@@ -120,14 +120,6 @@
       box-shadow: 0 0 0 3px rgba(0,210,255,.18);
     }
 
-    .row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-top:6px;
-    }
-
     .btn{
       width:100%;
       height:46px;
@@ -234,8 +226,8 @@
           <div id="msg" class="msg"></div>
 
           <div class="hint">
-            엔드포인트 예시:
-            <div><code>POST {WEBAPP_URL}?action=login</code></div>
+            엔드포인트:
+            <div><code>POST ${WEBAPP_URL}?action=login</code></div>
             <div class="small">토큰 저장: <code>localStorage("korual_token")</code></div>
           </div>
         </form>
@@ -250,14 +242,14 @@
 
   <script>
     /*****************************************************************
-     * KORUAL Admin Login - Minimal Client
-     * - Google Apps Script WebApp (Code.gs) action=login 과 연동
+     * KORUAL Admin Login - Client
+     * - 제공하신 WebApp exec URL로 고정 세팅
      *****************************************************************/
 
-    // 1) 여기에 본인 웹앱 URL 넣으세요 (끝에 /exec 포함)
+    // 제공하신 API 주소(웹앱 exec)
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec";
 
-    // 2) 토큰 저장 키
+    // 토큰 저장 키
     const TOKEN_KEY = "korual_token";
 
     const $ = (sel) => document.querySelector(sel);
@@ -301,7 +293,6 @@
         body: JSON.stringify(body || {})
       });
 
-      // Apps Script는 status 제어 제한이 있어, ok/error로 판단
       const data = await res.json().catch(() => ({}));
       return { httpStatus: res.status, data };
     }
@@ -327,7 +318,6 @@
       return apiGet("whoami", token);
     }
 
-    // UI handlers
     $("#loginForm").addEventListener("submit", async (ev) => {
       ev.preventDefault();
       hideMsg();
@@ -335,10 +325,6 @@
       const username = String($("#username").value || "").trim();
       const password = String($("#password").value || "");
 
-      if (!WEBAPP_URL || WEBAPP_URL.includes("https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec")){
-        showMsg("WEBAPP_URL을 설정하세요.\n예: https://script.google.com/macros/s/xxxxx/exec", "err");
-        return;
-      }
       if (!username || !password){
         showMsg("아이디/비밀번호를 입력하세요.", "err");
         return;
@@ -362,7 +348,7 @@
         const name = (data.user && (data.user.displayName || data.user.username)) || "USER";
         showMsg(`로그인 성공\nWelcome, ${name}\n토큰 저장 완료`, "ok");
 
-        // 로그인 후 이동이 필요하면 여기서 라우팅
+        // 필요 시 로그인 후 이동
         // location.href = "/admin.html";
       } catch (e){
         showMsg("서버 통신 실패\n" + String(e), "err");
@@ -413,11 +399,9 @@
       }
     });
 
-    // 편의: 엔터 시 로그인 UX 개선
     window.addEventListener("load", async () => {
       const token = getToken();
       if (token){
-        // 이미 토큰이 있으면 whoami로 유효성 확인
         try{
           const { data } = await whoami();
           if (data && data.ok){
@@ -427,7 +411,6 @@
             clearToken();
           }
         } catch (_e){
-          // 네트워크 불안정 시 조용히 무시
         }
       }
     });
