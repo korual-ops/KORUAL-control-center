@@ -1,640 +1,721 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="color-scheme" content="dark" />
-  <title>KORUAL Control Center | Secure Login</title>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KORUAL Space Admin Login</title>
+  <meta
+    name="description"
+    content="KORUAL Space 운영자 로그인 페이지"
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
   <style>
-    :root{
-      --bg0:#02040c;
-      --bg1:#050a18;
-      --bg2:#030615;
-
-      --cyan:#2EE9FF;
-      --blue:#4C7DFF;
-      --ice:#A7F3FF;
-
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.62);
-      --muted2:rgba(255,255,255,.40);
-
-      --glass:rgba(255,255,255,.06);
-      --glass2:rgba(255,255,255,.10);
-      --stroke:rgba(255,255,255,.12);
-      --stroke2:rgba(255,255,255,.18);
-
-      --danger:rgba(255,90,90,.95);
-      --dangerBg:rgba(255,80,80,.10);
-
-      --ok:rgba(120,255,210,.95);
-      --okBg:rgba(120,255,210,.10);
-
-      --shadow: 0 40px 120px rgba(0,0,0,.60);
-      --shadow2: 0 24px 70px rgba(0,0,0,.45);
-
-      --r: 26px;
-      --r2: 18px;
-
-      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    :root {
+      --bg: #07111f;
+      --bg-soft: #0c1b2d;
+      --panel: rgba(12, 24, 40, 0.76);
+      --panel-strong: rgba(10, 18, 32, 0.92);
+      --line: rgba(255, 255, 255, 0.1);
+      --line-strong: rgba(255, 255, 255, 0.18);
+      --text: #f4f7fb;
+      --text-muted: #b8c4d6;
+      --text-soft: #8fa2bb;
+      --primary: #79b8ff;
+      --accent: #8ce7ff;
+      --success: #75e0a7;
+      --danger: #ff8f8f;
+      --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.35);
+      --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.22);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --transition: 180ms ease;
     }
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family:var(--font);
-      color:var(--text);
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
       background:
-        radial-gradient(1200px 900px at 15% 10%, rgba(46,233,255,.14), transparent 55%),
-        radial-gradient(900px 800px at 85% 20%, rgba(76,125,255,.12), transparent 55%),
-        radial-gradient(900px 900px at 50% 120%, rgba(255,255,255,.06), transparent 60%),
-        linear-gradient(180deg, var(--bg0), var(--bg1) 52%, var(--bg2));
-      overflow:hidden;
-    }
-
-    /* Starfield grid */
-    .bgGrid{
-      position:fixed; inset:0;
-      background:
-        radial-gradient(circle at 20% 30%, rgba(255,255,255,.10), transparent 40%),
-        radial-gradient(circle at 70% 20%, rgba(255,255,255,.08), transparent 44%),
-        radial-gradient(circle at 60% 80%, rgba(255,255,255,.10), transparent 40%),
-        repeating-linear-gradient(90deg, rgba(46,233,255,.06) 0px, rgba(46,233,255,.06) 1px, transparent 1px, transparent 64px),
-        repeating-linear-gradient(0deg, rgba(76,125,255,.05) 0px, rgba(76,125,255,.05) 1px, transparent 1px, transparent 64px);
-      opacity:.20;
-      mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 95%);
-      pointer-events:none;
-      transform: translateZ(0);
-    }
-
-    /* Grain */
-    .grain{
-      pointer-events:none;
-      position:fixed; inset:-20%;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.20'/%3E%3C/svg%3E");
-      mix-blend-mode: overlay;
-      opacity:.22;
-      animation: grainMove 10s steps(6) infinite;
-    }
-    @keyframes grainMove{
-      0%{transform:translate(-2%, -2%)}
-      20%{transform:translate(2%, -3%)}
-      40%{transform:translate(-3%, 1%)}
-      60%{transform:translate(3%, 2%)}
-      80%{transform:translate(-1%, 3%)}
-      100%{transform:translate(-2%, -2%)}
-    }
-
-    /* Orbs */
-    .orb{
-      position:fixed;
-      width: 640px; height: 640px;
-      border-radius: 50%;
-      filter: blur(24px);
-      opacity: .55;
-      transform: translateZ(0);
-      background:
-        radial-gradient(circle at 30% 30%, rgba(46,233,255,.50), transparent 55%),
-        radial-gradient(circle at 70% 70%, rgba(76,125,255,.42), transparent 60%);
-      animation: float 12s ease-in-out infinite;
-      pointer-events:none;
-    }
-    .orb.o1{left:-220px; top:-240px; animation-duration: 16s; opacity:.48;}
-    .orb.o2{right:-260px; top:-190px; width: 760px; height: 760px; animation-duration: 18s; opacity:.42;}
-    .orb.o3{left: 35%; bottom:-520px; width: 980px; height: 980px; animation-duration: 20s; opacity:.30;}
-    @keyframes float{
-      0%,100%{transform:translate(0,0)}
-      50%{transform:translate(14px, -18px)}
-    }
-
-    .wrap{
-      position:relative;
-      height:100%;
-      display:grid;
-      place-items:center;
-      padding: 32px 16px;
-    }
-
-    /* Frame (legend feel) */
-    .frame{
-      width:min(720px, 100%);
-      border-radius: 34px;
-      padding: 1px;
-      background:
-        linear-gradient(135deg, rgba(46,233,255,.45), rgba(76,125,255,.25), rgba(255,255,255,.10));
-      box-shadow: var(--shadow);
-    }
-
-    .panel{
-      border-radius: 33px;
-      border: 1px solid rgba(255,255,255,.08);
-      background:
-        radial-gradient(1200px 600px at 30% 10%, rgba(46,233,255,.12), transparent 60%),
-        radial-gradient(900px 520px at 90% 30%, rgba(76,125,255,.12), transparent 60%),
-        linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      overflow:hidden;
-      position:relative;
+        radial-gradient(circle at top right, rgba(77, 160, 255, 0.15), transparent 24%),
+        radial-gradient(circle at left center, rgba(140, 231, 255, 0.09), transparent 24%),
+        linear-gradient(180deg, #08111f 0%, #091423 42%, #08111d 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 24px;
     }
 
-    /* Neon edge */
-    .panel::before{
-      content:"";
-      position:absolute; inset:-2px;
-      border-radius: 34px;
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    .login-shell {
+      width: min(1120px, 100%);
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(12, 24, 40, 0.88), rgba(10, 18, 31, 0.94));
+      box-shadow: var(--shadow-lg);
+      min-height: 720px;
+    }
+
+    .login-visual {
+      position: relative;
+      padding: 48px;
       background:
-        radial-gradient(600px 240px at 20% 15%, rgba(46,233,255,.14), transparent 60%),
-        radial-gradient(600px 240px at 80% 20%, rgba(76,125,255,.12), transparent 60%);
-      pointer-events:none;
-      opacity:.95;
-      filter: blur(8px);
+        linear-gradient(120deg, rgba(8, 17, 31, 0.84), rgba(8, 17, 31, 0.58)),
+        url("https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
-    /* Top bar */
-    .top{
-      position:relative;
-      z-index:2;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 14px;
-      padding: 6px 8px 14px 8px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-
-    .brand{
-      display:flex;
-      align-items:center;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    .mark{
-      width: 46px; height: 46px;
-      border-radius: 16px;
-      border: 1px solid var(--stroke2);
+    .login-visual::after {
+      content: "";
+      position: absolute;
+      inset: 0;
       background:
-        radial-gradient(circle at 35% 30%, rgba(46,233,255,.50), transparent 55%),
-        radial-gradient(circle at 70% 70%, rgba(76,125,255,.35), transparent 60%),
-        rgba(0,0,0,.20);
-      box-shadow: 0 18px 50px rgba(0,0,0,.35);
-      position:relative;
-      overflow:hidden;
-      flex: 0 0 auto;
-    }
-    .mark::after{
-      content:"";
-      position:absolute;
-      inset:-40%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
-      transform: rotate(25deg);
-      animation: sheen 6s ease-in-out infinite;
-    }
-    @keyframes sheen{
-      0%{transform:translateX(-44%) rotate(25deg)}
-      42%{transform:translateX(44%) rotate(25deg)}
-      100%{transform:translateX(44%) rotate(25deg)}
+        radial-gradient(circle at 20% 20%, rgba(121, 184, 255, 0.14), transparent 22%),
+        radial-gradient(circle at 80% 20%, rgba(140, 231, 255, 0.12), transparent 18%);
+      pointer-events: none;
     }
 
-    .brandTxt{
-      min-width:0;
+    .login-brand,
+    .login-copy,
+    .login-highlights {
+      position: relative;
+      z-index: 1;
     }
 
-    .brandTxt .t1{
-      font-size: 14px;
-      letter-spacing: .38em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.84);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .login-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
-    .brandTxt .t2{
-      margin-top: 4px;
+
+    .brand-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 22px;
+      color: #07111f;
+      background: linear-gradient(135deg, var(--accent), var(--primary), #d7f1ff);
+      box-shadow: 0 12px 28px rgba(77, 160, 255, 0.28);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .brand-text strong {
+      font-size: 20px;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-text span {
       font-size: 12px;
-      letter-spacing: .14em;
-      color: rgba(255,255,255,.42);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      color: var(--text-soft);
     }
 
-    .statusLine{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-      text-align:right;
-    }
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      gap: 10px;
-      padding: 10px 12px;
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 0 14px;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.16);
-      color: rgba(255,255,255,.70);
+      border: 1px solid rgba(140, 231, 255, 0.2);
+      background: rgba(121, 184, 255, 0.08);
+      color: var(--accent);
       font-size: 12px;
-      letter-spacing: .12em;
-      user-select:none;
-    }
-    .dot{
-      width: 8px; height: 8px; border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, rgba(46,233,255,1), rgba(76,125,255,1));
-      box-shadow: 0 0 0 4px rgba(46,233,255,.10);
-    }
-    .mono{ font-family:var(--mono); }
-
-    /* Main body */
-    .body{
-      position:relative;
-      z-index:2;
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
-      padding: 18px 8px 10px 8px;
-    }
-
-    .hero .kicker{
-      font-size: 12px;
-      color: rgba(46,233,255,.78);
-      letter-spacing: .34em;
-      text-transform: uppercase;
-    }
-    .hero h1{
-      margin: 12px 0 0 0;
-      font-size: 38px;
-      line-height: 1.12;
-      letter-spacing: -0.02em;
       font-weight: 700;
-    }
-    .hero p{
-      margin: 12px 0 0 0;
-      max-width: 60ch;
-      font-size: 14px;
-      line-height: 1.65;
-      color: var(--muted);
+      letter-spacing: 0.16em;
     }
 
-    .card{
-      border-radius: var(--r2);
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.16);
-      box-shadow: var(--shadow2);
-      padding: 18px;
+    .login-copy h1 {
+      margin: 20px 0 14px;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1.03;
+      letter-spacing: -0.04em;
     }
 
-    .card h2{
+    .login-copy p {
       margin: 0;
-      font-size: 16px;
+      max-width: 520px;
+      color: var(--text-muted);
+      font-size: 17px;
+      line-height: 1.6;
+    }
+
+    .login-highlights {
+      display: grid;
+      gap: 14px;
+    }
+
+    .highlight-card {
+      padding: 20px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(10, 20, 34, 0.52);
+      backdrop-filter: blur(12px);
+    }
+
+    .highlight-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .highlight-card span {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .login-panel {
+      padding: 44px 38px;
+      background: linear-gradient(180deg, rgba(12, 22, 38, 0.96), rgba(9, 16, 27, 0.98));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+
+    .panel-header p {
+      margin: 12px 0 0;
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .status-box {
+      margin-top: 24px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      display: grid;
+      gap: 10px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+    }
+
+    .status-label {
+      color: var(--text-soft);
+    }
+
+    .status-value {
       font-weight: 700;
-      letter-spacing: .01em;
+      color: var(--text);
     }
-    .card .sub{
-      margin-top: 8px;
+
+    .status-value.ok {
+      color: var(--success);
+    }
+
+    .status-value.error {
+      color: var(--danger);
+    }
+
+    .login-form {
+      margin-top: 24px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field label {
       font-size: 13px;
-      line-height: 1.55;
-      color: var(--muted);
+      color: var(--text-soft);
+      font-weight: 600;
     }
 
-    form{
-      margin-top: 12px;
-      display:flex;
-      flex-direction:column;
-      gap: 12px;
-    }
-
-    .field{ display:flex; flex-direction:column; gap: 8px; }
-
-    label{
-      font-size: 11px;
-      letter-spacing: .22em;
-      color: rgba(255,255,255,.65);
-    }
-
-    .input{
-      display:flex;
-      align-items:center;
-      gap: 12px;
-      padding: 12px 14px;
+    .field input {
+      width: 100%;
+      min-height: 54px;
       border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.22);
-      transition: border-color .18s ease, background .18s ease, transform .18s ease;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
-    }
-    .input:focus-within{
-      border-color: rgba(46,233,255,.50);
-      background: rgba(0,0,0,.28);
-      transform: translateY(-1px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      padding: 0 16px;
+      outline: none;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
     }
 
-    .input svg{
-      width: 18px; height: 18px;
-      opacity: .75;
-      flex: 0 0 auto;
+    .field input::placeholder {
+      color: #8ea1ba;
     }
 
-    input{
-      width:100%;
-      border:0;
-      outline:0;
-      background:transparent;
-      color: rgba(255,255,255,.92);
-      font-size: 14px;
-      letter-spacing: .01em;
+    .field input:focus {
+      border-color: rgba(121, 184, 255, 0.6);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 0 5px rgba(121, 184, 255, 0.08);
     }
-    input::placeholder{ color: rgba(255,255,255,.35); }
 
-    .row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
+    .option-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 12px;
-      margin-top: 6px;
-      color: rgba(255,255,255,.52);
-      font-size: 12px;
+      margin-top: 2px;
     }
 
-    .kbd{
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 3px 7px;
-      border-radius: 9px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.18);
-      color: rgba(255,255,255,.75);
+    .checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
     }
 
-    .btn{
+    .checkbox input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+    }
+
+    .helper-link {
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      height: 54px;
+      border-radius: 999px;
+      padding: 0 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), background var(--transition), opacity var(--transition);
+      white-space: nowrap;
+    }
+
+    .primary-btn {
+      color: #08111d;
+      background: linear-gradient(135deg, #d7f1ff 0%, var(--accent) 22%, var(--primary) 78%, #bddfff 100%);
+      box-shadow: 0 14px 30px rgba(77, 160, 255, 0.24);
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 34px rgba(77, 160, 255, 0.32);
+    }
+
+    .secondary-btn {
+      color: var(--text);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .secondary-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .button-grid {
+      display: grid;
+      gap: 12px;
       margin-top: 8px;
-      border: 1px solid rgba(46,233,255,.32);
-      background:
-        radial-gradient(120% 140% at 18% 10%, rgba(46,233,255,.26), transparent 50%),
-        radial-gradient(120% 140% at 84% 30%, rgba(76,125,255,.20), transparent 55%),
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-      color: rgba(255,255,255,.94);
-      border-radius: 16px;
-      padding: 12px 14px;
-      font-size: 14px;
-      font-weight: 750;
-      letter-spacing: .02em;
-      cursor:pointer;
-      transition: transform .16s ease, border-color .16s ease, filter .16s ease;
-      box-shadow: 0 18px 50px rgba(0,0,0,.35);
     }
-    .btn:hover{
-      transform: translateY(-1px);
-      border-color: rgba(46,233,255,.60);
-      filter: brightness(1.04);
-    }
-    .btn:active{ transform: translateY(0px) scale(.995); }
-    .btn:disabled{ cursor:not-allowed; opacity:.65; transform:none; }
 
-    .alert{
-      border-radius: 16px;
-      border: 1px solid rgba(255,90,90,.25);
-      background: var(--dangerBg);
-      color: rgba(255,185,185,.92);
-      padding: 10px 12px;
+    .notice-box {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(121, 184, 255, 0.18);
+      background: rgba(121, 184, 255, 0.06);
+      color: var(--text-muted);
       font-size: 13px;
-      line-height: 1.45;
-      display:none;
-    }
-    .alert.ok{
-      border-color: rgba(120,255,210,.22);
-      background: var(--okBg);
-      color: rgba(185,255,235,.92);
+      line-height: 1.6;
     }
 
-    .foot{
-      position:relative;
-      z-index:2;
-      display:flex;
-      justify-content:space-between;
+    .notice-box strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .panel-footer {
+      margin-top: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 12px;
-      padding: 14px 8px 0 8px;
-      border-top: 1px solid rgba(255,255,255,.08);
-      color: rgba(255,255,255,.42);
-      font-size: 12px;
+      color: var(--text-soft);
+      font-size: 13px;
     }
 
-    /* Responsive */
-    @media (max-width: 620px){
-      body{ overflow:auto; }
-      .panel{ padding: 18px; }
-      .hero h1{ font-size: 30px; }
-      .statusLine{ justify-content:flex-start; text-align:left; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 26px;
+      z-index: 110;
+      transform: translateX(-50%) translateY(18px);
+      min-width: 240px;
+      max-width: min(90vw, 560px);
+      padding: 14px 18px;
+      border-radius: 999px;
+      text-align: center;
+      color: #08111d;
+      font-weight: 700;
+      background: linear-gradient(135deg, #eef8ff, var(--accent), #cce7ff);
+      box-shadow: 0 16px 34px rgba(77, 160, 255, 0.24);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition), transform var(--transition);
+    }
+
+    .toast.is-show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 980px) {
+      .login-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .login-visual {
+        min-height: 420px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 14px;
+      }
+
+      .login-panel,
+      .login-visual {
+        padding: 24px 20px;
+      }
+
+      .panel-header h2 {
+        font-size: 28px;
+      }
+
+      .option-row,
+      .panel-footer,
+      .status-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .login-copy h1 {
+        font-size: 38px;
+      }
     }
   </style>
 </head>
-
 <body>
-  <div class="orb o1"></div>
-  <div class="orb o2"></div>
-  <div class="orb o3"></div>
-  <div class="bgGrid"></div>
-  <div class="grain"></div>
+  <div class="login-shell">
+    <section class="login-visual">
+      <div class="login-brand">
+        <div class="brand-mark">K</div>
+        <div class="brand-text">
+          <strong>KORUAL Space</strong>
+          <span>Admin Secure Access</span>
+        </div>
+      </div>
 
-  <div class="wrap">
-    <div class="frame">
-      <section class="panel" aria-label="KORUAL Login">
-        <div class="top">
-          <div class="brand">
-            <div class="mark" aria-hidden="true"></div>
-            <div class="brandTxt">
-              <div class="t1">KORUAL</div>
-              <div class="t2">CONTROL CENTER • SECURE ACCESS</div>
-            </div>
-          </div>
+      <div class="login-copy">
+        <span class="eyebrow">ADMIN SECURITY</span>
+        <h1>운영자 전용<br />보안 로그인</h1>
+        <p>
+          KORUAL Space 운영자 모드는 전용 VPN 연결 상태에서만 접근되도록 설계됩니다.
+          관리자 계정, 2차 인증, 접속 로그 분리 구조까지 확장 가능한 로그인 화면입니다.
+        </p>
+      </div>
 
-          <div class="statusLine" aria-label="Status">
-            <span class="chip"><span class="dot"></span>HYPER-SAFE PROTOCOL</span>
-            <span class="chip"><span class="dot"></span>ENV <span class="mono" id="envLabel">PROD</span></span>
-            <span class="chip"><span class="dot"></span>SESSION ENCRYPTED</span>
-          </div>
+      <div class="login-highlights">
+        <div class="highlight-card">
+          <strong>VPN 우선 인증</strong>
+          <span>운영자 페이지는 전용 VPN 연결 상태를 우선 확인한 뒤 접근을 허용합니다.</span>
+        </div>
+        <div class="highlight-card">
+          <strong>권한 기반 분리</strong>
+          <span>Super Admin, Security, Operations, Finance 등 역할별 권한 구조로 확장 가능합니다.</span>
+        </div>
+        <div class="highlight-card">
+          <strong>보안 로그 기록</strong>
+          <span>운영자 접속, 실패 시도, 관리자 활동 로그를 별도 저장하는 구조를 전제로 합니다.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-panel">
+      <div class="panel-header">
+        <h2>관리자 로그인</h2>
+        <p>
+          아래 정보는 MVP용 프론트 로직 기준입니다.
+          실제 운영 시에는 서버 인증, 세션 토큰, OTP 검증으로 교체해야 합니다.
+        </p>
+      </div>
+
+      <div class="status-box">
+        <div class="status-row">
+          <span class="status-label">VPN 연결 상태</span>
+          <span class="status-value" id="vpnStatus">확인 중</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">관리자 역할</span>
+          <span class="status-value" id="roleStatus">미확인</span>
+        </div>
+        <div class="status-row">
+          <span class="status-label">보안 정책</span>
+          <span class="status-value">VPN + 계정 + OTP 확장 가능</span>
+        </div>
+      </div>
+
+      <form class="login-form" id="loginForm">
+        <div class="field">
+          <label for="adminId">관리자 ID</label>
+          <input
+            id="adminId"
+            name="adminId"
+            type="text"
+            placeholder="admin"
+            autocomplete="username"
+          />
         </div>
 
-        <div class="body">
-          <div class="hero">
-            <div class="kicker">PRIVATE CONSOLE</div>
-            <h1>System Login</h1>
-            <p>
-              Login is restricted. Unauthorized attempts are logged and reported for audit and security compliance.
-            </p>
-          </div>
-
-          <div class="card">
-            <h2>Sign in</h2>
-            <div class="sub">
-              Enter your credentials to continue. If you are locked out, contact the system administrator.
-            </div>
-
-            <div class="alert" id="alert"></div>
-
-            <form id="loginForm" autocomplete="on" novalidate>
-              <div class="field">
-                <label for="username">USERNAME</label>
-                <div class="input">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" stroke-width="1.5"/>
-                    <path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                  <input id="username" name="username" type="text" placeholder="KORUAL" autocomplete="username" required />
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="password">PASSWORD</label>
-                <div class="input">
-                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    <path d="M6.5 10h11A2.5 2.5 0 0 1 20 12.5v6A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-6A2.5 2.5 0 0 1 6.5 10Z" stroke="currentColor" stroke-width="1.5"/>
-                    <path d="M12 15v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                  <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
-                </div>
-              </div>
-
-              <div class="row">
-                <div>Tip <b>Enter</b> to submit</div>
-                <div><span class="kbd">CTRL</span> + <span class="kbd">L</span> focus address</div>
-              </div>
-
-              <button class="btn" id="submitBtn" type="submit">Authenticate</button>
-
-              <div class="row" style="margin-top:10px; color: rgba(255,255,255,.40);">
-                <div>Mode <span class="mono" id="mode">cookie session</span></div>
-                <div>API <span class="mono" id="apiShort">unset</span></div>
-              </div>
-            </form>
-          </div>
+        <div class="field">
+          <label for="adminPassword">비밀번호</label>
+          <input
+            id="adminPassword"
+            name="adminPassword"
+            type="password"
+            placeholder="비밀번호 입력"
+            autocomplete="current-password"
+          />
         </div>
 
-        <div class="foot">
-          <div>Environment <span class="mono" id="envLabel2">PROD</span></div>
-          <div class="mono" id="clock">--:--:--</div>
+        <div class="field">
+          <label for="otpCode">OTP 코드</label>
+          <input
+            id="otpCode"
+            name="otpCode"
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            placeholder="123456"
+          />
         </div>
-      </section>
-    </div>
+
+        <div class="option-row">
+          <label class="checkbox">
+            <input type="checkbox" id="rememberAdmin" />
+            <span>운영자 로그인 상태 기억</span>
+          </label>
+          <a href="./index.html" class="helper-link">메인으로 돌아가기</a>
+        </div>
+
+        <div class="button-grid">
+          <button type="submit" class="primary-btn">운영자 로그인</button>
+          <button type="button" class="secondary-btn" id="vpnMockBtn">개발용 VPN 연결 토글</button>
+          <button type="button" class="secondary-btn" id="adminMockBtn">개발용 관리자 권한 세팅</button>
+        </div>
+      </form>
+
+      <div class="notice-box">
+        <strong>개발용 기본 테스트 정보</strong>
+        admin / 1234 / 123456 조합으로 로그인되도록 구성했습니다.<br />
+        실제 배포 시에는 이 프론트 테스트 로직을 제거하고 서버 검증으로 교체해야 합니다.
+      </div>
+
+      <div class="panel-footer">
+        <span>Secure Access for KORUAL Space Admin</span>
+        <span id="loginMessage">접속 대기 중</span>
+      </div>
+    </section>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script>
-    /*
-      Login-only index.html (legend high-end)
-      - Cloud Run API (cookie session): POST {API_BASE}/auth/login
-      - Change API_BASE to your Cloud Run Service URL
-    */
+    (() => {
+      "use strict";
 
-    const API_BASE = "https://your-cloud-run-url"; // TODO: replace with real Cloud Run URL
-    const AFTER_LOGIN_REDIRECT = "/";              // TODO: change if needed
+      const form = document.getElementById("loginForm");
+      const vpnStatus = document.getElementById("vpnStatus");
+      const roleStatus = document.getElementById("roleStatus");
+      const loginMessage = document.getElementById("loginMessage");
+      const vpnMockBtn = document.getElementById("vpnMockBtn");
+      const adminMockBtn = document.getElementById("adminMockBtn");
+      const toast = document.getElementById("toast");
 
-    const $ = (id) => document.getElementById(id);
+      const STORAGE_KEYS = {
+        vpn: "korual_admin_vpn",
+        role: "korual_admin_role",
+        auth: "korual_admin_authenticated",
+        remember: "korual_admin_remember",
+      };
 
-    const envLabel = $("envLabel");
-    const envLabel2 = $("envLabel2");
-    const apiShort = $("apiShort");
-    const mode = $("mode");
-    const clock = $("clock");
+      init();
 
-    const form = $("loginForm");
-    const btn = $("submitBtn");
-    const alertBox = $("alert");
-    const userEl = $("username");
-    const passEl = $("password");
+      function init() {
+        syncStatus();
 
-    // Init
-    userEl.value = "KORUAL";
-
-    const envText = (location.hostname === "localhost" || location.hostname === "127.0.0.1") ? "DEV" : "PROD";
-    envLabel.textContent = envText;
-    envLabel2.textContent = envText;
-
-    apiShort.textContent = API_BASE.replace(/^https?:\/\//, "").slice(0, 40) + (API_BASE.length > 44 ? "…" : "");
-    mode.textContent = "HttpOnly Cookie Session";
-
-    function tick(){
-      const d = new Date();
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      const ss = String(d.getSeconds()).padStart(2, "0");
-      clock.textContent = `${hh}:${mm}:${ss}`;
-    }
-    tick();
-    setInterval(tick, 1000);
-
-    function showAlert(message, ok=false){
-      alertBox.classList.toggle("ok", !!ok);
-      alertBox.textContent = message;
-      alertBox.style.display = "block";
-    }
-    function hideAlert(){
-      alertBox.style.display = "none";
-      alertBox.textContent = "";
-      alertBox.classList.remove("ok");
-    }
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      hideAlert();
-
-      const username = String(userEl.value || "").trim();
-      const password = String(passEl.value || "");
-
-      if (!username || !password){
-        showAlert("USERNAME 및 PASSWORD를 입력하세요.");
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = "Authenticating...";
-
-      try{
-        const r = await fetch(`${API_BASE}/auth/login`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
+        vpnMockBtn.addEventListener("click", () => {
+          const current = localStorage.getItem(STORAGE_KEYS.vpn) === "true";
+          localStorage.setItem(STORAGE_KEYS.vpn, String(!current));
+          if (!current && !localStorage.getItem(STORAGE_KEYS.role)) {
+            localStorage.setItem(STORAGE_KEYS.role, "guest");
+          }
+          syncStatus();
+          showToast(!current ? "개발용 VPN 연결 상태로 변경했습니다." : "VPN 연결을 해제했습니다.");
         });
 
-        const j = await r.json().catch(() => ({}));
+        adminMockBtn.addEventListener("click", () => {
+          const currentRole = localStorage.getItem(STORAGE_KEYS.role) || "guest";
+          const nextRole = currentRole === "admin" ? "guest" : "admin";
+          localStorage.setItem(STORAGE_KEYS.role, nextRole);
+          syncStatus();
+          showToast(nextRole === "admin" ? "개발용 관리자 권한을 부여했습니다." : "관리자 권한을 해제했습니다.");
+        });
 
-        if (!j.ok){
-          const err = j.error || "LOGIN_FAILED";
-          if (err === "LOCKED"){
-            showAlert(`계정이 잠겼습니다. 해제 시간: ${j.locked_until || "unknown"}`);
-          } else if (err === "INACTIVE_USER"){
-            showAlert("비활성화된 계정입니다. 관리자에게 문의하세요.");
-          } else if (err === "INVALID_CREDENTIALS"){
-            const fc = (typeof j.fail_count === "number") ? ` (fail_count: ${j.fail_count})` : "";
-            showAlert(`인증 실패: 자격 증명이 올바르지 않습니다.${fc}`);
-          } else if (err === "IP_NOT_ALLOWED"){
-            showAlert(`허용되지 않은 IP 입니다. (${j.ip || ""})`);
-          } else {
-            showAlert(`인증 실패: ${err}`);
-          }
+        form.addEventListener("submit", onSubmit);
+      }
+
+      function syncStatus() {
+        const hasVpn = localStorage.getItem(STORAGE_KEYS.vpn) === "true";
+        const role = localStorage.getItem(STORAGE_KEYS.role) || "guest";
+
+        vpnStatus.textContent = hasVpn ? "연결됨" : "미연결";
+        vpnStatus.className = "status-value " + (hasVpn ? "ok" : "error");
+
+        roleStatus.textContent = role;
+        roleStatus.className = "status-value " + (role === "admin" || role === "super_admin" ? "ok" : "");
+
+        loginMessage.textContent = hasVpn
+          ? "VPN 상태 확인 완료"
+          : "운영자 VPN 연결 필요";
+      }
+
+      function onSubmit(event) {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+        const adminId = String(formData.get("adminId") || "").trim();
+        const adminPassword = String(formData.get("adminPassword") || "").trim();
+        const otpCode = String(formData.get("otpCode") || "").trim();
+        const remember = document.getElementById("rememberAdmin").checked;
+
+        const hasVpn = localStorage.getItem(STORAGE_KEYS.vpn) === "true";
+        const role = localStorage.getItem(STORAGE_KEYS.role) || "guest";
+
+        if (!hasVpn) {
+          loginMessage.textContent = "VPN 연결이 필요합니다.";
+          showToast("운영자 로그인은 전용 VPN 연결 후 가능합니다.");
           return;
         }
 
-        showAlert("인증 성공. 이동합니다...", true);
-        setTimeout(() => {
-          window.location.href = AFTER_LOGIN_REDIRECT;
-        }, 420);
+        if (role !== "admin" && role !== "super_admin") {
+          loginMessage.textContent = "관리자 권한 없음";
+          showToast("운영자 권한이 없는 계정입니다.");
+          return;
+        }
 
-      } catch (err){
-        showAlert("네트워크 오류. API 접근을 확인하세요.");
-      } finally{
-        btn.disabled = false;
-        btn.textContent = "Authenticate";
+        if (!adminId || !adminPassword || !otpCode) {
+          loginMessage.textContent = "입력값 확인 필요";
+          showToast("관리자 ID, 비밀번호, OTP를 모두 입력해 주세요.");
+          return;
+        }
+
+        const isValid =
+          adminId === "admin" &&
+          adminPassword === "1234" &&
+          otpCode === "123456";
+
+        if (!isValid) {
+          loginMessage.textContent = "로그인 실패";
+          showToast("로그인 정보가 올바르지 않습니다.");
+          return;
+        }
+
+        localStorage.setItem(STORAGE_KEYS.auth, "true");
+        localStorage.setItem(STORAGE_KEYS.remember, String(remember));
+        loginMessage.textContent = "로그인 성공";
+
+        showToast("운영자 로그인에 성공했습니다.");
+
+        setTimeout(() => {
+          window.location.href = "./admin.html";
+        }, 700);
       }
-    });
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("is-show");
+
+        clearTimeout(showToast._timer);
+        showToast._timer = setTimeout(() => {
+          toast.classList.remove("is-show");
+        }, 2200);
+      }
+
+      window.setKorualAdminVpn = function(enabled, role = "admin") {
+        localStorage.setItem(STORAGE_KEYS.vpn, String(Boolean(enabled)));
+        localStorage.setItem(STORAGE_KEYS.role, enabled ? role : "guest");
+        syncStatus();
+      };
+    })();
   </script>
 </body>
 </html>
