@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KORUAL Space</title>
+  <title>KORUAL Space Admin Dashboard</title>
   <meta
     name="description"
-    content="KORUAL Space - 촬영, 웨딩, 파티, 콘텐츠 제작 공간 예약 플랫폼"
+    content="KORUAL Space 운영자 대시보드"
   />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,339 +14,1172 @@
     href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="./style.css" />
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-soft: #0c1b2d;
+      --panel: rgba(12, 24, 40, 0.82);
+      --panel-strong: rgba(10, 18, 32, 0.94);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.16);
+      --text: #f4f7fb;
+      --text-muted: #b8c4d6;
+      --text-soft: #8fa2bb;
+      --primary: #79b8ff;
+      --primary-strong: #4da0ff;
+      --accent: #8ce7ff;
+      --gold: #e6c98a;
+      --success: #75e0a7;
+      --warning: #ffd479;
+      --danger: #ff8f8f;
+      --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.35);
+      --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.22);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --transition: 180ms ease;
+      --sidebar-width: 280px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(77, 160, 255, 0.14), transparent 22%),
+        radial-gradient(circle at left center, rgba(140, 231, 255, 0.09), transparent 24%),
+        linear-gradient(180deg, #08111f 0%, #091423 38%, #08111d 100%);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+      background: none;
+      color: inherit;
+    }
+
+    .dashboard-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: var(--sidebar-width) 1fr;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 24px 18px;
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(10, 18, 32, 0.96), rgba(7, 13, 23, 0.98));
+      backdrop-filter: blur(18px);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 8px 10px;
+    }
+
+    .brand-mark {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 22px;
+      color: #07111f;
+      background: linear-gradient(135deg, var(--accent), var(--primary), #d7f1ff);
+      box-shadow: 0 12px 28px rgba(77, 160, 255, 0.28);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .brand-text strong {
+      font-size: 18px;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-text span {
+      color: var(--text-soft);
+      font-size: 12px;
+    }
+
+    .security-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      display: grid;
+      gap: 10px;
+    }
+
+    .security-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--danger);
+      box-shadow: 0 0 0 6px rgba(255, 143, 143, 0.12);
+    }
+
+    .status-dot.ok {
+      background: var(--success);
+      box-shadow: 0 0 0 6px rgba(117, 224, 167, 0.12);
+    }
+
+    .security-meta {
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .security-meta strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .nav-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-title {
+      padding: 0 12px;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+
+    .nav-item {
+      min-height: 48px;
+      border-radius: 16px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-muted);
+      transition: background var(--transition), color var(--transition), border-color var(--transition);
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover,
+    .nav-item.is-active {
+      color: var(--text);
+      background: rgba(121, 184, 255, 0.08);
+      border-color: rgba(121, 184, 255, 0.16);
+    }
+
+    .nav-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.05);
+      flex-shrink: 0;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .btn {
+      min-height: 48px;
+      border-radius: 999px;
+      padding: 0 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), opacity var(--transition);
+    }
+
+    .btn-primary {
+      color: #08111d;
+      background: linear-gradient(135deg, #d7f1ff 0%, var(--accent) 22%, var(--primary) 78%, #bddfff 100%);
+      box-shadow: 0 14px 30px rgba(77, 160, 255, 0.24);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 34px rgba(77, 160, 255, 0.32);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .main {
+      padding: 24px;
+      display: grid;
+      gap: 22px;
+    }
+
+    .topbar {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 18px 20px;
+      background: linear-gradient(180deg, rgba(12, 24, 40, 0.88), rgba(10, 18, 31, 0.92));
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(140, 231, 255, 0.2);
+      background: rgba(121, 184, 255, 0.08);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      width: fit-content;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+
+    .topbar p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+    }
+
+    .pill strong {
+      color: var(--text);
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(13, 24, 40, 0.92), rgba(9, 16, 27, 0.96));
+      box-shadow: var(--shadow-md);
+    }
+
+    .metric-card {
+      padding: 22px 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .metric-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .metric-label {
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .metric-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(121, 184, 255, 0.08);
+      border: 1px solid rgba(121, 184, 255, 0.14);
+      color: var(--accent);
+      font-size: 16px;
+    }
+
+    .metric-value {
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .metric-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .up {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    .down {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .section-card {
+      padding: 22px 20px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .section-head p {
+      margin: 6px 0 0;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .mini-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .mini-btn:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .chart-box {
+      min-height: 260px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+        radial-gradient(circle at bottom left, rgba(77, 160, 255, 0.12), transparent 34%);
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bars {
+      position: absolute;
+      inset: auto 18px 18px 18px;
+      height: 180px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+      align-items: end;
+    }
+
+    .bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar {
+      width: 100%;
+      border-radius: 14px 14px 8px 8px;
+      background: linear-gradient(180deg, rgba(140, 231, 255, 0.9), rgba(77, 160, 255, 0.65));
+      box-shadow: 0 12px 24px rgba(77, 160, 255, 0.18);
+    }
+
+    .bar-label {
+      color: var(--text-soft);
+      font-size: 12px;
+    }
+
+    .line-box {
+      min-height: 260px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+        radial-gradient(circle at top right, rgba(140, 231, 255, 0.08), transparent 30%);
+      padding: 18px;
+      display: grid;
+      align-items: center;
+    }
+
+    .line-svg {
+      width: 100%;
+      height: 220px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th,
+    td {
+      padding: 16px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--text-soft);
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    td {
+      color: var(--text-muted);
+    }
+
+    td strong {
+      color: var(--text);
+    }
+
+    .badge {
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .badge-blue {
+      color: #d9efff;
+      background: rgba(121, 184, 255, 0.12);
+      border-color: rgba(121, 184, 255, 0.18);
+    }
+
+    .badge-green {
+      color: #dff8ea;
+      background: rgba(117, 224, 167, 0.12);
+      border-color: rgba(117, 224, 167, 0.18);
+    }
+
+    .badge-yellow {
+      color: #fff4d7;
+      background: rgba(255, 212, 121, 0.12);
+      border-color: rgba(255, 212, 121, 0.18);
+    }
+
+    .badge-red {
+      color: #ffe0e0;
+      background: rgba(255, 143, 143, 0.12);
+      border-color: rgba(255, 143, 143, 0.18);
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .list-item {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .list-item strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    .list-item p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .list-side {
+      text-align: right;
+      color: var(--text-soft);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .security-mini {
+      padding: 18px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.03);
+      display: grid;
+      gap: 8px;
+    }
+
+    .security-mini span {
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .security-mini strong {
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .footer-note {
+      color: var(--text-soft);
+      font-size: 12px;
+      text-align: center;
+      padding: 4px 0 14px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1280px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .security-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .dashboard-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+      }
+
+      .main {
+        padding-top: 0;
+      }
+
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .main,
+      .sidebar {
+        padding: 16px;
+      }
+
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar,
+      .section-head,
+      .list-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .topbar-right {
+        width: 100%;
+      }
+
+      .pill {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="site-shell">
-    <header class="topbar">
-      <div class="topbar__inner">
-        <div class="brand">
-          <div class="brand__mark">K</div>
-          <div class="brand__text">
-            <strong data-app-title>KORUAL Space</strong>
-            <span>Luxury Space Booking Platform</span>
-          </div>
-        </div>
-
-        <nav class="topbar__nav">
-          <a href="#spaces">공간 찾기</a>
-          <a href="#booking">예약 신청</a>
-          <a href="#host">호스트 안내</a>
-        </nav>
-
-        <div class="topbar__actions">
-          <div class="topbar__stats">
-            <span>찜 <strong data-favorites-count>0</strong></span>
-            <span>예약 <strong data-bookings-count>0</strong></span>
-          </div>
-          <button class="admin-btn" data-admin-entry disabled>운영자 모드</button>
-        </div>
-      </div>
-    </header>
-
-    <main>
-      <section class="hero">
-        <div class="hero__overlay"></div>
-        <div class="hero__inner">
-          <div class="hero__content">
-            <span class="hero__eyebrow">KORUAL SPACE</span>
-            <h1>공간을 빌리는 것이 아니라<br />콘텐츠를 만드는 공간</h1>
-            <p>
-              웨딩촬영, 브랜드 화보, 룩북, 인터뷰, 파티까지
-              목적에 맞는 프리미엄 공간을 찾고 예약하세요.
-            </p>
-
-            <div class="hero__cta">
-              <a href="#spaces" class="primary-btn">공간 둘러보기</a>
-              <a href="#booking" class="secondary-btn">예약 신청하기</a>
-            </div>
-
-            <div class="hero__meta">
-              <div class="hero__card">
-                <strong>실결제 리뷰</strong>
-                <span>검증 기반 신뢰 시스템</span>
-              </div>
-              <div class="hero__card">
-                <strong>웨딩 특화</strong>
-                <span>셀프웨딩 · 화보 · 드레스 촬영</span>
-              </div>
-              <div class="hero__card">
-                <strong>운영 보안</strong>
-                <span data-admin-status>운영자 모드는 전용 VPN 연결 후 활성화</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="quick-overview">
-        <div class="section__inner quick-overview__grid">
-          <article class="overview-card">
-            <h3>프리미엄 공간 큐레이션</h3>
-            <p>
-              자연광, 호텔 무드, 마블 인테리어, 파노라마 뷰 등
-              촬영 목적 중심으로 정교하게 탐색할 수 있습니다.
-            </p>
-          </article>
-          <article class="overview-card">
-            <h3>실제 예약 기반 리뷰</h3>
-            <p>
-              실제 예약과 이용 완료가 확인된 사용자만 리뷰를 남길 수 있어
-              조작 가능성을 낮추고 신뢰도를 높입니다.
-            </p>
-          </article>
-          <article class="overview-card">
-            <h3>장비 및 서비스 확장</h3>
-            <p>
-              조명, 드레스랙, 스팀다리미, 프로젝터 등
-              공간과 함께 필요한 장비까지 연결되는 구조를 지향합니다.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <section id="spaces" class="listing-section">
-        <div class="section__inner">
-          <div class="section-heading">
-            <div>
-              <span class="section-heading__eyebrow">DISCOVER</span>
-              <h2>추천 공간</h2>
-              <p>
-                KORUAL Space의 큐레이션 기준으로 선별된 촬영 · 웨딩 · 파티 공간입니다.
-              </p>
-            </div>
-            <div class="section-heading__info" data-result-count>검색 결과 0개</div>
-          </div>
-
-          <div class="filter-panel">
-            <div class="filter-grid">
-              <label class="field">
-                <span>검색어</span>
-                <input
-                  type="text"
-                  placeholder="공간명, 도시, 태그, 장비 검색"
-                  data-filter="keyword"
-                />
-              </label>
-
-              <label class="field">
-                <span>도시</span>
-                <select data-filter="city">
-                  <option value="all">전체 도시</option>
-                  <option value="서울">서울</option>
-                  <option value="인천">인천</option>
-                  <option value="부산">부산</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span>카테고리</span>
-                <select data-filter="category">
-                  <option value="all">전체 카테고리</option>
-                  <option value="촬영">촬영</option>
-                  <option value="웨딩">웨딩</option>
-                  <option value="파티">파티</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span>정렬</span>
-                <select data-filter="sort">
-                  <option value="recommended">추천순</option>
-                  <option value="rating">평점순</option>
-                  <option value="reviews">리뷰순</option>
-                  <option value="price-low">낮은 가격순</option>
-                  <option value="price-high">높은 가격순</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="filter-panel__actions">
-              <button class="secondary-btn" type="button" data-action="reset-filters">
-                필터 초기화
-              </button>
-            </div>
-          </div>
-
-          <div class="space-grid" data-space-grid></div>
-        </div>
-      </section>
-
-      <section class="feature-section">
-        <div class="section__inner">
-          <div class="section-heading">
-            <div>
-              <span class="section-heading__eyebrow">WHY KORUAL</span>
-              <h2>플랫폼 핵심 구조</h2>
-            </div>
-          </div>
-
-          <div class="feature-grid">
-            <article class="feature-card">
-              <h3>촬영 목적 중심 추천</h3>
-              <p>
-                웨딩, 룩북, 인터뷰, 브랜드 화보, 제품촬영 등
-                사용 목적에 따라 공간을 필터링하고 선택할 수 있습니다.
-              </p>
-            </article>
-
-            <article class="feature-card">
-              <h3>Host Trust Score</h3>
-              <p>
-                리뷰 점수, 취소율, 응답률, 신고 이력 등을 조합해
-                호스트 신뢰 구조를 점진적으로 고도화할 수 있습니다.
-              </p>
-            </article>
-
-            <article class="feature-card">
-              <h3>운영자 보안 분리</h3>
-              <p>
-                운영자 모드는 전용 VPN 인증, 관리자 계정 권한, OTP 등
-                내부 운영망 중심 구조로 확장하기 적합합니다.
-              </p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="booking" class="booking-section">
-        <div class="section__inner booking-layout">
-          <div class="booking-copy">
-            <span class="section-heading__eyebrow">BOOKING</span>
-            <h2>예약 신청</h2>
-            <p>
-              원하는 공간을 상세보기에서 선택한 뒤 아래 폼으로 예약 신청을 진행하세요.
-              현재 MVP 구조에서는 신청 데이터가 브라우저 저장소에 보관됩니다.
-            </p>
-
-            <div class="booking-note">
-              <h3>예약 프로세스</h3>
-              <ol>
-                <li>공간 선택</li>
-                <li>날짜 및 시간 입력</li>
-                <li>이용 목적 기재</li>
-                <li>예약 신청 접수</li>
-              </ol>
-            </div>
-          </div>
-
-          <div class="booking-card">
-            <form class="booking-form" data-booking-form>
-              <input name="spaceId" type="hidden" />
-
-              <label class="field">
-                <span>선택 공간</span>
-                <input
-                  name="spaceName"
-                  type="text"
-                  placeholder="상세보기에서 공간을 선택해 주세요"
-                  readonly
-                />
-              </label>
-
-              <label class="field">
-                <span>예약자명</span>
-                <input name="name" type="text" placeholder="이름 입력" />
-              </label>
-
-              <label class="field">
-                <span>연락처</span>
-                <input name="phone" type="text" placeholder="010-0000-0000" />
-              </label>
-
-              <div class="form-row">
-                <label class="field">
-                  <span>이용 날짜</span>
-                  <input name="date" type="date" />
-                </label>
-
-                <label class="field">
-                  <span>시작 시간</span>
-                  <input name="time" type="time" />
-                </label>
-              </div>
-
-              <label class="field">
-                <span>이용 시간</span>
-                <input name="hours" type="number" min="1" value="1" />
-              </label>
-
-              <label class="field">
-                <span>사용 목적</span>
-                <textarea
-                  name="purpose"
-                  rows="5"
-                  placeholder="예: 셀프웨딩 촬영, 브랜드 제품촬영, 유튜브 인터뷰 촬영"
-                ></textarea>
-              </label>
-
-              <button type="submit" class="primary-btn primary-btn--full">
-                예약 신청하기
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      <section id="host" class="host-section">
-        <div class="section__inner host-layout">
-          <div class="host-card">
-            <span class="section-heading__eyebrow">FOR HOST</span>
-            <h2>호스트 운영 방향</h2>
-            <p>
-              KORUAL Space는 단순 등록형 플랫폼이 아니라
-              신뢰 기반의 프리미엄 공간 네트워크를 지향합니다.
-            </p>
-          </div>
-
-          <div class="host-grid">
-            <article class="host-item">
-              <h3>실결제 리뷰 반영</h3>
-              <p>이용 완료가 확인된 예약만 리뷰 대상으로 연결합니다.</p>
-            </article>
-            <article class="host-item">
-              <h3>신뢰도 기반 노출</h3>
-              <p>호스트 품질이 높을수록 노출과 등록 한도를 확장할 수 있습니다.</p>
-            </article>
-            <article class="host-item">
-              <h3>장비 연동 확장</h3>
-              <p>촬영 장비, 드레스, 조명 등 부가 수익 구조를 추가할 수 있습니다.</p>
-            </article>
-            <article class="host-item">
-              <h3>보안 로그 관리</h3>
-              <p>운영자 기능은 별도 보안 설계에 맞춰 분리 운영할 수 있습니다.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <div class="section__inner footer__inner">
-        <div>
+  <div class="dashboard-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">K</div>
+        <div class="brand-text">
           <strong>KORUAL Space</strong>
-          <p>Luxury Space Booking Platform for Wedding, Studio, Creator, Party</p>
-        </div>
-        <div class="footer__links">
-          <a href="#spaces">공간 찾기</a>
-          <a href="#booking">예약 신청</a>
-          <a href="#host">호스트 안내</a>
+          <span>Admin Dashboard</span>
         </div>
       </div>
-    </footer>
+
+      <div class="security-card">
+        <div class="security-title">
+          <span>보안 접속 상태</span>
+          <span class="status-dot" id="vpnDot"></span>
+        </div>
+        <div class="security-meta">
+          <div>VPN 상태: <strong id="vpnText">확인 중</strong></div>
+          <div>관리자 역할: <strong id="roleText">확인 중</strong></div>
+          <div>세션 상태: <strong id="authText">확인 중</strong></div>
+        </div>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">OVERVIEW</div>
+        <a href="#" class="nav-item is-active">
+          <span class="nav-icon">D</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">S</span>
+          <span>Spaces 관리</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">B</span>
+          <span>예약 관리</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">H</span>
+          <span>호스트 관리</span>
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-title">CONTROL</div>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">P</span>
+          <span>결제 / 정산</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">R</span>
+          <span>리뷰 / 신고</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">A</span>
+          <span>AI 추천 로그</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">L</span>
+          <span>보안 로그</span>
+        </a>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-primary" id="goIndexBtn">메인 페이지</button>
+        <button class="btn btn-secondary" id="logoutBtn">로그아웃</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="topbar">
+        <div class="topbar-left">
+          <span class="eyebrow">ADMIN CONTROL CENTER</span>
+          <h1>KORUAL Space 운영 대시보드</h1>
+          <p>공간, 예약, 호스트, 보안, 리뷰, 신고 처리 현황을 한 화면에서 관리하는 MVP 운영자 패널입니다.</p>
+        </div>
+        <div class="topbar-right">
+          <div class="pill">관리자 <strong id="adminName">admin</strong></div>
+          <div class="pill">역할 <strong id="adminRoleView">admin</strong></div>
+          <div class="pill">마지막 로그인 <strong>2026-03-10 20:00</strong></div>
+        </div>
+      </section>
+
+      <section class="grid-4">
+        <article class="card metric-card">
+          <div class="metric-top">
+            <span class="metric-label">총 등록 공간</span>
+            <div class="metric-icon">SP</div>
+          </div>
+          <div class="metric-value">128</div>
+          <div class="metric-foot">
+            <span>이번 주 신규 12개</span>
+            <span class="up">+10.4%</span>
+          </div>
+        </article>
+
+        <article class="card metric-card">
+          <div class="metric-top">
+            <span class="metric-label">오늘 예약</span>
+            <div class="metric-icon">BK</div>
+          </div>
+          <div class="metric-value">42</div>
+          <div class="metric-foot">
+            <span>확정 31 / 대기 11</span>
+            <span class="up">+18.2%</span>
+          </div>
+        </article>
+
+        <article class="card metric-card">
+          <div class="metric-top">
+            <span class="metric-label">총 거래액</span>
+            <div class="metric-icon">KRW</div>
+          </div>
+          <div class="metric-value">₩18.4M</div>
+          <div class="metric-foot">
+            <span>플랫폼 수수료 포함</span>
+            <span class="up">+7.1%</span>
+          </div>
+        </article>
+
+        <article class="card metric-card">
+          <div class="metric-top">
+            <span class="metric-label">긴급 신고</span>
+            <div class="metric-icon">AL</div>
+          </div>
+          <div class="metric-value">3</div>
+          <div class="metric-foot">
+            <span>처리 필요 1건</span>
+            <span class="down">주의</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid-2">
+        <article class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>예약 추이</h2>
+              <p>최근 7일 기준 예약 건수 흐름</p>
+            </div>
+            <div class="mini-actions">
+              <button class="mini-btn">7일</button>
+              <button class="mini-btn">30일</button>
+            </div>
+          </div>
+          <div class="chart-box">
+            <div class="bars">
+              <div class="bar-wrap">
+                <div class="bar" style="height: 38%;"></div>
+                <span class="bar-label">월</span>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar" style="height: 52%;"></div>
+                <span class="bar-label">화</span>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar" style="height: 48%;"></div>
+                <span class="bar-label">수</span>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar" style="height: 66%;"></div>
+                <span class="bar-label">목</span>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar" style="height: 74%;"></div>
+                <span class="bar-label">금</span>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar" style="height: 84%;"></div>
+                <span class="bar-label">토</span>
+              </div>
+              <div class="bar-wrap">
+                <div class="bar" style="height: 58%;"></div>
+                <span class="bar-label">일</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>매출 흐름</h2>
+              <p>주간 거래액 시각화</p>
+            </div>
+            <div class="mini-actions">
+              <button class="mini-btn">거래액</button>
+              <button class="mini-btn">수수료</button>
+            </div>
+          </div>
+          <div class="line-box">
+            <svg class="line-svg" viewBox="0 0 600 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 180 C 90 160, 120 150, 170 142 S 260 105, 320 118 S 430 70, 580 48" stroke="rgba(140,231,255,0.95)" stroke-width="4" stroke-linecap="round"/>
+              <path d="M20 180 C 90 160, 120 150, 170 142 S 260 105, 320 118 S 430 70, 580 48" stroke="rgba(77,160,255,0.22)" stroke-width="14" stroke-linecap="round"/>
+              <circle cx="20" cy="180" r="6" fill="white"/>
+              <circle cx="170" cy="142" r="6" fill="white"/>
+              <circle cx="320" cy="118" r="6" fill="white"/>
+              <circle cx="580" cy="48" r="6" fill="white"/>
+            </svg>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid-2">
+        <article class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>최근 예약</h2>
+              <p>실시간 예약 및 승인 상태</p>
+            </div>
+            <div class="mini-actions">
+              <button class="mini-btn">전체 보기</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>예약번호</th>
+                  <th>공간명</th>
+                  <th>이용자</th>
+                  <th>상태</th>
+                  <th>금액</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>#BK-1042</strong></td>
+                  <td>KORUAL Seongsu Loft</td>
+                  <td>김다혜</td>
+                  <td><span class="badge badge-green">확정</span></td>
+                  <td>₩240,000</td>
+                </tr>
+                <tr>
+                  <td><strong>#BK-1041</strong></td>
+                  <td>Incheon Panorama Suite</td>
+                  <td>이준혁</td>
+                  <td><span class="badge badge-yellow">승인대기</span></td>
+                  <td>₩180,000</td>
+                </tr>
+                <tr>
+                  <td><strong>#BK-1040</strong></td>
+                  <td>Studio White Marble</td>
+                  <td>박서연</td>
+                  <td><span class="badge badge-blue">검토중</span></td>
+                  <td>₩135,000</td>
+                </tr>
+                <tr>
+                  <td><strong>#BK-1039</strong></td>
+                  <td>Busan Ocean Room</td>
+                  <td>정민수</td>
+                  <td><span class="badge badge-red">취소요청</span></td>
+                  <td>₩300,000</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>운영 알림</h2>
+              <p>신고, 검토, 품질 관리 이슈</p>
+            </div>
+            <div class="mini-actions">
+              <button class="mini-btn">알림센터</button>
+            </div>
+          </div>
+
+          <div class="list">
+            <div class="list-item">
+              <div>
+                <strong>긴급 신고 접수</strong>
+                <p>송도 파노라마 스위트 공간에서 소음 민원 관련 신고가 접수되었습니다. 우선순위 높음으로 분류됨.</p>
+              </div>
+              <div class="list-side">
+                <div><span class="badge badge-red">긴급</span></div>
+                <div style="margin-top:8px;">5분 전</div>
+              </div>
+            </div>
+
+            <div class="list-item">
+              <div>
+                <strong>리뷰 품질 검토 필요</strong>
+                <p>특정 호스트 계정에서 짧은 시간 내 유사 문구 리뷰가 다수 등록되어 검토 대기 상태입니다.</p>
+              </div>
+              <div class="list-side">
+                <div><span class="badge badge-yellow">검토</span></div>
+                <div style="margin-top:8px;">18분 전</div>
+              </div>
+            </div>
+
+            <div class="list-item">
+              <div>
+                <strong>호스트 등급 상승</strong>
+                <p>Seongsu Host가 Gold Host에서 Premium Host로 승격 조건을 충족했습니다.</p>
+              </div>
+              <div class="list-side">
+                <div><span class="badge badge-green">완료</span></div>
+                <div style="margin-top:8px;">1시간 전</div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid-2">
+        <article class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>보안 모니터링</h2>
+              <p>운영자 접속 및 이상 행위 탐지</p>
+            </div>
+            <div class="mini-actions">
+              <button class="mini-btn">로그 보기</button>
+            </div>
+          </div>
+
+          <div class="security-grid">
+            <div class="security-mini">
+              <span>오늘 관리자 로그인</span>
+              <strong>12</strong>
+            </div>
+            <div class="security-mini">
+              <span>차단된 접근 시도</span>
+              <strong>4</strong>
+            </div>
+            <div class="security-mini">
+              <span>이상행동 알림</span>
+              <strong>1</strong>
+            </div>
+          </div>
+
+          <div class="list">
+            <div class="list-item">
+              <div>
+                <strong>VPN 미연결 접근 차단</strong>
+                <p>운영자 페이지에 대한 미연결 접근 시도가 감지되어 차단되었습니다.</p>
+              </div>
+              <div class="list-side">오늘 19:42</div>
+            </div>
+            <div class="list-item">
+              <div>
+                <strong>권한 분리 정상</strong>
+                <p>Operations 계정은 예약 관리만 접근 가능하며 정산 메뉴 접근은 차단 상태입니다.</p>
+              </div>
+              <div class="list-side">오늘 18:13</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card section-card">
+          <div class="section-head">
+            <div>
+              <h2>Top Host / Space</h2>
+              <p>최근 성과 기준 상위 항목</p>
+            </div>
+            <div class="mini-actions">
+              <button class="mini-btn">랭킹</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>구분</th>
+                  <th>이름</th>
+                  <th>평점</th>
+                  <th>예약률</th>
+                  <th>상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Host</td>
+                  <td><strong>Seongsu Host</strong></td>
+                  <td>4.9</td>
+                  <td>92%</td>
+                  <td><span class="badge badge-green">Premium</span></td>
+                </tr>
+                <tr>
+                  <td>Space</td>
+                  <td><strong>Studio White Marble</strong></td>
+                  <td>5.0</td>
+                  <td>88%</td>
+                  <td><span class="badge badge-blue">High Demand</span></td>
+                </tr>
+                <tr>
+                  <td>Host</td>
+                  <td><strong>Panorama Host</strong></td>
+                  <td>4.8</td>
+                  <td>85%</td>
+                  <td><span class="badge badge-yellow">Gold</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <div class="footer-note">
+        이 dashboard.html은 프론트 MVP용 운영자 화면입니다. 실제 서비스에서는 서버 인증, API 연동, 실시간 로그, 권한별 라우팅으로 확장해야 합니다.
+      </div>
+    </main>
   </div>
 
-  <div class="modal" data-space-modal aria-hidden="true">
-    <div class="modal__panel">
-      <button class="modal__close" type="button" data-action="close-modal" aria-label="닫기">
-        ×
-      </button>
-      <div data-space-modal-body></div>
-    </div>
-  </div>
+  <script>
+    (() => {
+      "use strict";
 
-  <div class="toast" data-toast></div>
+      const STORAGE_KEYS = {
+        vpn: "korual_admin_vpn",
+        role: "korual_admin_role",
+        auth: "korual_admin_authenticated",
+      };
 
-  <script src="./app.js"></script>
+      const vpnDot = document.getElementById("vpnDot");
+      const vpnText = document.getElementById("vpnText");
+      const roleText = document.getElementById("roleText");
+      const authText = document.getElementById("authText");
+      const adminRoleView = document.getElementById("adminRoleView");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const goIndexBtn = document.getElementById("goIndexBtn");
+
+      init();
+
+      function init() {
+        const hasVpn = localStorage.getItem(STORAGE_KEYS.vpn) === "true";
+        const role = localStorage.getItem(STORAGE_KEYS.role) || "guest";
+        const isAuthed = localStorage.getItem(STORAGE_KEYS.auth) === "true";
+
+        vpnText.textContent = hasVpn ? "연결됨" : "미연결";
+        roleText.textContent = role;
+        authText.textContent = isAuthed ? "인증됨" : "미인증";
+        adminRoleView.textContent = role;
+
+        if (hasVpn) {
+          vpnDot.classList.add("ok");
+        } else {
+          vpnDot.classList.remove("ok");
+        }
+
+        if (!hasVpn || !isAuthed || (role !== "admin" && role !== "super_admin")) {
+          alert("운영자 세션이 유효하지 않습니다. login.html로 이동합니다.");
+          window.location.href = "./login.html";
+          return;
+        }
+
+        logoutBtn.addEventListener("click", () => {
+          localStorage.removeItem(STORAGE_KEYS.auth);
+          alert("로그아웃되었습니다.");
+          window.location.href = "./login.html";
+        });
+
+        goIndexBtn.addEventListener("click", () => {
+          window.location.href = "./index.html";
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
