@@ -3,14 +3,18 @@
   --bg-1: #07111f;
   --bg-2: #0a1628;
   --bg-3: #0f2036;
+
   --panel: rgba(16, 26, 43, 0.72);
   --panel-strong: rgba(10, 18, 30, 0.88);
   --panel-soft: rgba(255, 255, 255, 0.04);
+
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.16);
+
   --text: #f3f7fc;
   --text-muted: #b3c0d2;
   --text-soft: #7f93ad;
+
   --blue: #68b7ff;
   --cyan: #86f0ff;
   --indigo: #8ba5ff;
@@ -18,14 +22,17 @@
   --green: #80ebb0;
   --yellow: #ffd985;
   --red: #ff9292;
+
   --shadow-xl: 0 40px 100px rgba(0, 0, 0, 0.42);
   --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.34);
   --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.22);
+
   --radius-2xl: 34px;
   --radius-xl: 28px;
   --radius-lg: 22px;
   --radius-md: 16px;
   --radius-sm: 12px;
+
   --sidebar-width: 300px;
   --transition: 180ms ease;
 }
@@ -63,7 +70,8 @@ a {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -74,12 +82,19 @@ button {
   color: inherit;
 }
 
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* Layout */
 .dashboard-shell {
   min-height: 100vh;
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
 }
 
+/* Sidebar */
 .sidebar {
   position: sticky;
   top: 0;
@@ -255,6 +270,7 @@ button {
   gap: 10px;
 }
 
+/* Buttons */
 .btn {
   min-height: 50px;
   border-radius: 999px;
@@ -263,7 +279,11 @@ button {
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), background var(--transition);
+  transition:
+    transform var(--transition),
+    box-shadow var(--transition),
+    border-color var(--transition),
+    background var(--transition);
   white-space: nowrap;
 }
 
@@ -290,12 +310,28 @@ button {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.mini-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.mini-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Main */
 .main {
   padding: 24px;
   display: grid;
   gap: 22px;
 }
 
+/* Hero */
 .hero {
   position: relative;
   overflow: hidden;
@@ -441,6 +477,7 @@ button {
   font-size: 13px;
 }
 
+/* Badges */
 .badge {
   min-height: 30px;
   padding: 0 12px;
@@ -477,6 +514,7 @@ button {
   border-color: rgba(255, 146, 146, 0.18);
 }
 
+/* Stats */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -559,6 +597,7 @@ button {
   font-weight: 700;
 }
 
+/* Sections */
 .layout-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -600,20 +639,7 @@ button {
   flex-wrap: wrap;
 }
 
-.mini-btn {
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text);
-  font-weight: 600;
-}
-
-.mini-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
+/* Charts */
 .chart-shell {
   min-height: 280px;
   border-radius: 22px;
@@ -662,6 +688,7 @@ button {
   height: 240px;
 }
 
+/* Tables */
 .table-wrap {
   overflow: auto;
   border-radius: 20px;
@@ -696,6 +723,7 @@ td strong {
   color: var(--text);
 }
 
+/* Lists */
 .list {
   display: grid;
   gap: 12px;
@@ -732,6 +760,7 @@ td strong {
   flex-shrink: 0;
 }
 
+/* Risk */
 .risk-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -765,6 +794,7 @@ td strong {
   padding: 4px 0 10px;
 }
 
+/* Responsive */
 @media (max-width: 1360px) {
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -817,9 +847,5 @@ td strong {
 
   .hero h1 {
     font-size: 34px;
-  }
-
-  .topbar-pills {
-    width: 100%;
   }
 }
