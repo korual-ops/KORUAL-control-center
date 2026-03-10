@@ -3,11 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KORUAL Space Admin Dashboard</title>
-  <meta
-    name="description"
-    content="KORUAL Space 운영자 대시보드"
-  />
+  <title>KORUAL Space | High-End Admin Dashboard</title>
+  <meta name="description" content="KORUAL Space 하이엔드 운영자 대시보드" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -16,40 +13,48 @@
   />
   <style>
     :root {
-      --bg: #07111f;
-      --bg-soft: #0c1b2d;
-      --panel: rgba(12, 24, 40, 0.82);
-      --panel-strong: rgba(10, 18, 32, 0.94);
+      --bg-0: #040b16;
+      --bg-1: #07111f;
+      --bg-2: #0a1628;
+      --bg-3: #0f2036;
+      --panel: rgba(16, 26, 43, 0.72);
+      --panel-strong: rgba(10, 18, 30, 0.88);
+      --panel-soft: rgba(255, 255, 255, 0.04);
       --line: rgba(255, 255, 255, 0.08);
       --line-strong: rgba(255, 255, 255, 0.16);
-      --text: #f4f7fb;
-      --text-muted: #b8c4d6;
-      --text-soft: #8fa2bb;
-      --primary: #79b8ff;
-      --primary-strong: #4da0ff;
-      --accent: #8ce7ff;
-      --gold: #e6c98a;
-      --success: #75e0a7;
-      --warning: #ffd479;
-      --danger: #ff8f8f;
-      --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.35);
+      --text: #f3f7fc;
+      --text-muted: #b3c0d2;
+      --text-soft: #7f93ad;
+      --blue: #68b7ff;
+      --cyan: #86f0ff;
+      --indigo: #8ba5ff;
+      --gold: #e7cf95;
+      --green: #80ebb0;
+      --yellow: #ffd985;
+      --red: #ff9292;
+      --shadow-xl: 0 40px 100px rgba(0, 0, 0, 0.42);
+      --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.34);
       --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.22);
+      --radius-2xl: 34px;
       --radius-xl: 28px;
       --radius-lg: 22px;
       --radius-md: 16px;
       --radius-sm: 12px;
+      --sidebar-width: 300px;
       --transition: 180ms ease;
-      --sidebar-width: 280px;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
@@ -57,14 +62,16 @@
       font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top right, rgba(77, 160, 255, 0.14), transparent 22%),
-        radial-gradient(circle at left center, rgba(140, 231, 255, 0.09), transparent 24%),
-        linear-gradient(180deg, #08111f 0%, #091423 38%, #08111d 100%);
+        radial-gradient(circle at 12% 12%, rgba(104, 183, 255, 0.12), transparent 20%),
+        radial-gradient(circle at 88% 10%, rgba(134, 240, 255, 0.10), transparent 18%),
+        radial-gradient(circle at 50% 100%, rgba(139, 165, 255, 0.08), transparent 28%),
+        linear-gradient(180deg, #040b16 0%, #08111f 26%, #091526 58%, #07111d 100%);
+      overflow-x: hidden;
     }
 
     a {
-      color: inherit;
       text-decoration: none;
+      color: inherit;
     }
 
     button,
@@ -90,10 +97,12 @@
       position: sticky;
       top: 0;
       height: 100vh;
-      padding: 24px 18px;
-      border-right: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(10, 18, 32, 0.96), rgba(7, 13, 23, 0.98));
-      backdrop-filter: blur(18px);
+      padding: 20px 18px;
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      background:
+        linear-gradient(180deg, rgba(7, 13, 23, 0.96), rgba(4, 10, 18, 0.98)),
+        radial-gradient(circle at top left, rgba(104, 183, 255, 0.08), transparent 22%);
+      backdrop-filter: blur(24px);
       display: flex;
       flex-direction: column;
       gap: 18px;
@@ -103,26 +112,29 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 8px 8px 10px;
+      padding: 10px 10px 14px;
     }
 
     .brand-mark {
-      width: 52px;
-      height: 52px;
-      border-radius: 18px;
+      width: 58px;
+      height: 58px;
+      border-radius: 20px;
       display: grid;
       place-items: center;
+      font-size: 24px;
       font-weight: 800;
-      font-size: 22px;
       color: #07111f;
-      background: linear-gradient(135deg, var(--accent), var(--primary), #d7f1ff);
-      box-shadow: 0 12px 28px rgba(77, 160, 255, 0.28);
+      background:
+        linear-gradient(135deg, #ebfbff 0%, var(--cyan) 20%, var(--blue) 70%, #d8e8ff 100%);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+        0 18px 34px rgba(104, 183, 255, 0.28);
     }
 
     .brand-text {
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 4px;
       min-width: 0;
     }
 
@@ -132,122 +144,155 @@
     }
 
     .brand-text span {
-      color: var(--text-soft);
       font-size: 12px;
+      color: var(--text-soft);
+    }
+
+    .glass-card {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(18, 29, 46, 0.82), rgba(9, 16, 27, 0.88));
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(18px);
     }
 
     .security-card {
-      border: 1px solid var(--line);
-      border-radius: 22px;
       padding: 16px;
-      background: rgba(255, 255, 255, 0.03);
       display: grid;
-      gap: 10px;
+      gap: 12px;
     }
 
-    .security-title {
+    .security-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
+    }
+
+    .security-top strong {
+      font-size: 15px;
+    }
+
+    .status-core {
+      display: inline-flex;
+      align-items: center;
       gap: 10px;
-      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      font-size: 12px;
       font-weight: 700;
+      color: var(--text-muted);
     }
 
     .status-dot {
       width: 10px;
       height: 10px;
       border-radius: 999px;
-      background: var(--danger);
-      box-shadow: 0 0 0 6px rgba(255, 143, 143, 0.12);
+      background: var(--red);
+      box-shadow: 0 0 0 6px rgba(255, 146, 146, 0.12);
     }
 
     .status-dot.ok {
-      background: var(--success);
-      box-shadow: 0 0 0 6px rgba(117, 224, 167, 0.12);
+      background: var(--green);
+      box-shadow: 0 0 0 6px rgba(128, 235, 176, 0.12);
     }
 
-    .security-meta {
+    .security-grid {
       display: grid;
-      gap: 8px;
+      gap: 10px;
+    }
+
+    .security-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       font-size: 13px;
       color: var(--text-muted);
     }
 
-    .security-meta strong {
+    .security-row strong {
       color: var(--text);
-      font-weight: 700;
     }
 
-    .nav-group {
+    .sidebar-section {
       display: grid;
       gap: 8px;
     }
 
-    .nav-title {
-      padding: 0 12px;
-      font-size: 12px;
-      letter-spacing: 0.14em;
+    .sidebar-title {
+      padding: 2px 12px;
+      font-size: 11px;
+      letter-spacing: 0.18em;
       color: var(--text-soft);
-      font-weight: 700;
+      font-weight: 800;
     }
 
     .nav-item {
-      min-height: 48px;
-      border-radius: 16px;
+      min-height: 52px;
       padding: 0 14px;
+      border-radius: 18px;
       display: flex;
       align-items: center;
       gap: 12px;
       color: var(--text-muted);
-      transition: background var(--transition), color var(--transition), border-color var(--transition);
       border: 1px solid transparent;
+      transition: var(--transition);
     }
 
     .nav-item:hover,
     .nav-item.is-active {
       color: var(--text);
-      background: rgba(121, 184, 255, 0.08);
-      border-color: rgba(121, 184, 255, 0.16);
+      background:
+        linear-gradient(180deg, rgba(104, 183, 255, 0.10), rgba(134, 240, 255, 0.05));
+      border-color: rgba(104, 183, 255, 0.18);
+      box-shadow: 0 10px 22px rgba(104, 183, 255, 0.08);
     }
 
     .nav-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 10px;
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
       display: grid;
       place-items: center;
-      font-size: 13px;
-      background: rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+      color: var(--cyan);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       flex-shrink: 0;
     }
 
     .sidebar-footer {
       margin-top: auto;
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
     .btn {
-      min-height: 48px;
+      min-height: 50px;
       border-radius: 999px;
       padding: 0 18px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), opacity var(--transition);
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition), background var(--transition);
+      white-space: nowrap;
     }
 
     .btn-primary {
-      color: #08111d;
-      background: linear-gradient(135deg, #d7f1ff 0%, var(--accent) 22%, var(--primary) 78%, #bddfff 100%);
-      box-shadow: 0 14px 30px rgba(77, 160, 255, 0.24);
+      color: #06101c;
+      background:
+        linear-gradient(135deg, #effcff 0%, var(--cyan) 22%, var(--blue) 76%, #dbe9ff 100%);
+      box-shadow: 0 16px 34px rgba(104, 183, 255, 0.26);
     }
 
     .btn-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 18px 34px rgba(77, 160, 255, 0.32);
+      box-shadow: 0 20px 40px rgba(104, 183, 255, 0.34);
     }
 
     .btn-secondary {
@@ -268,156 +313,283 @@
       gap: 22px;
     }
 
-    .topbar {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-xl);
-      padding: 18px 20px;
-      background: linear-gradient(180deg, rgba(12, 24, 40, 0.88), rgba(10, 18, 31, 0.92));
-      box-shadow: var(--shadow-md);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      border-radius: var(--radius-2xl);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        linear-gradient(120deg, rgba(8, 18, 33, 0.94), rgba(10, 20, 36, 0.84)),
+        radial-gradient(circle at top left, rgba(134, 240, 255, 0.08), transparent 20%),
+        radial-gradient(circle at right center, rgba(104, 183, 255, 0.10), transparent 24%);
+      box-shadow: var(--shadow-xl);
+      min-height: 250px;
     }
 
-    .topbar-left {
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 85% 20%, rgba(134, 240, 255, 0.10), transparent 16%),
+        radial-gradient(circle at 76% 74%, rgba(139, 165, 255, 0.12), transparent 18%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .hero-copy {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      justify-content: space-between;
+      gap: 18px;
     }
 
     .eyebrow {
       display: inline-flex;
       align-items: center;
-      min-height: 30px;
-      padding: 0 12px;
+      min-height: 32px;
+      padding: 0 14px;
       border-radius: 999px;
-      border: 1px solid rgba(140, 231, 255, 0.2);
-      background: rgba(121, 184, 255, 0.08);
-      color: var(--accent);
-      font-size: 11px;
-      font-weight: 700;
+      border: 1px solid rgba(134, 240, 255, 0.18);
+      background: rgba(104, 183, 255, 0.08);
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
       letter-spacing: 0.16em;
       width: fit-content;
     }
 
-    .topbar h1 {
+    .hero h1 {
+      margin: 18px 0 12px;
+      font-size: clamp(34px, 4vw, 54px);
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
       margin: 0;
-      font-size: clamp(28px, 4vw, 42px);
-      line-height: 1.08;
+      max-width: 760px;
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .hero-bottom {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .mini-panel {
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(12px);
+    }
+
+    .mini-panel span {
+      display: block;
+      color: var(--text-soft);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .mini-panel strong {
+      font-size: 22px;
       letter-spacing: -0.03em;
     }
 
-    .topbar p {
-      margin: 0;
-      color: var(--text-muted);
-      font-size: 14px;
+    .hero-side {
+      display: grid;
+      gap: 14px;
     }
 
-    .topbar-right {
+    .signal-card,
+    .ops-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(16px);
+    }
+
+    .signal-card h3,
+    .ops-card h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .signal-list,
+    .ops-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .signal-item,
+    .ops-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 48px;
+      padding: 0 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-size: 13px;
     }
 
-    .pill {
-      min-height: 42px;
-      padding: 0 14px;
+    .badge {
+      min-height: 30px;
+      padding: 0 12px;
       border-radius: 999px;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-muted);
+      border: 1px solid transparent;
+      white-space: nowrap;
     }
 
-    .pill strong {
-      color: var(--text);
+    .badge-blue {
+      color: #dff2ff;
+      background: rgba(104, 183, 255, 0.12);
+      border-color: rgba(104, 183, 255, 0.18);
     }
 
-    .grid-4 {
+    .badge-green {
+      color: #e2faec;
+      background: rgba(128, 235, 176, 0.12);
+      border-color: rgba(128, 235, 176, 0.18);
+    }
+
+    .badge-yellow {
+      color: #fff4da;
+      background: rgba(255, 217, 133, 0.12);
+      border-color: rgba(255, 217, 133, 0.18);
+    }
+
+    .badge-red {
+      color: #ffe4e4;
+      background: rgba(255, 146, 146, 0.12);
+      border-color: rgba(255, 146, 146, 0.18);
+    }
+
+    .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 18px;
     }
 
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-    }
-
-    .card {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-xl);
-      background: linear-gradient(180deg, rgba(13, 24, 40, 0.92), rgba(9, 16, 27, 0.96));
-      box-shadow: var(--shadow-md);
-    }
-
-    .metric-card {
+    .stat-card {
       padding: 22px 20px;
-      display: grid;
-      gap: 14px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(14, 24, 40, 0.92), rgba(8, 15, 26, 0.96));
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
     }
 
-    .metric-top {
+    .stat-card::after {
+      content: "";
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      right: -42px;
+      bottom: -48px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(104, 183, 255, 0.14), transparent 68%);
+      pointer-events: none;
+    }
+
+    .stat-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+      margin-bottom: 16px;
     }
 
-    .metric-label {
+    .stat-label {
       color: var(--text-soft);
       font-size: 13px;
       font-weight: 600;
     }
 
-    .metric-icon {
-      width: 44px;
-      height: 44px;
+    .stat-icon {
+      width: 46px;
+      height: 46px;
       border-radius: 14px;
       display: grid;
       place-items: center;
-      background: rgba(121, 184, 255, 0.08);
-      border: 1px solid rgba(121, 184, 255, 0.14);
-      color: var(--accent);
-      font-size: 16px;
+      background: rgba(104, 183, 255, 0.10);
+      border: 1px solid rgba(104, 183, 255, 0.16);
+      color: var(--cyan);
+      font-weight: 800;
+      font-size: 13px;
+      flex-shrink: 0;
     }
 
-    .metric-value {
-      font-size: clamp(24px, 3vw, 34px);
+    .stat-value {
+      font-size: clamp(26px, 3vw, 36px);
       font-weight: 800;
       letter-spacing: -0.04em;
     }
 
-    .metric-foot {
+    .stat-foot {
+      margin-top: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
       color: var(--text-muted);
       font-size: 13px;
     }
 
     .up {
-      color: var(--success);
+      color: var(--green);
       font-weight: 700;
     }
 
     .down {
-      color: var(--danger);
+      color: var(--red);
       font-weight: 700;
     }
 
-    .section-card {
-      padding: 22px 20px;
+    .layout-2 {
       display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 18px;
+    }
+
+    .section-card {
+      padding: 22px;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(14, 24, 40, 0.92), rgba(8, 15, 26, 0.96));
+      box-shadow: var(--shadow-md);
     }
 
     .section-head {
@@ -425,19 +597,20 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
+      margin-bottom: 18px;
     }
 
     .section-head h2 {
       margin: 0;
       font-size: 22px;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
     }
 
     .section-head p {
       margin: 6px 0 0;
-      color: var(--text-muted);
       font-size: 14px;
+      color: var(--text-muted);
     }
 
     .mini-actions {
@@ -460,13 +633,13 @@
       background: rgba(255, 255, 255, 0.06);
     }
 
-    .chart-box {
-      min-height: 260px;
+    .chart-shell {
+      min-height: 280px;
       border-radius: 22px;
       border: 1px solid rgba(255, 255, 255, 0.06);
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
-        radial-gradient(circle at bottom left, rgba(77, 160, 255, 0.12), transparent 34%);
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+        radial-gradient(circle at top left, rgba(104, 183, 255, 0.08), transparent 24%);
       padding: 18px;
       position: relative;
       overflow: hidden;
@@ -474,8 +647,10 @@
 
     .bars {
       position: absolute;
-      inset: auto 18px 18px 18px;
-      height: 180px;
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+      height: 190px;
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 12px;
@@ -491,9 +666,10 @@
 
     .bar {
       width: 100%;
-      border-radius: 14px 14px 8px 8px;
-      background: linear-gradient(180deg, rgba(140, 231, 255, 0.9), rgba(77, 160, 255, 0.65));
-      box-shadow: 0 12px 24px rgba(77, 160, 255, 0.18);
+      border-radius: 16px 16px 10px 10px;
+      background:
+        linear-gradient(180deg, rgba(134, 240, 255, 0.95), rgba(104, 183, 255, 0.72));
+      box-shadow: 0 16px 28px rgba(104, 183, 255, 0.18);
     }
 
     .bar-label {
@@ -501,21 +677,9 @@
       font-size: 12px;
     }
 
-    .line-box {
-      min-height: 260px;
-      border-radius: 22px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
-        radial-gradient(circle at top right, rgba(140, 231, 255, 0.08), transparent 30%);
-      padding: 18px;
-      display: grid;
-      align-items: center;
-    }
-
-    .line-svg {
+    .line-chart {
       width: 100%;
-      height: 220px;
+      height: 240px;
     }
 
     .table-wrap {
@@ -526,8 +690,8 @@
 
     table {
       width: 100%;
+      min-width: 760px;
       border-collapse: collapse;
-      min-width: 720px;
     }
 
     th,
@@ -540,8 +704,8 @@
 
     th {
       color: var(--text-soft);
-      font-weight: 700;
       background: rgba(255, 255, 255, 0.03);
+      font-weight: 700;
     }
 
     td {
@@ -552,42 +716,6 @@
       color: var(--text);
     }
 
-    .badge {
-      min-height: 30px;
-      padding: 0 12px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      font-size: 12px;
-      font-weight: 700;
-      border: 1px solid transparent;
-      white-space: nowrap;
-    }
-
-    .badge-blue {
-      color: #d9efff;
-      background: rgba(121, 184, 255, 0.12);
-      border-color: rgba(121, 184, 255, 0.18);
-    }
-
-    .badge-green {
-      color: #dff8ea;
-      background: rgba(117, 224, 167, 0.12);
-      border-color: rgba(117, 224, 167, 0.18);
-    }
-
-    .badge-yellow {
-      color: #fff4d7;
-      background: rgba(255, 212, 121, 0.12);
-      border-color: rgba(255, 212, 121, 0.18);
-    }
-
-    .badge-red {
-      color: #ffe0e0;
-      background: rgba(255, 143, 143, 0.12);
-      border-color: rgba(255, 143, 143, 0.18);
-    }
-
     .list {
       display: grid;
       gap: 12px;
@@ -596,8 +724,8 @@
     .list-item {
       padding: 16px;
       border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
@@ -614,7 +742,7 @@
       margin: 0;
       color: var(--text-muted);
       font-size: 13px;
-      line-height: 1.55;
+      line-height: 1.6;
     }
 
     .list-side {
@@ -624,54 +752,54 @@
       flex-shrink: 0;
     }
 
-    .security-grid {
+    .risk-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
+      gap: 12px;
+      margin-bottom: 16px;
     }
 
-    .security-mini {
-      padding: 18px 16px;
+    .risk-box {
+      padding: 16px;
       border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      background: rgba(255, 255, 255, 0.03);
-      display: grid;
-      gap: 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
     }
 
-    .security-mini span {
+    .risk-box span {
+      display: block;
       color: var(--text-soft);
       font-size: 12px;
-      font-weight: 600;
+      margin-bottom: 8px;
     }
 
-    .security-mini strong {
+    .risk-box strong {
       font-size: 24px;
       letter-spacing: -0.03em;
     }
 
     .footer-note {
+      text-align: center;
       color: var(--text-soft);
       font-size: 12px;
-      text-align: center;
-      padding: 4px 0 14px;
+      padding: 4px 0 10px;
     }
 
-    .hidden {
-      display: none !important;
-    }
-
-    @media (max-width: 1280px) {
-      .grid-4 {
+    @media (max-width: 1360px) {
+      .stats-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .security-grid {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .risk-grid {
         grid-template-columns: 1fr;
       }
     }
 
-    @media (max-width: 1080px) {
+    @media (max-width: 1100px) {
       .dashboard-shell {
         grid-template-columns: 1fr;
       }
@@ -681,39 +809,38 @@
         height: auto;
       }
 
-      .main {
-        padding-top: 0;
-      }
-
-      .grid-2 {
+      .layout-2 {
         grid-template-columns: 1fr;
       }
     }
 
-    @media (max-width: 720px) {
+    @media (max-width: 760px) {
       .main,
       .sidebar {
         padding: 16px;
       }
 
-      .grid-4 {
+      .stats-grid,
+      .hero-bottom {
         grid-template-columns: 1fr;
       }
 
-      .topbar,
       .section-head,
       .list-item {
         flex-direction: column;
         align-items: flex-start;
       }
 
-      .topbar-right {
-        width: 100%;
+      .hero {
+        padding: 20px;
       }
 
-      .pill {
+      .hero h1 {
+        font-size: 34px;
+      }
+
+      .topbar-pills {
         width: 100%;
-        justify-content: space-between;
       }
     }
   </style>
@@ -725,59 +852,83 @@
         <div class="brand-mark">K</div>
         <div class="brand-text">
           <strong>KORUAL Space</strong>
-          <span>Admin Dashboard</span>
+          <span>High-End Admin Control</span>
         </div>
       </div>
 
-      <div class="security-card">
-        <div class="security-title">
-          <span>보안 접속 상태</span>
-          <span class="status-dot" id="vpnDot"></span>
+      <div class="glass-card security-card">
+        <div class="security-top">
+          <strong>보안 접속 상태</strong>
+          <div class="status-core">
+            <span class="status-dot" id="vpnDot"></span>
+            <span id="vpnBadgeText">Protected</span>
+          </div>
         </div>
-        <div class="security-meta">
-          <div>VPN 상태: <strong id="vpnText">확인 중</strong></div>
-          <div>관리자 역할: <strong id="roleText">확인 중</strong></div>
-          <div>세션 상태: <strong id="authText">확인 중</strong></div>
+        <div class="security-grid">
+          <div class="security-row">
+            <span>VPN 상태</span>
+            <strong id="vpnText">확인 중</strong>
+          </div>
+          <div class="security-row">
+            <span>관리자 역할</span>
+            <strong id="roleText">확인 중</strong>
+          </div>
+          <div class="security-row">
+            <span>세션 인증</span>
+            <strong id="authText">확인 중</strong>
+          </div>
         </div>
       </div>
 
-      <div class="nav-group">
-        <div class="nav-title">OVERVIEW</div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">OVERVIEW</div>
         <a href="#" class="nav-item is-active">
-          <span class="nav-icon">D</span>
+          <span class="nav-icon">DB</span>
           <span>Dashboard</span>
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">S</span>
-          <span>Spaces 관리</span>
+          <span class="nav-icon">SP</span>
+          <span>Spaces</span>
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">B</span>
-          <span>예약 관리</span>
+          <span class="nav-icon">BK</span>
+          <span>Bookings</span>
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">H</span>
-          <span>호스트 관리</span>
+          <span class="nav-icon">HS</span>
+          <span>Hosts</span>
         </a>
       </div>
 
-      <div class="nav-group">
-        <div class="nav-title">CONTROL</div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">OPERATIONS</div>
         <a href="#" class="nav-item">
-          <span class="nav-icon">P</span>
-          <span>결제 / 정산</span>
+          <span class="nav-icon">PM</span>
+          <span>Payments</span>
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">R</span>
-          <span>리뷰 / 신고</span>
+          <span class="nav-icon">RV</span>
+          <span>Reviews</span>
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">A</span>
-          <span>AI 추천 로그</span>
+          <span class="nav-icon">AI</span>
+          <span>AI Signals</span>
         </a>
         <a href="#" class="nav-item">
-          <span class="nav-icon">L</span>
-          <span>보안 로그</span>
+          <span class="nav-icon">LG</span>
+          <span>Security Logs</span>
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">HIGH PRIORITY</div>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">AL</span>
+          <span>Incident Center</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="nav-icon">RS</span>
+          <span>Risk Score</span>
         </a>
       </div>
 
@@ -788,105 +939,167 @@
     </aside>
 
     <main class="main">
-      <section class="topbar">
-        <div class="topbar-left">
-          <span class="eyebrow">ADMIN CONTROL CENTER</span>
-          <h1>KORUAL Space 운영 대시보드</h1>
-          <p>공간, 예약, 호스트, 보안, 리뷰, 신고 처리 현황을 한 화면에서 관리하는 MVP 운영자 패널입니다.</p>
-        </div>
-        <div class="topbar-right">
-          <div class="pill">관리자 <strong id="adminName">admin</strong></div>
-          <div class="pill">역할 <strong id="adminRoleView">admin</strong></div>
-          <div class="pill">마지막 로그인 <strong>2026-03-10 20:00</strong></div>
+      <section class="hero">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <div>
+              <span class="eyebrow">KORUAL ADMIN CONTROL CENTER</span>
+              <h1>운영, 보안, 매출, 리스크를<br />한 화면에서 관리하는 하이엔드 대시보드</h1>
+              <p>
+                KORUAL Space의 프리미엄 운영 구조를 기준으로 설계된 관리자 화면입니다.
+                공간 품질 관리, 호스트 신뢰도, 실결제 리뷰, 예약 흐름, AI 감지 신호,
+                운영자 보안 로그까지 하나의 럭셔리 컨트롤 레이어로 통합했습니다.
+              </p>
+
+              <div class="hero-actions">
+                <button class="btn btn-primary">실시간 운영 보기</button>
+                <button class="btn btn-secondary">보안 로그 열기</button>
+              </div>
+            </div>
+
+            <div class="hero-bottom">
+              <div class="mini-panel">
+                <span>오늘 총 예약</span>
+                <strong>42</strong>
+              </div>
+              <div class="mini-panel">
+                <span>오늘 총 거래액</span>
+                <strong>₩18.4M</strong>
+              </div>
+              <div class="mini-panel">
+                <span>처리 필요 이슈</span>
+                <strong>3</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-side">
+            <div class="signal-card">
+              <h3>Live Security Signals</h3>
+              <div class="signal-list">
+                <div class="signal-item">
+                  <span>운영자 VPN 연결 상태</span>
+                  <span class="badge badge-green">정상</span>
+                </div>
+                <div class="signal-item">
+                  <span>비인가 접근 차단</span>
+                  <span class="badge badge-blue">4건 차단</span>
+                </div>
+                <div class="signal-item">
+                  <span>고위험 신고</span>
+                  <span class="badge badge-red">1건 우선처리</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ops-card">
+              <h3>Operations Pulse</h3>
+              <div class="ops-list">
+                <div class="ops-item">
+                  <span>예약 승인 대기</span>
+                  <strong>11</strong>
+                </div>
+                <div class="ops-item">
+                  <span>호스트 검토 대기</span>
+                  <strong>4</strong>
+                </div>
+                <div class="ops-item">
+                  <span>리뷰 품질 검수</span>
+                  <strong>7</strong>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section class="grid-4">
-        <article class="card metric-card">
-          <div class="metric-top">
-            <span class="metric-label">총 등록 공간</span>
-            <div class="metric-icon">SP</div>
+      <section class="stats-grid">
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-label">총 등록 공간</span>
+            <div class="stat-icon">SP</div>
           </div>
-          <div class="metric-value">128</div>
-          <div class="metric-foot">
+          <div class="stat-value">128</div>
+          <div class="stat-foot">
             <span>이번 주 신규 12개</span>
             <span class="up">+10.4%</span>
           </div>
         </article>
 
-        <article class="card metric-card">
-          <div class="metric-top">
-            <span class="metric-label">오늘 예약</span>
-            <div class="metric-icon">BK</div>
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-label">오늘 예약</span>
+            <div class="stat-icon">BK</div>
           </div>
-          <div class="metric-value">42</div>
-          <div class="metric-foot">
+          <div class="stat-value">42</div>
+          <div class="stat-foot">
             <span>확정 31 / 대기 11</span>
             <span class="up">+18.2%</span>
           </div>
         </article>
 
-        <article class="card metric-card">
-          <div class="metric-top">
-            <span class="metric-label">총 거래액</span>
-            <div class="metric-icon">KRW</div>
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-label">총 거래액</span>
+            <div class="stat-icon">₩</div>
           </div>
-          <div class="metric-value">₩18.4M</div>
-          <div class="metric-foot">
+          <div class="stat-value">₩18.4M</div>
+          <div class="stat-foot">
             <span>플랫폼 수수료 포함</span>
             <span class="up">+7.1%</span>
           </div>
         </article>
 
-        <article class="card metric-card">
-          <div class="metric-top">
-            <span class="metric-label">긴급 신고</span>
-            <div class="metric-icon">AL</div>
+        <article class="stat-card">
+          <div class="stat-top">
+            <span class="stat-label">긴급 신고</span>
+            <div class="stat-icon">AL</div>
           </div>
-          <div class="metric-value">3</div>
-          <div class="metric-foot">
-            <span>처리 필요 1건</span>
+          <div class="stat-value">3</div>
+          <div class="stat-foot">
+            <span>즉시 처리 필요 1건</span>
             <span class="down">주의</span>
           </div>
         </article>
       </section>
 
-      <section class="grid-2">
-        <article class="card section-card">
+      <section class="layout-2">
+        <article class="section-card">
           <div class="section-head">
             <div>
               <h2>예약 추이</h2>
-              <p>최근 7일 기준 예약 건수 흐름</p>
+              <p>최근 7일 기준 예약 흐름</p>
             </div>
             <div class="mini-actions">
               <button class="mini-btn">7일</button>
               <button class="mini-btn">30일</button>
             </div>
           </div>
-          <div class="chart-box">
+
+          <div class="chart-shell">
             <div class="bars">
               <div class="bar-wrap">
-                <div class="bar" style="height: 38%;"></div>
+                <div class="bar" style="height: 34%;"></div>
                 <span class="bar-label">월</span>
               </div>
               <div class="bar-wrap">
-                <div class="bar" style="height: 52%;"></div>
+                <div class="bar" style="height: 48%;"></div>
                 <span class="bar-label">화</span>
               </div>
               <div class="bar-wrap">
-                <div class="bar" style="height: 48%;"></div>
+                <div class="bar" style="height: 46%;"></div>
                 <span class="bar-label">수</span>
               </div>
               <div class="bar-wrap">
-                <div class="bar" style="height: 66%;"></div>
+                <div class="bar" style="height: 64%;"></div>
                 <span class="bar-label">목</span>
               </div>
               <div class="bar-wrap">
-                <div class="bar" style="height: 74%;"></div>
+                <div class="bar" style="height: 70%;"></div>
                 <span class="bar-label">금</span>
               </div>
               <div class="bar-wrap">
-                <div class="bar" style="height: 84%;"></div>
+                <div class="bar" style="height: 86%;"></div>
                 <span class="bar-label">토</span>
               </div>
               <div class="bar-wrap">
@@ -897,32 +1110,43 @@
           </div>
         </article>
 
-        <article class="card section-card">
+        <article class="section-card">
           <div class="section-head">
             <div>
               <h2>매출 흐름</h2>
-              <p>주간 거래액 시각화</p>
+              <p>주간 거래액 상승 추세</p>
             </div>
             <div class="mini-actions">
               <button class="mini-btn">거래액</button>
               <button class="mini-btn">수수료</button>
             </div>
           </div>
-          <div class="line-box">
-            <svg class="line-svg" viewBox="0 0 600 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M20 180 C 90 160, 120 150, 170 142 S 260 105, 320 118 S 430 70, 580 48" stroke="rgba(140,231,255,0.95)" stroke-width="4" stroke-linecap="round"/>
-              <path d="M20 180 C 90 160, 120 150, 170 142 S 260 105, 320 118 S 430 70, 580 48" stroke="rgba(77,160,255,0.22)" stroke-width="14" stroke-linecap="round"/>
-              <circle cx="20" cy="180" r="6" fill="white"/>
-              <circle cx="170" cy="142" r="6" fill="white"/>
-              <circle cx="320" cy="118" r="6" fill="white"/>
-              <circle cx="580" cy="48" r="6" fill="white"/>
+
+          <div class="chart-shell">
+            <svg class="line-chart" viewBox="0 0 600 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="lineGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(134,240,255,1)" />
+                  <stop offset="100%" stop-color="rgba(104,183,255,0.8)" />
+                </linearGradient>
+                <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(104,183,255,0.24)" />
+                  <stop offset="100%" stop-color="rgba(104,183,255,0.02)" />
+                </linearGradient>
+              </defs>
+              <path d="M20 195 C 80 178, 120 160, 170 154 S 260 110, 320 122 S 430 78, 580 52 L580 220 L20 220 Z" fill="url(#areaFill)"/>
+              <path d="M20 195 C 80 178, 120 160, 170 154 S 260 110, 320 122 S 430 78, 580 52" stroke="url(#lineGlow)" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="20" cy="195" r="6" fill="#ffffff"/>
+              <circle cx="170" cy="154" r="6" fill="#ffffff"/>
+              <circle cx="320" cy="122" r="6" fill="#ffffff"/>
+              <circle cx="580" cy="52" r="6" fill="#ffffff"/>
             </svg>
           </div>
         </article>
       </section>
 
-      <section class="grid-2">
-        <article class="card section-card">
+      <section class="layout-2">
+        <article class="section-card">
           <div class="section-head">
             <div>
               <h2>최근 예약</h2>
@@ -978,7 +1202,7 @@
           </div>
         </article>
 
-        <article class="card section-card">
+        <article class="section-card">
           <div class="section-head">
             <div>
               <h2>운영 알림</h2>
@@ -1026,8 +1250,8 @@
         </article>
       </section>
 
-      <section class="grid-2">
-        <article class="card section-card">
+      <section class="layout-2">
+        <article class="section-card">
           <div class="section-head">
             <div>
               <h2>보안 모니터링</h2>
@@ -1038,16 +1262,16 @@
             </div>
           </div>
 
-          <div class="security-grid">
-            <div class="security-mini">
+          <div class="risk-grid">
+            <div class="risk-box">
               <span>오늘 관리자 로그인</span>
               <strong>12</strong>
             </div>
-            <div class="security-mini">
+            <div class="risk-box">
               <span>차단된 접근 시도</span>
               <strong>4</strong>
             </div>
-            <div class="security-mini">
+            <div class="risk-box">
               <span>이상행동 알림</span>
               <strong>1</strong>
             </div>
@@ -1071,7 +1295,7 @@
           </div>
         </article>
 
-        <article class="card section-card">
+        <article class="section-card">
           <div class="section-head">
             <div>
               <h2>Top Host / Space</h2>
@@ -1122,7 +1346,7 @@
       </section>
 
       <div class="footer-note">
-        이 dashboard.html은 프론트 MVP용 운영자 화면입니다. 실제 서비스에서는 서버 인증, API 연동, 실시간 로그, 권한별 라우팅으로 확장해야 합니다.
+        이 dashboard.html은 하이엔드 프론트 MVP 기준입니다. 실제 서비스에서는 서버 인증, API 연동, 권한별 라우팅, 실시간 WebSocket 이벤트로 확장하는 것이 맞습니다.
       </div>
     </main>
   </div>
@@ -1141,7 +1365,7 @@
       const vpnText = document.getElementById("vpnText");
       const roleText = document.getElementById("roleText");
       const authText = document.getElementById("authText");
-      const adminRoleView = document.getElementById("adminRoleView");
+      const vpnBadgeText = document.getElementById("vpnBadgeText");
       const logoutBtn = document.getElementById("logoutBtn");
       const goIndexBtn = document.getElementById("goIndexBtn");
 
@@ -1155,7 +1379,7 @@
         vpnText.textContent = hasVpn ? "연결됨" : "미연결";
         roleText.textContent = role;
         authText.textContent = isAuthed ? "인증됨" : "미인증";
-        adminRoleView.textContent = role;
+        vpnBadgeText.textContent = hasVpn ? "Protected" : "Blocked";
 
         if (hasVpn) {
           vpnDot.classList.add("ok");
