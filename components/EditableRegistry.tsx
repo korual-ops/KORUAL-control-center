@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StatusPill } from "@/components/StatusPill";
 
 export type EditableField<T extends Record<string, string>> = {
@@ -25,9 +25,30 @@ export function EditableRegistry<T extends Record<string, string>>({
   const blankItem = useMemo(() => {
     return fields.reduce((item, field) => ({ ...item, [field.key]: "" }), {}) as T;
   }, [fields]);
-  const [items, setItems] = useState<T[]>(initialItems);
+  const [items, setItems] = useState<T[]>(() => {
+    if (typeof window === "undefined") {
+      return initialItems;
+    }
+
+    const storedItems = window.localStorage.getItem(storageKey);
+    if (!storedItems) {
+      return initialItems;
+    }
+
+    try {
+      const parsedItems = JSON.parse(storedItems) as T[];
+      return Array.isArray(parsedItems) ? parsedItems : initialItems;
+    } catch {
+      window.localStorage.removeItem(storageKey);
+      return initialItems;
+    }
+  });
   const [draft, setDraft] = useState<T>(blankItem);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    window.localStorage.setItem(storageKey, JSON.stringify(items));
+  }, [items, storageKey]);
 
   function updateDraft(key: keyof T, value: string) {
     setDraft((current) => ({ ...current, [key]: value }));
