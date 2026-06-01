@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
+import { EditableRegistry, type EditableField } from "@/components/EditableRegistry";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusPill } from "@/components/StatusPill";
-import { metrics, sellerWorkflows } from "@/lib/mock-data";
+import { metrics, sellerEditableProducts, sellerWorkflows } from "@/lib/mock-data";
 
 const sellerActions = [
   { label: "Review dashboard", href: "/dashboard" },
@@ -12,6 +13,15 @@ const sellerActions = [
   { label: "Generate listing", href: "/ai-listing" },
   { label: "Prepare CS reply", href: "/ai-cs" },
   { label: "Open reports", href: "/reports" }
+];
+
+type SellerProduct = (typeof sellerEditableProducts)[number];
+
+const sellerProductFields: EditableField<SellerProduct>[] = [
+  { key: "name", label: "Product" },
+  { key: "source", label: "Source" },
+  { key: "stage", label: "Stage", kind: "status" },
+  { key: "margin", label: "Margin" }
 ];
 
 export default function SellerPage() {
@@ -55,6 +65,15 @@ export default function SellerPage() {
           </div>
         </aside>
       </section>
+      <div className="mt-6">
+        <EditableRegistry
+          title="Editable product registry"
+          description="Add, edit, or delete seller-side products before they move into connected Supabase records."
+          fields={sellerProductFields}
+          initialItems={sellerEditableProducts}
+          storageKey="korual-seller-products"
+        />
+      </div>
     </AppShell>
   );
 }

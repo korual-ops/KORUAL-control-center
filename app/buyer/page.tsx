@@ -1,11 +1,14 @@
 import { AppShell } from "@/components/AppShell";
+import { EditableRegistry, type EditableField } from "@/components/EditableRegistry";
 import { PageHeader } from "@/components/PageHeader";
-import { buyerExperience } from "@/lib/mock-data";
+import { buyerEditableProducts, buyerExperience } from "@/lib/mock-data";
 
-const productCards = [
-  { name: "Cream Embossed Hotel Towel", line: "A calm hotel touch for everyday rituals.", price: "from 29,000 KRW" },
-  { name: "Black Marble Bath Tray", line: "A quiet object for a more composed bath scene.", price: "from 42,000 KRW" },
-  { name: "Gold Foil Gift Box", line: "Gift-ready packaging with restrained presence.", price: "from 12,000 KRW" }
+type BuyerProduct = (typeof buyerEditableProducts)[number];
+
+const buyerProductFields: EditableField<BuyerProduct>[] = [
+  { key: "name", label: "Product" },
+  { key: "line", label: "Buyer copy" },
+  { key: "price", label: "Price" }
 ];
 
 export default function BuyerPage() {
@@ -27,7 +30,7 @@ export default function BuyerPage() {
           </p>
           <div className="gold-rule mt-7" />
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            {productCards.map((product) => (
+            {buyerEditableProducts.map((product) => (
               <div key={product.name} className="rounded-2xl border border-white/10 bg-black/25 p-5">
                 <div className="font-semibold text-white">{product.name}</div>
                 <div className="mt-3 text-sm leading-6 text-korual-mist">{product.line}</div>
@@ -48,6 +51,15 @@ export default function BuyerPage() {
           </div>
         </aside>
       </section>
+      <div className="mt-6">
+        <EditableRegistry
+          title="Editable buyer-facing products"
+          description="Add, edit, or delete customer-facing product cards before connecting them to storefront content."
+          fields={buyerProductFields}
+          initialItems={buyerEditableProducts}
+          storageKey="korual-buyer-products"
+        />
+      </div>
     </AppShell>
   );
 }

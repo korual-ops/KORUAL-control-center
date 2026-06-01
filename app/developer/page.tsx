@@ -1,8 +1,20 @@
 import { AppShell } from "@/components/AppShell";
+import { EditableRegistry, type EditableField } from "@/components/EditableRegistry";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusPill } from "@/components/StatusPill";
-import { developerWorkflows, privateNetworkMetrics, roleMatrix } from "@/lib/mock-data";
+import { developerEditablePeers, developerWorkflows, privateNetworkMetrics, roleMatrix } from "@/lib/mock-data";
+
+type DeveloperPeer = (typeof developerEditablePeers)[number];
+
+const developerPeerFields: EditableField<DeveloperPeer>[] = [
+  { key: "name", label: "Device" },
+  { key: "owner", label: "Owner" },
+  { key: "type", label: "Type" },
+  { key: "vpnIp", label: "VPN IP" },
+  { key: "accessTier", label: "Tier" },
+  { key: "status", label: "Status", kind: "status" }
+];
 
 export default function DeveloperPage() {
   return (
@@ -47,6 +59,15 @@ export default function DeveloperPage() {
           </div>
         </aside>
       </section>
+      <div className="mt-6">
+        <EditableRegistry
+          title="Editable peer registry"
+          description="Add, edit, or delete developer-side VPN peers before wiring this workflow to the gateway inventory."
+          fields={developerPeerFields}
+          initialItems={developerEditablePeers}
+          storageKey="korual-developer-peers"
+        />
+      </div>
     </AppShell>
   );
 }

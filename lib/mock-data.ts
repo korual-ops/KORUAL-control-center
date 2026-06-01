@@ -130,3 +130,25 @@ export const roleMatrix = [
   { role: "Developer", focus: "Infrastructure, AI modules, schema, private network", entry: "/developer" },
   { role: "Buyer", focus: "Premium product discovery and purchase confidence", entry: "/buyer" }
 ];
+
+export const sellerEditableProducts = productPipeline.map((product) => ({
+  name: product.name,
+  source: product.source,
+  stage: product.stage,
+  margin: product.margin
+}));
+
+export const developerEditablePeers = privateNetworkPeers.map((peer) => ({
+  name: peer.name,
+  owner: peer.owner,
+  type: peer.type,
+  vpnIp: peer.vpnIp,
+  accessTier: peer.accessTier,
+  status: peer.status
+}));
+
+export const buyerEditableProducts = [
+  { name: "Cream Embossed Hotel Towel", line: "A calm hotel touch for everyday rituals.", price: "from 29,000 KRW" },
+  { name: "Black Marble Bath Tray", line: "A quiet object for a more composed bath scene.", price: "from 42,000 KRW" },
+  { name: "Gold Foil Gift Box", line: "Gift-ready packaging with restrained presence.", price: "from 12,000 KRW" }
+];
