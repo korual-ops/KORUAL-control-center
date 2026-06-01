@@ -10,5 +10,6 @@ export const navItems = [
   { label: "Margin Calculator", href: "/margin" },
   { label: "AI Listing", href: "/ai-listing" },
   { label: "AI Customer Support", href: "/ai-cs" },
-  { label: "Reports", href: "/reports" }
+  { label: "Reports", href: "/reports" },
+  { label: "Private Network", href: "/private-network" }
 ];

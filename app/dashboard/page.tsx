@@ -1,7 +1,15 @@
 import { AppShell } from "@/components/AppShell";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
-import { metrics, orders, productPipeline } from "@/lib/mock-data";
+import { StatusPill } from "@/components/StatusPill";
+import {
+  channelPerformance,
+  metrics,
+  operatingQueue,
+  orders,
+  productPipeline,
+  revenueSeries
+} from "@/lib/mock-data";
 
 export default function DashboardPage() {
   return (
@@ -37,6 +45,44 @@ export default function DashboardPage() {
           <MetricCard key={metric.label} {...metric} />
         ))}
       </div>
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1fr_420px]">
+        <div className="glass-card p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="label">Revenue signal</div>
+              <h2 className="mt-3 text-2xl font-semibold text-white">Seven-day luxury demand curve</h2>
+            </div>
+            <div className="text-sm text-korual-mist">Mock revenue index</div>
+          </div>
+          <div className="mt-8 flex h-64 items-end gap-3 rounded-[1.35rem] border border-white/10 bg-black/20 p-4">
+            {revenueSeries.map((point) => (
+              <div key={point.day} className="flex h-full flex-1 flex-col justify-end gap-3">
+                <div
+                  className="min-h-8 rounded-t-2xl border border-korual-gold/30 bg-gradient-to-t from-korual-gold/25 to-korual-champagne shadow-gold"
+                  style={{ height: `${point.value}%` }}
+                />
+                <div className="text-center text-xs font-semibold text-korual-mist">{point.day}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="premium-panel p-6">
+          <div className="label">Operating queue</div>
+          <div className="mt-5 grid gap-3">
+            {operatingQueue.map((item) => (
+              <div key={item.label} className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-semibold text-white">{item.label}</div>
+                    <div className="mt-1 text-sm leading-6 text-korual-mist">{item.detail}</div>
+                  </div>
+                  <StatusPill value={item.priority} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <section className="glass-card p-6">
           <div className="label">Product pipeline</div>
@@ -69,6 +115,35 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
+      <section className="mt-6 glass-card p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="label">Channel performance</div>
+            <h2 className="mt-3 text-2xl font-semibold text-white">Commerce channels ranked by margin posture</h2>
+          </div>
+          <button className="quiet-button">View full report</button>
+        </div>
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+          {channelPerformance.map((channel) => (
+            <div key={channel.channel} className="rounded-2xl border border-white/10 bg-black/25 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-semibold text-white">{channel.channel}</div>
+                <StatusPill value={channel.status} />
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="text-korual-mist">Revenue</div>
+                  <div className="mt-2 text-lg font-semibold text-korual-champagne">{channel.revenue}</div>
+                </div>
+                <div>
+                  <div className="text-korual-mist">Margin</div>
+                  <div className="mt-2 text-lg font-semibold text-emerald-300">{channel.margin}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </AppShell>
   );
 }

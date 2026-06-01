@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { brand, navItems } from "@/lib/brand";
+import { brand } from "@/lib/brand";
+import { SideNav } from "@/components/SideNav";
+import { TopCommandBar } from "@/components/TopCommandBar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -19,18 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             Private commerce command
           </div>
         </Link>
-        <nav className="mt-6 grid gap-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group flex items-center justify-between rounded-2xl border border-white/0 px-4 py-3 text-sm font-medium text-korual-mist transition hover:border-korual-gold/20 hover:bg-white/[0.06] hover:text-white"
-            >
-              <span>{item.label}</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-korual-gold/0 transition group-hover:bg-korual-gold" />
-            </Link>
-          ))}
-        </nav>
+        <SideNav />
         <div className="mt-6 rounded-[1.35rem] border border-korual-gold/20 bg-korual-gold/10 p-5">
           <div className="text-sm font-semibold text-korual-champagne">{brand.manifesto}</div>
           <p className="mt-2 text-xs leading-5 text-korual-mist">
@@ -49,7 +40,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="min-w-0 p-5 sm:p-8 xl:p-10">
-        <div className="mx-auto max-w-7xl">{children}</div>
+        <div className="mx-auto max-w-7xl">
+          <TopCommandBar />
+          {children}
+        </div>
       </main>
     </div>
   );
