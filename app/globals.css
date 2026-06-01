@@ -19,8 +19,8 @@ body {
   min-height: 100%;
   margin: 0;
   background:
+    radial-gradient(880px 620px at 50% 24%, rgba(56, 189, 248, 0.1), transparent 62%),
     radial-gradient(circle at 12% 6%, rgba(216, 183, 106, 0.14), transparent 26%),
-    radial-gradient(circle at 86% 8%, rgba(104, 183, 255, 0.1), transparent 28%),
     linear-gradient(135deg, #030509 0%, #07111f 48%, #0b1423 100%);
   color: #f7f1df;
 }
@@ -32,10 +32,29 @@ body::before {
   pointer-events: none;
   content: "";
   background:
+    radial-gradient(circle at center, transparent 0 23%, rgba(216, 183, 106, 0.1) 23.2% 23.35%, transparent 23.55% 35%, rgba(56, 189, 248, 0.07) 35.2% 35.35%, transparent 35.55%),
     linear-gradient(115deg, transparent 0 24%, rgba(255, 255, 255, 0.035) 24.2%, transparent 24.6%),
     linear-gradient(145deg, transparent 0 56%, rgba(216, 183, 106, 0.045) 56.1%, transparent 56.5%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 160px);
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 80px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 80px);
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 90%);
+}
+
+body::after {
+  position: fixed;
+  inset: auto 6vw 8vh auto;
+  z-index: -1;
+  width: min(520px, 64vw);
+  aspect-ratio: 1;
+  pointer-events: none;
+  content: "";
+  border: 1px solid rgba(216, 183, 106, 0.14);
+  border-radius: 999px;
+  background:
+    conic-gradient(from 220deg, rgba(216, 183, 106, 0.18), transparent 28%, transparent 100%),
+    radial-gradient(circle, transparent 0 54%, rgba(255, 255, 255, 0.05) 54.2% 54.45%, transparent 54.7%);
+  filter: blur(0.2px);
+  opacity: 0.55;
 }
 
 button,
@@ -82,5 +101,29 @@ textarea {
 
   .quiet-button {
     @apply rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-korual-champagne transition hover:border-korual-gold/40 hover:bg-korual-gold/10;
+  }
+
+  .ops-panel {
+    @apply rounded-2xl border border-white/10 bg-black/35 shadow-[0_22px_70px_rgba(0,0,0,0.34)] backdrop-blur-2xl;
+  }
+
+  .signal-pill {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em];
+  }
+
+  .ops-table {
+    @apply w-full border-collapse text-left text-xs;
+  }
+
+  .ops-table thead {
+    @apply sticky top-0 bg-white/[0.06] text-[10px] uppercase tracking-[0.16em] text-korual-mist;
+  }
+
+  .ops-table th {
+    @apply px-3 py-3 font-semibold;
+  }
+
+  .ops-table td {
+    @apply border-t border-white/10 px-3 py-3 text-korual-mist;
   }
 }

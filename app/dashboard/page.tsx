@@ -144,6 +144,46 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
+      <section className="mt-6 ops-panel overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="label">Live order monitor</div>
+            <h2 className="mt-2 text-xl font-semibold text-white">Recent commerce movement</h2>
+          </div>
+          <span className="signal-pill border-emerald-300/25 bg-emerald-300/10 text-emerald-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+            Realtime summary
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="ops-table min-w-[760px]">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Product</th>
+                <th>Status</th>
+                <th>Channel</th>
+                <th className="text-right">Value</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order, index) => (
+                <tr key={order.id}>
+                  <td className="font-semibold text-white">{order.id}</td>
+                  <td>{order.product}</td>
+                  <td>
+                    <StatusPill value={order.status} />
+                  </td>
+                  <td>{index === 0 ? "SmartStore" : index === 1 ? "Cafe24" : "Coupang"}</td>
+                  <td className="text-right font-semibold text-korual-champagne">{order.value}</td>
+                  <td className="text-white">{order.status === "Delayed" ? "Supplier follow-up" : "Monitor"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </AppShell>
   );
 }
