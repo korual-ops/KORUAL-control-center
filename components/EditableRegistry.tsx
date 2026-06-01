@@ -45,6 +45,22 @@ export function EditableRegistry<T extends Record<string, string>>({
   });
   const [draft, setDraft] = useState<T>(blankItem);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 6;
+  const filteredItems = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      Object.values(item).some((value) => String(value).toLowerCase().includes(normalizedQuery))
+    );
+  }, [items, query]);
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visibleItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => {
     window.localStorage.setItem(storageKey, JSON.stringify(items));
@@ -71,6 +87,7 @@ export function EditableRegistry<T extends Record<string, string>>({
       }
       return current.map((item, index) => (index === editingIndex ? normalized : item));
     });
+    setPage(1);
     resetDraft();
   }
 
@@ -81,6 +98,7 @@ export function EditableRegistry<T extends Record<string, string>>({
 
   function deleteItem(index: number) {
     setItems((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setPage(1);
     if (editingIndex === index) {
       resetDraft();
     }
@@ -94,7 +112,7 @@ export function EditableRegistry<T extends Record<string, string>>({
           <p className="mt-3 max-w-2xl text-sm leading-6 text-korual-mist">{description}</p>
         </div>
         <div className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-korual-mist">
-          {items.length} records
+          {filteredItems.length} / {items.length} records
         </div>
       </div>
 
@@ -122,6 +140,39 @@ export function EditableRegistry<T extends Record<string, string>>({
         </div>
       </div>
 
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <input
+          className="field sm:max-w-sm"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setPage(1);
+          }}
+          placeholder="Search records"
+        />
+        <div className="flex items-center gap-2 text-xs text-korual-mist">
+          <button
+            type="button"
+            className="quiet-button px-3 py-2 text-xs"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </button>
+          <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-2">
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            type="button"
+            className="quiet-button px-3 py-2 text-xs"
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
       <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10">
         <table className="min-w-[780px] w-full border-collapse text-sm">
           <thead className="bg-white/[0.06] text-left text-xs uppercase tracking-[0.16em] text-korual-mist">
@@ -135,29 +186,40 @@ export function EditableRegistry<T extends Record<string, string>>({
             </tr>
           </thead>
           <tbody>
-            {items.map((item, index) => (
-              <tr key={`${index}-${Object.values(item).join("-")}`} className="border-t border-white/10">
-                {fields.map((field) => (
-                  <td key={String(field.key)} className="px-4 py-4 text-korual-mist">
-                    {field.kind === "status" ? <StatusPill value={item[field.key]} /> : item[field.key]}
+            {visibleItems.map((item) => {
+              const index = items.indexOf(item);
+
+              return (
+                <tr key={`${index}-${Object.values(item).join("-")}`} className="border-t border-white/10">
+                  {fields.map((field) => (
+                    <td key={String(field.key)} className="px-4 py-4 text-korual-mist">
+                      {field.kind === "status" ? <StatusPill value={item[field.key]} /> : item[field.key]}
+                    </td>
+                  ))}
+                  <td className="px-4 py-4">
+                    <div className="flex justify-end gap-2">
+                      <button type="button" className="quiet-button px-3 py-2" onClick={() => editItem(index)}>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-2xl border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-300/15"
+                        onClick={() => deleteItem(index)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
-                ))}
-                <td className="px-4 py-4">
-                  <div className="flex justify-end gap-2">
-                    <button type="button" className="quiet-button px-3 py-2" onClick={() => editItem(index)}>
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-2xl border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-300/15"
-                      onClick={() => deleteItem(index)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                </tr>
+              );
+            })}
+            {!visibleItems.length ? (
+              <tr className="border-t border-white/10">
+                <td colSpan={fields.length + 1} className="px-4 py-8 text-center text-sm text-korual-mist">
+                  No matching records.
                 </td>
               </tr>
-            ))}
+            ) : null}
           </tbody>
         </table>
       </div>
