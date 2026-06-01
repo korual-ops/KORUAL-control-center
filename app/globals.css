@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: #05070b;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(216, 183, 106, 0.12), transparent 30%),
+    linear-gradient(135deg, #05070b 0%, #07111f 46%, #0d1728 100%);
+  color: #f7f1df;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+@layer components {
+  .glass-card {
+    @apply rounded-2xl border border-white/10 bg-white/[0.055] shadow-glass backdrop-blur-xl;
+  }
+
+  .gold-text {
+    @apply bg-gradient-to-r from-korual-champagne via-korual-gold to-korual-champagne bg-clip-text text-transparent;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-korual-gold/70 focus:ring-2 focus:ring-korual-gold/20;
+  }
+
+  .label {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-korual-mist;
+  }
+}
