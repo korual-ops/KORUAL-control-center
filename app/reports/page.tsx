@@ -12,13 +12,35 @@ export default function ReportsPage() {
 
   return (
     <AppShell>
-      <PageHeader eyebrow="Reports" title="Surface what deserves attention before it becomes noise." description="Daily revenue, net profit, ad spend, best sellers, low-margin products, and restock candidates." />
-      <div className="grid gap-4 md:grid-cols-3">{reportMetrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}</div>
+      <PageHeader
+        eyebrow="Reports"
+        title="Surface what deserves attention before it becomes noise."
+        description="Daily revenue, net profit, ad spend, best sellers, low-margin products, and restock candidates."
+      />
+      <div className="grid gap-4 md:grid-cols-3">
+        {reportMetrics.map((metric) => (
+          <MetricCard key={metric.label} {...metric} />
+        ))}
+      </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        {[["Best sellers", reports.bestSellers], ["Low-margin products", reports.lowMarginProducts], ["Restock candidates", reports.restockCandidates]].map(([title, items]) => (
+        {[
+          ["Best sellers", reports.bestSellers],
+          ["Low-margin products", reports.lowMarginProducts],
+          ["Restock candidates", reports.restockCandidates]
+        ].map(([title, items]) => (
           <section key={title as string} className="glass-card p-6">
             <div className="label">{title as string}</div>
-            <ul className="mt-5 grid gap-3">{(items as string[]).map((item) => <li key={item} className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white">{item}</li>)}</ul>
+            <div className="gold-rule mt-4" />
+            <ul className="mt-5 grid gap-3">
+              {(items as string[]).map((item) => (
+                <li key={item} className="rounded-2xl border border-white/10 bg-black/25 p-4 text-sm text-white">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>{item}</span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-korual-gold" />
+                  </div>
+                </li>
+              ))}
+            </ul>
           </section>
         ))}
       </div>

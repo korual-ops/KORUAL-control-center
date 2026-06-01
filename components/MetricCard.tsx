@@ -1,4 +1,14 @@
-export function MetricCard({ label, value, detail, tone = "neutral" }: { label: string; value: string; detail: string; tone?: "neutral" | "gold" | "green" | "red" }) {
+export function MetricCard({
+  label,
+  value,
+  detail,
+  tone = "neutral"
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone?: "neutral" | "gold" | "green" | "red";
+}) {
   const toneClass = {
     neutral: "text-white",
     gold: "text-korual-champagne",
@@ -7,10 +17,11 @@ export function MetricCard({ label, value, detail, tone = "neutral" }: { label: 
   }[tone];
 
   return (
-    <section className="glass-card p-5">
-      <div className="text-sm text-korual-mist">{label}</div>
-      <div className={`mt-3 text-3xl font-semibold tracking-tight ${toneClass}`}>{value}</div>
-      <div className="mt-2 text-sm text-korual-mist">{detail}</div>
+    <section className="glass-card group relative overflow-hidden p-5 transition duration-300 hover:-translate-y-0.5 hover:border-korual-gold/25">
+      <div className="absolute right-5 top-5 h-8 w-8 rounded-full border border-korual-gold/20 bg-korual-gold/5" />
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-korual-mist">{label}</div>
+      <div className={`mt-4 text-3xl font-semibold tracking-tight ${toneClass}`}>{value}</div>
+      <div className="mt-3 text-sm leading-6 text-korual-mist">{detail}</div>
     </section>
   );
 }

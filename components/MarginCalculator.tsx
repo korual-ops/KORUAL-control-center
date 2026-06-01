@@ -36,27 +36,58 @@ export function MarginCalculator() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
       <section className="glass-card grid gap-4 p-6">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div>
+            <div className="label">Pricing inputs</div>
+            <p className="mt-2 text-sm text-korual-mist">Model the full landed cost before publishing.</p>
+          </div>
+          <div className="hidden rounded-full border border-white/10 px-4 py-2 text-xs text-korual-champagne sm:block">
+            Target {Math.round(input.targetMarginRate * 100)}%
+          </div>
+        </div>
         {fields.map((field) => {
           const value = field.key.endsWith("Rate") ? input[field.key] * 100 : input[field.key];
           return (
             <label key={field.key} className="grid gap-2">
               <span className="label">{field.label}</span>
               <div className="flex items-center gap-2">
-                <input className="field" type="number" step={field.step ?? "100"} value={Number(value.toFixed(2))} onChange={(event) => update(field.key, event.target.value)} />
+                <input
+                  className="field"
+                  type="number"
+                  step={field.step ?? "100"}
+                  value={Number(value.toFixed(2))}
+                  onChange={(event) => update(field.key, event.target.value)}
+                />
                 {field.suffix ? <span className="w-10 text-sm text-korual-mist">{field.suffix}</span> : null}
               </div>
             </label>
           );
         })}
       </section>
-      <section className="glass-card p-6">
+      <section className="premium-panel p-6">
         <div className="label">Recommended price</div>
-        <div className="mt-4 text-5xl font-semibold text-korual-champagne">{result.recommendedSellingPrice.toLocaleString()} KRW</div>
+        <div className="mt-4 text-5xl font-semibold text-korual-champagne">
+          {result.recommendedSellingPrice.toLocaleString()} KRW
+        </div>
+        <p className="mt-4 text-sm leading-6 text-korual-mist">
+          A rounded premium price that protects fee load, ad pressure, and the quiet luxury margin floor.
+        </p>
+        <div className="gold-rule mt-6" />
         <dl className="mt-8 grid gap-4 text-sm">
-          <div className="flex justify-between border-b border-white/10 pb-3"><dt className="text-korual-mist">Expected net profit</dt><dd className="font-semibold text-emerald-300">{result.expectedNetProfit.toLocaleString()} KRW</dd></div>
-          <div className="flex justify-between border-b border-white/10 pb-3"><dt className="text-korual-mist">Total landed cost</dt><dd className="text-white">{result.totalLandedCost.toLocaleString()} KRW</dd></div>
-          <div className="flex justify-between"><dt className="text-korual-mist">Estimated fee load</dt><dd className="text-white">{result.estimatedFees.toLocaleString()} KRW</dd></div>
+          <div className="flex justify-between border-b border-white/10 pb-3">
+            <dt className="text-korual-mist">Expected net profit</dt>
+            <dd className="font-semibold text-emerald-300">{result.expectedNetProfit.toLocaleString()} KRW</dd>
+          </div>
+          <div className="flex justify-between border-b border-white/10 pb-3">
+            <dt className="text-korual-mist">Total landed cost</dt>
+            <dd className="text-white">{result.totalLandedCost.toLocaleString()} KRW</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-korual-mist">Estimated fee load</dt>
+            <dd className="text-white">{result.estimatedFees.toLocaleString()} KRW</dd>
+          </div>
         </dl>
+        <button className="lux-button mt-8 w-full">Approve price scenario</button>
       </section>
     </div>
   );

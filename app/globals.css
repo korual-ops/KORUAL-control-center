@@ -19,9 +19,23 @@ body {
   min-height: 100%;
   margin: 0;
   background:
-    radial-gradient(circle at 10% 0%, rgba(216, 183, 106, 0.12), transparent 30%),
-    linear-gradient(135deg, #05070b 0%, #07111f 46%, #0d1728 100%);
+    radial-gradient(circle at 12% 6%, rgba(216, 183, 106, 0.14), transparent 26%),
+    radial-gradient(circle at 86% 8%, rgba(104, 183, 255, 0.1), transparent 28%),
+    linear-gradient(135deg, #030509 0%, #07111f 48%, #0b1423 100%);
   color: #f7f1df;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(115deg, transparent 0 24%, rgba(255, 255, 255, 0.035) 24.2%, transparent 24.6%),
+    linear-gradient(145deg, transparent 0 56%, rgba(216, 183, 106, 0.045) 56.1%, transparent 56.5%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 160px);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 90%);
 }
 
 button,
@@ -33,7 +47,17 @@ textarea {
 
 @layer components {
   .glass-card {
-    @apply rounded-2xl border border-white/10 bg-white/[0.055] shadow-glass backdrop-blur-xl;
+    @apply rounded-[1.35rem] border border-white/10 bg-white/[0.06] shadow-glass backdrop-blur-2xl;
+    background-image:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+      radial-gradient(circle at top left, rgba(216, 183, 106, 0.1), transparent 34%);
+  }
+
+  .premium-panel {
+    @apply rounded-[1.75rem] border border-korual-gold/20 bg-black/25 shadow-glass backdrop-blur-2xl;
+    background-image:
+      linear-gradient(140deg, rgba(216, 183, 106, 0.14), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
   }
 
   .gold-text {
@@ -41,10 +65,22 @@ textarea {
   }
 
   .field {
-    @apply w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-korual-gold/70 focus:ring-2 focus:ring-korual-gold/20;
+    @apply w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-korual-mist/45 focus:border-korual-gold/70 focus:ring-2 focus:ring-korual-gold/20;
   }
 
   .label {
     @apply text-xs font-semibold uppercase tracking-[0.18em] text-korual-mist;
+  }
+
+  .gold-rule {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-korual-gold/45 to-transparent;
+  }
+
+  .lux-button {
+    @apply rounded-2xl border border-korual-gold/40 bg-korual-gold px-5 py-3 text-sm font-bold text-black shadow-[0_18px_40px_rgba(216,183,106,0.18)] transition hover:bg-korual-champagne;
+  }
+
+  .quiet-button {
+    @apply rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-korual-champagne transition hover:border-korual-gold/40 hover:bg-korual-gold/10;
   }
 }

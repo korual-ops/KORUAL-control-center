@@ -16,11 +16,13 @@ const config: Config = {
           panel: "#111b2c",
           gold: "#d8b76a",
           champagne: "#f0dfb1",
+          pearl: "#f7f1df",
           mist: "#9caec8"
         }
       },
       boxShadow: {
-        glass: "0 24px 80px rgba(0, 0, 0, 0.35)"
+        glass: "0 24px 80px rgba(0, 0, 0, 0.35)",
+        gold: "0 18px 60px rgba(216, 183, 106, 0.18)"
       }
     }
   },
