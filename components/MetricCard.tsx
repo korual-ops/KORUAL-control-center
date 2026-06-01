@@ -17,7 +17,7 @@ export function MetricCard({
   }[tone];
 
   return (
-    <section className="glass-card group relative overflow-hidden p-5 transition duration-300 hover:-translate-y-0.5 hover:border-korual-gold/25">
+    <section className="glass-card metric-card group p-5">
       <div className="absolute right-5 top-5 h-8 w-8 rounded-full border border-korual-gold/20 bg-korual-gold/5" />
       <div className="text-xs font-semibold uppercase tracking-[0.18em] text-korual-mist">{label}</div>
       <div className={`mt-4 text-3xl font-semibold tracking-tight ${toneClass}`}>{value}</div>

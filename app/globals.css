@@ -10,6 +10,11 @@
   box-sizing: border-box;
 }
 
+*::selection {
+  background: rgba(216, 183, 106, 0.32);
+  color: #fffaf0;
+}
+
 html {
   min-height: 100%;
   background: #05070b;
@@ -23,6 +28,7 @@ body {
     radial-gradient(circle at 12% 6%, rgba(216, 183, 106, 0.14), transparent 26%),
     linear-gradient(135deg, #030509 0%, #07111f 48%, #0b1423 100%);
   color: #f7f1df;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 body::before {
@@ -64,16 +70,45 @@ textarea {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(5, 7, 11, 0.8);
+  border-radius: 999px;
+  background: rgba(216, 183, 106, 0.38);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 223, 177, 0.52);
+}
+
 @layer components {
   .glass-card {
-    @apply rounded-[1.35rem] border border-white/10 bg-white/[0.06] shadow-glass backdrop-blur-2xl;
+    @apply rounded-[1.35rem] border border-white/10 bg-white/[0.06] shadow-glass backdrop-blur-2xl transition duration-200;
     background-image:
       linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
       radial-gradient(circle at top left, rgba(216, 183, 106, 0.1), transparent 34%);
   }
 
   .premium-panel {
-    @apply rounded-[1.75rem] border border-korual-gold/20 bg-black/25 shadow-glass backdrop-blur-2xl;
+    @apply rounded-[1.75rem] border border-korual-gold/20 bg-black/25 shadow-glass backdrop-blur-2xl transition duration-200;
     background-image:
       linear-gradient(140deg, rgba(216, 183, 106, 0.14), transparent 28%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
@@ -84,7 +119,7 @@ textarea {
   }
 
   .field {
-    @apply w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition placeholder:text-korual-mist/45 focus:border-korual-gold/70 focus:ring-2 focus:ring-korual-gold/20;
+    @apply w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none transition duration-200 placeholder:text-korual-mist/45 focus:border-korual-gold/70 focus:ring-2 focus:ring-korual-gold/20;
   }
 
   .label {
@@ -96,19 +131,37 @@ textarea {
   }
 
   .lux-button {
-    @apply rounded-2xl border border-korual-gold/40 bg-korual-gold px-5 py-3 text-sm font-bold text-black shadow-[0_18px_40px_rgba(216,183,106,0.18)] transition hover:bg-korual-champagne;
+    @apply rounded-2xl border border-korual-gold/40 bg-korual-gold px-5 py-3 text-sm font-bold text-black shadow-[0_18px_40px_rgba(216,183,106,0.18)] transition duration-200 hover:-translate-y-px hover:bg-korual-champagne active:translate-y-0;
   }
 
   .quiet-button {
-    @apply rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-korual-champagne transition hover:border-korual-gold/40 hover:bg-korual-gold/10;
+    @apply rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-korual-champagne transition duration-200 hover:-translate-y-px hover:border-korual-gold/40 hover:bg-korual-gold/10 active:translate-y-0;
   }
 
   .ops-panel {
-    @apply rounded-2xl border border-white/10 bg-black/35 shadow-[0_22px_70px_rgba(0,0,0,0.34)] backdrop-blur-2xl;
+    @apply rounded-2xl border border-white/10 bg-black/35 shadow-[0_22px_70px_rgba(0,0,0,0.34)] backdrop-blur-2xl transition duration-200;
   }
 
   .signal-pill {
     @apply inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em];
+  }
+
+  .metric-card {
+    @apply relative overflow-hidden transition duration-200 hover:-translate-y-px hover:border-korual-gold/25;
+  }
+
+  .metric-card::after {
+    position: absolute;
+    inset: auto 1rem 0 1rem;
+    height: 1px;
+    content: "";
+    background: linear-gradient(90deg, transparent, rgba(216, 183, 106, 0.34), transparent);
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+
+  .metric-card:hover::after {
+    opacity: 1;
   }
 
   .ops-table {
@@ -124,6 +177,40 @@ textarea {
   }
 
   .ops-table td {
-    @apply border-t border-white/10 px-3 py-3 text-korual-mist;
+    @apply border-t border-white/10 px-3 py-3 text-korual-mist transition-colors;
+  }
+
+  .ops-table tbody tr {
+    @apply transition-colors;
+  }
+
+  .ops-table tbody tr:hover {
+    @apply bg-white/[0.045];
+  }
+
+  .text-ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .badge {
+    @apply inline-flex items-center justify-center rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-semibold text-korual-mist;
+  }
+
+  .toast-surface {
+    @apply rounded-full border px-4 py-2 text-xs font-semibold shadow-glass transition duration-200;
+  }
+
+  .modal-surface {
+    @apply rounded-2xl border border-korual-gold/25 bg-black/85 shadow-glass backdrop-blur-2xl;
+  }
+}
+
+@media (max-width: 640px) {
+  body::after {
+    width: 82vw;
+    inset: auto -24vw 4vh auto;
+    opacity: 0.36;
   }
 }
