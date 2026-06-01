@@ -12,6 +12,7 @@ export const roleNavGroups = [
       { label: "Dashboard", href: "/dashboard" },
       { label: "Product Intake", href: "/products" },
       { label: "Margin Calculator", href: "/margin" },
+      { label: "Research Lab", href: "/research" },
       { label: "AI Listing", href: "/ai-listing" },
       { label: "AI Customer Support", href: "/ai-cs" },
       { label: "Reports", href: "/reports" }

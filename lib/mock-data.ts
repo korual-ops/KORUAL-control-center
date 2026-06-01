@@ -131,6 +131,58 @@ export const roleMatrix = [
   { role: "Buyer", focus: "Premium product discovery and purchase confidence", entry: "/buyer" }
 ];
 
+export const researchMetrics = [
+  { label: "Research pipeline", value: "14", detail: "Signals, concepts, and supplier angles", tone: "gold" as const },
+  { label: "Validated ideas", value: "5", detail: "Passed margin and buyer story checks", tone: "green" as const },
+  { label: "Premium gaps", value: "8", detail: "Unserved quiet luxury search intents", tone: "neutral" as const },
+  { label: "Launch bets", value: "3", detail: "Ready for intake and AI listing draft", tone: "gold" as const }
+];
+
+export const researchSignals = [
+  {
+    signal: "Hotel bathroom ritual",
+    insight: "Buyers respond to calm daily upgrade language more than discount-first utility claims.",
+    action: "Bundle towel, tray, and robe concepts into a cohesive bath ritual line.",
+    confidence: "High"
+  },
+  {
+    signal: "Gift-ready premium basics",
+    insight: "Simple packaging can lift perceived value without changing the core product.",
+    action: "Test gold foil box and care-card add-ons across best sellers.",
+    confidence: "Medium"
+  },
+  {
+    signal: "Low-noise home office",
+    insight: "Minimal desk objects with tactile materials fit the KORUAL quiet luxury position.",
+    action: "Source leather trays, brass clips, and matte organizers with 30%+ target margin.",
+    confidence: "Medium"
+  }
+];
+
+export const experimentBacklog = [
+  {
+    idea: "Bath ritual collection",
+    segment: "Hotel lifestyle buyer",
+    hypothesis: "Curated bundles increase AOV while preserving premium tone.",
+    nextStep: "Build bundle landing copy",
+    status: "Ready"
+  },
+  {
+    idea: "Premium care-card insert",
+    segment: "Gift purchaser",
+    hypothesis: "Care-card storytelling reduces refund friction and improves review quality.",
+    nextStep: "Draft insert copy",
+    status: "Testing"
+  },
+  {
+    idea: "Quiet desk edit",
+    segment: "Home office buyer",
+    hypothesis: "Material-led product naming improves click-through for desk accessories.",
+    nextStep: "Source 10 candidates",
+    status: "Research"
+  }
+];
+
 export const sellerEditableProducts = productPipeline.map((product) => ({
   name: product.name,
   source: product.source,
