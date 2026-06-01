@@ -104,3 +104,29 @@ export const internalServices = [
   { name: "Reports Server", ip: "10.77.0.120", role: "Daily brief", status: "Ready" },
   { name: "Gateway", ip: "10.77.0.1", role: "Private access", status: "Live" }
 ];
+
+export const sellerWorkflows = [
+  { title: "Launch control", detail: "Validate product story, margin, channel fit, and AI copy before publishing.", status: "Ready" },
+  { title: "Margin discipline", detail: "Protect landed cost, fee pressure, ad budget, and target net profit.", status: "Active" },
+  { title: "Customer response", detail: "Draft premium replies for delivery, exchange, refund, and product inquiries.", status: "Active" }
+];
+
+export const developerWorkflows = [
+  { title: "Private network layer", detail: "WireGuard-based fixed IP access for internal systems.", status: "Online" },
+  { title: "AI module readiness", detail: "Prompt templates are separated for listing, support, and research tasks.", status: "Ready" },
+  { title: "Supabase schema", detail: "Products, margins, orders, and AI templates are database-ready.", status: "Ready" },
+  { title: "Build pipeline", detail: "TypeScript, lint, and production build checks are available.", status: "Stable" }
+];
+
+export const buyerExperience = [
+  { title: "Hotel lifestyle first", detail: "Product copy leads with calm daily luxury, not discount pressure." },
+  { title: "Clear purchase confidence", detail: "Materials, shipping, care, exchange, and refund expectations are visible." },
+  { title: "Premium support tone", detail: "Every reply should feel precise, calm, and accountable." },
+  { title: "Gift-ready journey", detail: "Sets, packaging, and occasion-based recommendations are prioritized." }
+];
+
+export const roleMatrix = [
+  { role: "Seller", focus: "Revenue, margin, sourcing, listing, support", entry: "/seller" },
+  { role: "Developer", focus: "Infrastructure, AI modules, schema, private network", entry: "/developer" },
+  { role: "Buyer", focus: "Premium product discovery and purchase confidence", entry: "/buyer" }
+];
