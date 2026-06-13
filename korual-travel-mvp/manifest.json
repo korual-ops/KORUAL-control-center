@@ -1,0 +1,21 @@
+{
+  "name": "KORUAL Travel",
+  "short_name": "KORUAL",
+  "description": "AI 여행 플래너, 항공, 호텔, 맛집, 투어를 연결하는 KORUAL Travel Super App",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#060606",
+  "theme_color": "#d9b76f",
+  "categories": ["travel", "navigation", "lifestyle"],
+  "lang": "ko-KR",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
