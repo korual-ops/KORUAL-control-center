@@ -1,0 +1,206 @@
+export const sourcePlatforms = ["1688", "Temu", "CJdropshipping", "Manual"] as const;
+
+export const metrics = [
+  { label: "Revenue today", value: "3.84M KRW", detail: "+18% vs 7-day average", tone: "gold" as const },
+  { label: "Net profit", value: "1.12M KRW", detail: "29.1% blended margin", tone: "green" as const },
+  { label: "Open orders", value: "146", detail: "18 require supplier follow-up", tone: "neutral" as const },
+  { label: "AI automations", value: "82%", detail: "Listing and CS flows active", tone: "gold" as const }
+];
+
+export const productPipeline = [
+  { name: "Cream Embossed Hotel Towel", source: "1688", stage: "Margin review", margin: "34%" },
+  { name: "Black Marble Bath Tray", source: "Manual", stage: "Supplier QA", margin: "41%" },
+  { name: "Hotel Lifestyle Robe", source: "CJdropshipping", stage: "Listing draft", margin: "28%" },
+  { name: "Gold Foil Gift Box", source: "Temu", stage: "Restock candidate", margin: "37%" }
+];
+
+export const orders = [
+  { id: "KR-2401", product: "Cream Embossed Hotel Towel", status: "Paid", value: "129,000 KRW" },
+  { id: "KR-2402", product: "Hotel Lifestyle Robe", status: "Shipping", value: "88,000 KRW" },
+  { id: "KR-2403", product: "Gold Foil Gift Box", status: "Delayed", value: "42,000 KRW" }
+];
+
+export const reports = {
+  dailyRevenue: "3.84M KRW",
+  netProfit: "1.12M KRW",
+  adSpend: "412K KRW",
+  bestSellers: ["Cream Embossed Hotel Towel", "Black Marble Bath Tray", "Gold Foil Gift Box"],
+  lowMarginProducts: ["Hotel Lifestyle Robe", "Imported Scent Diffuser"],
+  restockCandidates: ["Cream Embossed Hotel Towel", "Gold Foil Gift Box"]
+};
+
+export const revenueSeries = [
+  { day: "Mon", value: 42 },
+  { day: "Tue", value: 58 },
+  { day: "Wed", value: 50 },
+  { day: "Thu", value: 73 },
+  { day: "Fri", value: 68 },
+  { day: "Sat", value: 88 },
+  { day: "Sun", value: 79 }
+];
+
+export const operatingQueue = [
+  { label: "Supplier delay review", detail: "Gold Foil Gift Box packaging ETA", priority: "High" },
+  { label: "Listing approval", detail: "Cafe24 copy for hotel robe collection", priority: "Medium" },
+  { label: "Margin check", detail: "Black marble tray ad cost pressure", priority: "Medium" },
+  { label: "Restock signal", detail: "Cream embossed towel inventory floor", priority: "Ready" }
+];
+
+export const channelPerformance = [
+  { channel: "SmartStore", revenue: "1.62M", margin: "32%", status: "Stable" },
+  { channel: "Cafe24", revenue: "940K", margin: "38%", status: "Premium" },
+  { channel: "Coupang", revenue: "1.28M", margin: "24%", status: "Watch" }
+];
+
+export const privateNetworkMetrics = [
+  { label: "Gateway status", value: "Online", detail: "10.77.0.1 private gateway", tone: "green" as const },
+  { label: "Approved devices", value: "7", detail: "Founder, operator, services", tone: "gold" as const },
+  { label: "Internal services", value: "4", detail: "Control, AI, reports, gateway", tone: "neutral" as const },
+  { label: "At-risk peers", value: "0", detail: "No stale access detected", tone: "green" as const }
+];
+
+export const privateNetworkPeers = [
+  {
+    name: "Founder MacBook",
+    owner: "Founder",
+    type: "Admin Device",
+    vpnIp: "10.77.0.20",
+    accessTier: "Founder",
+    lastHandshake: "2 min ago",
+    status: "Online"
+  },
+  {
+    name: "Operator Laptop 01",
+    owner: "Operations",
+    type: "Employee Device",
+    vpnIp: "10.77.0.10",
+    accessTier: "Operator",
+    lastHandshake: "8 min ago",
+    status: "Online"
+  },
+  {
+    name: "KORUAL Control Center",
+    owner: "System",
+    type: "Internal Server",
+    vpnIp: "10.77.0.100",
+    accessTier: "Service",
+    lastHandshake: "Live",
+    status: "Online"
+  },
+  {
+    name: "AI Research Worker",
+    owner: "Automation",
+    type: "Internal Server",
+    vpnIp: "10.77.0.110",
+    accessTier: "Service",
+    lastHandshake: "5 min ago",
+    status: "Online"
+  }
+];
+
+export const internalServices = [
+  { name: "KORUAL Control Center", ip: "10.77.0.100", role: "Commerce OS", status: "Live" },
+  { name: "AI Worker", ip: "10.77.0.110", role: "Prompt execution", status: "Ready" },
+  { name: "Reports Server", ip: "10.77.0.120", role: "Daily brief", status: "Ready" },
+  { name: "Gateway", ip: "10.77.0.1", role: "Private access", status: "Live" }
+];
+
+export const sellerWorkflows = [
+  { title: "Launch control", detail: "Validate product story, margin, channel fit, and AI copy before publishing.", status: "Ready" },
+  { title: "Margin discipline", detail: "Protect landed cost, fee pressure, ad budget, and target net profit.", status: "Active" },
+  { title: "Customer response", detail: "Draft premium replies for delivery, exchange, refund, and product inquiries.", status: "Active" }
+];
+
+export const developerWorkflows = [
+  { title: "Private network layer", detail: "WireGuard-based fixed IP access for internal systems.", status: "Online" },
+  { title: "AI module readiness", detail: "Prompt templates are separated for listing, support, and research tasks.", status: "Ready" },
+  { title: "Supabase schema", detail: "Products, margins, orders, and AI templates are database-ready.", status: "Ready" },
+  { title: "Build pipeline", detail: "TypeScript, lint, and production build checks are available.", status: "Stable" }
+];
+
+export const buyerExperience = [
+  { title: "Hotel lifestyle first", detail: "Product copy leads with calm daily luxury, not discount pressure." },
+  { title: "Clear purchase confidence", detail: "Materials, shipping, care, exchange, and refund expectations are visible." },
+  { title: "Premium support tone", detail: "Every reply should feel precise, calm, and accountable." },
+  { title: "Gift-ready journey", detail: "Sets, packaging, and occasion-based recommendations are prioritized." }
+];
+
+export const roleMatrix = [
+  { role: "Seller", focus: "Revenue, margin, sourcing, listing, support", entry: "/seller" },
+  { role: "Developer", focus: "Infrastructure, AI modules, schema, private network", entry: "/developer" },
+  { role: "Buyer", focus: "Premium product discovery and purchase confidence", entry: "/buyer" }
+];
+
+export const researchMetrics = [
+  { label: "Research pipeline", value: "14", detail: "Signals, concepts, and supplier angles", tone: "gold" as const },
+  { label: "Validated ideas", value: "5", detail: "Passed margin and buyer story checks", tone: "green" as const },
+  { label: "Premium gaps", value: "8", detail: "Unserved quiet luxury search intents", tone: "neutral" as const },
+  { label: "Launch bets", value: "3", detail: "Ready for intake and AI listing draft", tone: "gold" as const }
+];
+
+export const researchSignals = [
+  {
+    signal: "Hotel bathroom ritual",
+    insight: "Buyers respond to calm daily upgrade language more than discount-first utility claims.",
+    action: "Bundle towel, tray, and robe concepts into a cohesive bath ritual line.",
+    confidence: "High"
+  },
+  {
+    signal: "Gift-ready premium basics",
+    insight: "Simple packaging can lift perceived value without changing the core product.",
+    action: "Test gold foil box and care-card add-ons across best sellers.",
+    confidence: "Medium"
+  },
+  {
+    signal: "Low-noise home office",
+    insight: "Minimal desk objects with tactile materials fit the KORUAL quiet luxury position.",
+    action: "Source leather trays, brass clips, and matte organizers with 30%+ target margin.",
+    confidence: "Medium"
+  }
+];
+
+export const experimentBacklog = [
+  {
+    idea: "Bath ritual collection",
+    segment: "Hotel lifestyle buyer",
+    hypothesis: "Curated bundles increase AOV while preserving premium tone.",
+    nextStep: "Build bundle landing copy",
+    status: "Ready"
+  },
+  {
+    idea: "Premium care-card insert",
+    segment: "Gift purchaser",
+    hypothesis: "Care-card storytelling reduces refund friction and improves review quality.",
+    nextStep: "Draft insert copy",
+    status: "Testing"
+  },
+  {
+    idea: "Quiet desk edit",
+    segment: "Home office buyer",
+    hypothesis: "Material-led product naming improves click-through for desk accessories.",
+    nextStep: "Source 10 candidates",
+    status: "Research"
+  }
+];
+
+export const sellerEditableProducts = productPipeline.map((product) => ({
+  name: product.name,
+  source: product.source,
+  stage: product.stage,
+  margin: product.margin
+}));
+
+export const developerEditablePeers = privateNetworkPeers.map((peer) => ({
+  name: peer.name,
+  owner: peer.owner,
+  type: peer.type,
+  vpnIp: peer.vpnIp,
+  accessTier: peer.accessTier,
+  status: peer.status
+}));
+
+export const buyerEditableProducts = [
+  { name: "Cream Embossed Hotel Towel", line: "A calm hotel touch for everyday rituals.", price: "from 29,000 KRW" },
+  { name: "Black Marble Bath Tray", line: "A quiet object for a more composed bath scene.", price: "from 42,000 KRW" },
+  { name: "Gold Foil Gift Box", line: "Gift-ready packaging with restrained presence.", price: "from 12,000 KRW" }
+];
