@@ -11,6 +11,7 @@ import { Connector } from '@google-cloud/cloud-sql-connector';
 const app = express();
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
+app.use(express.static('public'));
 
 // CORS: Next.js 도메인만 허용 권장
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -23,9 +24,7 @@ app.use(cors({
   credentials: true
 }));
 
-const {
-  Pool
-} = pg;
+const { Pool } = pg;
 
 // Env
 const PORT = process.env.PORT || 8080;
@@ -138,6 +137,16 @@ async function auditLogin({ username, userId, success, ip, userAgent, reason }) 
 }
 
 app.get('/health', (_, res) => res.json({ ok: true }));
+
+app.get('/platform/summary', (_, res) => {
+  res.json({
+    ok: true,
+    platform: 'KORUAL Super Platform',
+    version: '0.1.0',
+    modules: ['commerce', 'travel', 'ai-agent', 'business', 'finance', 'developer-api'],
+    operating_model: 'cashflow -> leverage -> system -> automation -> asset -> network effect'
+  });
+});
 
 app.post('/auth/login', async (req, res) => {
   const { username, password, ipOverride } = req.body || {};
@@ -328,5 +337,5 @@ app.post('/admin/users/set-active', requireAuth, requireAdmin, async (req, res) 
 });
 
 app.listen(PORT, () => {
-  console.log(`KORUAL Auth API running on :${PORT}`);
+  console.log(`KORUAL Control Center running on :${PORT}`);
 });
