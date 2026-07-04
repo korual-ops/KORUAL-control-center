@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KORUAL Control Center</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Inter,-apple-system,BlinkMacSystemFont,'Pretendard','Segoe UI',sans-serif}body{min-height:100vh;background:radial-gradient(circle at 75% 10%,rgba(242,196,109,.22),transparent 30%),radial-gradient(circle at 10% 90%,rgba(64,121,255,.16),transparent 30%),#05070b;color:#f7f2e8}.shell{display:grid;grid-template-columns:260px 1fr 340px;gap:18px;min-height:100vh;padding:18px}.panel,.hero,.card{background:linear-gradient(180deg,rgba(18,24,34,.94),rgba(7,10,15,.94));border:1px solid rgba(242,196,109,.18);border-radius:24px;box-shadow:0 22px 70px rgba(0,0,0,.35);backdrop-filter:blur(18px)}.side{padding:24px;position:sticky;top:18px;height:calc(100vh - 36px)}.logo{font-size:30px;font-weight:900;color:#f2c46d;letter-spacing:-1px;margin-bottom:26px}.user{display:flex;gap:12px;align-items:center;margin-bottom:24px}.avatar{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#f2c46d,#fff,#151923);color:#111;font-weight:900}.badge{display:inline-block;margin-top:4px;padding:4px 9px;border-radius:999px;border:1px solid rgba(242,196,109,.4);color:#f2c46d;font-size:11px}.nav{list-style:none;display:grid;gap:8px}.nav li{padding:13px 14px;border-radius:14px;color:#c8d0db}.nav li.active,.nav li:hover{background:linear-gradient(90deg,rgba(242,196,109,.22),rgba(242,196,109,.04));color:#fff}.black{margin-top:24px;padding:18px;border-radius:18px;background:linear-gradient(135deg,rgba(242,196,109,.18),rgba(255,255,255,.03));border:1px solid rgba(242,196,109,.35)}.black h3{color:#f2c46d;margin-bottom:8px}.main{display:grid;gap:18px}.top{display:flex;justify-content:space-between;align-items:center}.search{width:60%;padding:15px 18px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.055);color:white;outline:none}.hero{min-height:340px;padding:44px;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;right:-130px;top:-100px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(242,196,109,.28),transparent 60%);border:1px solid rgba(242,196,109,.18)}.hero h1{font-size:clamp(42px,5vw,72px);line-height:1.02;letter-spacing:-3px;margin-bottom:18px;position:relative;z-index:1}.hero h1 span{color:#f2c46d}.hero p{max-width:620px;color:#cbd4df;line-height:1.7;font-size:17px;position:relative;z-index:1}.btn{border:0;margin-top:22px;padding:13px 18px;border-radius:13px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,#f7d98b,#c99132);color:#121212;position:relative;z-index:1}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{padding:18px;min-height:150px}.icon{font-size:30px;margin-bottom:12px}.card h3{margin-bottom:8px}.card p{color:#aeb8c5;line-height:1.5;font-size:13px}.stats{padding:18px;position:sticky;top:18px;height:calc(100vh - 36px);overflow:auto}.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{padding:16px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}.stat span{font-size:12px;color:#aeb8c5}.stat strong{display:block;font-size:22px;margin-top:8px}.up{color:#54e67b;font-size:12px}.ai{margin-top:14px;padding:16px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}.prompt{padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.055);margin-top:8px;color:#d7dee8;font-size:13px}.workflow{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.step{text-align:center;padding:18px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08)}.step b{display:block;color:#f2c46d;margin-bottom:8px}@media(max-width:1180px){.shell{grid-template-columns:220px 1fr}.stats{display:none}.grid{grid-template-columns:repeat(2,1fr)}.workflow{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.shell{grid-template-columns:1fr}.side{position:static;height:auto}.search{width:100%}.grid,.workflow{grid-template-columns:1fr}.hero{padding:30px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel side">
+      <div class="logo">KORUAL</div>
+      <div class="user"><div class="avatar">김</div><div><strong>김양수</strong><br><span class="badge">KORUAL BLACK</span></div></div>
+      <ul class="nav"><li class="active">🏠 Control Center</li><li>🛍️ Commerce</li><li>✈️ Travel</li><li>🤖 AI Agent</li><li>📊 Business</li><li>💳 Finance</li><li>⌘ Developer API</li></ul>
+      <div class="black"><h3>Super Platform v0.1</h3><p>인증 API 위에 커머스·여행·AI·관리자 기능을 확장하는 첫 버전입니다.</p></div>
+    </aside>
+    <main class="main">
+      <div class="top"><input class="search" id="search" placeholder="AI에게 요청: 마진 40% 상품 찾아줘 / 여행 일정 만들어줘"><span>🔔 🌐 👤</span></div>
+      <section class="hero"><h1>KORUAL<br><span>AI Control</span><br>Center</h1><p>커머스, 여행, 비즈니스, 금융, 개발자 API를 하나의 관리자 화면에서 운영하는 KORUAL 슈퍼 플랫폼입니다.</p><button class="btn" onclick="openHealth()">API Health Check</button></section>
+      <section class="grid">
+        <div class="card"><div class="icon">🛍️</div><h3>Commerce Engine</h3><p>상품 소싱, 마진 계산, 자동 등록, 주문 처리를 연결합니다.</p></div>
+        <div class="card"><div class="icon">✈️</div><h3>Travel Engine</h3><p>항공, 호텔, 일정, 맛집, 실시간 항공편 데이터를 연결합니다.</p></div>
+        <div class="card"><div class="icon">🤖</div><h3>AI Agent</h3><p>상품 발굴, 광고 생성, CS, 회계 분석을 자동화합니다.</p></div>
+        <div class="card"><div class="icon">⌘</div><h3>Developer API</h3><p>외부 판매자와 파트너가 KORUAL 기능을 API로 사용할 수 있게 합니다.</p></div>
+      </section>
+      <section class="workflow"><div class="step"><b>01</b>Login</div><div class="step"><b>02</b>Dashboard</div><div class="step"><b>03</b>Commerce</div><div class="step"><b>04</b>Travel</div><div class="step"><b>05</b>AI Agent</div><div class="step"><b>06</b>API</div></section>
+    </main>
+    <aside class="panel stats"><h2>Business Snapshot</h2><div class="statgrid"><div class="stat"><span>월 매출</span><strong>₩24.8M</strong><em class="up">▲12.5%</em></div><div class="stat"><span>주문</span><strong>1,245</strong><em class="up">▲8.3%</em></div><div class="stat"><span>AI 작업</span><strong>8,920</strong><em class="up">▲22.1%</em></div><div class="stat"><span>API 호출</span><strong>42K</strong><em class="up">▲17.4%</em></div></div><div class="ai"><h3>KORUAL AI Prompt</h3><div class="prompt">마진 40% 이상 상품 찾아줘</div><div class="prompt">엘니도 3박 4일 여행 일정 생성</div><div class="prompt">이번 달 매출 분석해줘</div><div class="prompt">쇼츠 광고 카피 만들어줘</div></div></aside>
+  </div>
+  <script>
+    document.querySelectorAll('.prompt').forEach(p=>p.onclick=()=>{document.getElementById('search').value=p.textContent;});
+    async function openHealth(){try{const r=await fetch('/health');const j=await r.json();alert('KORUAL API 상태: '+JSON.stringify(j));}catch(e){alert('API 연결 실패: '+e.message)}}
+  </script>
+</body>
+</html>
