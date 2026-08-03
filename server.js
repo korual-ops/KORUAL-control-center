@@ -1,341 +1,250 @@
-// api/server.js
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
-import pg from 'pg';
-import { Connector } from '@google-cloud/cloud-sql-connector';
+import { createClient } from '@supabase/supabase-js';
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use(express.static('public'));
 
-// CORS: Next.js 도메인만 허용 권장
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: function (origin, cb) {
-    if (!origin) return cb(null, true);
-    if (ALLOWED_ORIGINS.length === 0) return cb(null, true);
-    return cb(null, ALLOWED_ORIGINS.includes(origin));
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('ORIGIN_NOT_ALLOWED'));
   },
-  credentials: true
+  credentials: true,
 }));
 
-const { Pool } = pg;
+const supabaseUrl = process.env.SUPABASE_URL;
+const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+const secretKey = process.env.SUPABASE_SECRET_KEY;
 
-// Env
-const PORT = process.env.PORT || 8080;
-const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_ME';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '2h';
+if (!supabaseUrl || !publishableKey || !secretKey) {
+  console.warn('Supabase environment variables are incomplete.');
+}
 
-const INSTANCE_CONNECTION_NAME = process.env.INSTANCE_CONNECTION_NAME; // e.g. project:region:instance
-const DB_USER = process.env.DB_USER;
-const DB_PASS = process.env.DB_PASS;
-const DB_NAME = process.env.DB_NAME;
+const authClient = supabaseUrl && publishableKey
+  ? createClient(supabaseUrl, publishableKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
 
-const REQUIRE_IP_ALLOWLIST = (process.env.REQUIRE_IP_ALLOWLIST || 'false') === 'true';
-const IP_ALLOWLIST = (process.env.IP_ALLOWLIST || '').split(',').map(s => s.trim()).filter(Boolean);
+const adminClient = supabaseUrl && secretKey
+  ? createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
 
-// 잠금 정책
-const MAX_FAIL = parseInt(process.env.MAX_FAIL || '5', 10);
-const LOCK_MINUTES = parseInt(process.env.LOCK_MINUTES || '15', 10);
+function clientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  return typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : req.ip || null;
+}
 
-// DB Pool using Cloud SQL Connector
-let pool;
+function setSessionCookies(res, session) {
+  const secure = process.env.NODE_ENV === 'production';
+  const common = { httpOnly: true, secure, sameSite: 'lax', path: '/' };
+  res.cookie('korual_access_token', session.access_token, {
+    ...common,
+    maxAge: Math.max(60, session.expires_in || 3600) * 1000,
+  });
+  res.cookie('korual_refresh_token', session.refresh_token, {
+    ...common,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+}
 
-async function initDb() {
-  if (pool) return pool;
+function clearSessionCookies(res) {
+  res.clearCookie('korual_access_token', { path: '/' });
+  res.clearCookie('korual_refresh_token', { path: '/' });
+}
 
-  if (!INSTANCE_CONNECTION_NAME) {
-    throw new Error('Missing INSTANCE_CONNECTION_NAME');
+async function auditLogin(req, fields) {
+  if (!adminClient) return;
+  await adminClient.from('login_audit_logs').insert({
+    user_id: fields.userId || null,
+    email: fields.email || null,
+    success: Boolean(fields.success),
+    ip: clientIp(req),
+    user_agent: req.headers['user-agent'] || null,
+    reason: fields.reason || null,
+  });
+}
+
+async function requireAuth(req, res, next) {
+  if (!authClient || !adminClient) {
+    return res.status(503).json({ ok: false, error: 'SUPABASE_NOT_CONFIGURED' });
   }
-  const connector = new Connector();
-  const clientOpts = await connector.getOptions({
-    instanceConnectionName: INSTANCE_CONNECTION_NAME,
-    ipType: 'PUBLIC' // Private IP면 VPC/설정에 맞춰 변경 가능
-  });
 
-  pool = new Pool({
-    ...clientOpts,
-    user: DB_USER,
-    password: DB_PASS,
-    database: DB_NAME,
-    max: 5
-  });
+  const bearer = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.slice(7)
+    : null;
+  const token = bearer || req.cookies.korual_access_token;
 
-  return pool;
-}
+  if (!token) return res.status(401).json({ ok: false, error: 'UNAUTHENTICATED' });
 
-function getClientIp(req) {
-  const xf = req.headers['x-forwarded-for'];
-  if (typeof xf === 'string' && xf.length > 0) return xf.split(',')[0].trim();
-  return req.socket?.remoteAddress || null;
-}
-
-function sha256Hex(s) {
-  return crypto.createHash('sha256').update(s, 'utf8').digest('hex');
-}
-
-function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-}
-
-function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET);
-}
-
-function setAuthCookie(res, token) {
-  const isProd = process.env.NODE_ENV === 'production';
-  res.cookie('korual_token', token, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 1000 * 60 * 60 * 2
-  });
-}
-
-function clearAuthCookie(res) {
-  res.clearCookie('korual_token', { path: '/' });
-}
-
-function requireAuth(req, res, next) {
-  try {
-    const token = req.cookies.korual_token;
-    if (!token) return res.status(401).json({ ok: false, error: 'UNAUTHENTICATED' });
-    const decoded = verifyToken(token);
-    req.user = decoded;
-    return next();
-  } catch (e) {
+  const { data, error } = await authClient.auth.getUser(token);
+  if (error || !data.user) {
     return res.status(401).json({ ok: false, error: 'INVALID_TOKEN' });
   }
+
+  const { data: profile, error: profileError } = await adminClient
+    .from('profiles')
+    .select('id,email,display_name,role,active,last_login_at')
+    .eq('id', data.user.id)
+    .single();
+
+  if (profileError || !profile?.active) {
+    return res.status(403).json({ ok: false, error: 'INACTIVE_OR_MISSING_PROFILE' });
+  }
+
+  req.user = data.user;
+  req.profile = profile;
+  return next();
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.user?.role) return res.status(403).json({ ok: false, error: 'FORBIDDEN' });
-  if (req.user.role !== 'ADMIN') return res.status(403).json({ ok: false, error: 'ADMIN_ONLY' });
-
-  if (REQUIRE_IP_ALLOWLIST) {
-    const ip = getClientIp(req);
-    if (!ip || IP_ALLOWLIST.length === 0 || !IP_ALLOWLIST.includes(ip)) {
-      return res.status(403).json({ ok: false, error: 'IP_NOT_ALLOWED', ip });
-    }
+  if (req.profile?.role !== 'ADMIN') {
+    return res.status(403).json({ ok: false, error: 'ADMIN_ONLY' });
   }
   return next();
 }
 
-async function auditLogin({ username, userId, success, ip, userAgent, reason }) {
-  const db = await initDb();
-  await db.query(
-    `INSERT INTO login_audit_logs (username, user_id, success, ip, user_agent, reason)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [username || null, userId || null, !!success, ip || null, userAgent || null, reason || null]
-  );
-}
+app.get('/health', async (_req, res) => {
+  const configured = Boolean(authClient && adminClient);
+  res.status(configured ? 200 : 503).json({
+    ok: configured,
+    service: 'KORUAL Control Center',
+    version: '0.2.0',
+    integrations: {
+      supabase: configured ? 'connected' : 'missing_env',
+      posthog: process.env.POSTHOG_API_KEY ? 'configured' : 'optional',
+      hubspot: process.env.HUBSPOT_ACCESS_TOKEN ? 'configured' : 'optional',
+    },
+  });
+});
 
-app.get('/health', (_, res) => res.json({ ok: true }));
-
-app.get('/platform/summary', (_, res) => {
+app.get('/platform/summary', (_req, res) => {
   res.json({
     ok: true,
     platform: 'KORUAL Super Platform',
-    version: '0.1.0',
+    version: '0.2.0',
     modules: ['commerce', 'travel', 'ai-agent', 'business', 'finance', 'developer-api'],
-    operating_model: 'cashflow -> leverage -> system -> automation -> asset -> network effect'
+    operating_model: 'cashflow -> leverage -> system -> automation -> asset -> network effect',
   });
 });
 
 app.post('/auth/login', async (req, res) => {
-  const { username, password, ipOverride } = req.body || {};
-  if (!username || !password) {
+  if (!authClient || !adminClient) {
+    return res.status(503).json({ ok: false, error: 'SUPABASE_NOT_CONFIGURED' });
+  }
+
+  const { email, password } = req.body || {};
+  if (!email || !password) {
     return res.status(400).json({ ok: false, error: 'MISSING_CREDENTIALS' });
   }
 
-  const db = await initDb();
-  const ip = ipOverride || getClientIp(req);
-  const ua = req.headers['user-agent'] || null;
-
-  const { rows } = await db.query(
-    `SELECT id, username, pw_hash, full_name, email, role, display_name,
-            mfa_enabled, last_login_at, last_ip, fail_count, locked_until, active
-     FROM users
-     WHERE username = $1
-     LIMIT 1`,
-    [username]
-  );
-
-  if (rows.length === 0) {
-    await auditLogin({ username, userId: null, success: false, ip, userAgent: ua, reason: 'NO_USER' });
+  const { data, error } = await authClient.auth.signInWithPassword({ email, password });
+  if (error || !data.session || !data.user) {
+    await auditLogin(req, { email, success: false, reason: 'INVALID_CREDENTIALS' });
     return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
   }
 
-  const u = rows[0];
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('id,email,display_name,role,active')
+    .eq('id', data.user.id)
+    .single();
 
-  if (!u.active) {
-    await auditLogin({ username, userId: u.id, success: false, ip, userAgent: ua, reason: 'INACTIVE' });
+  if (!profile?.active) {
+    await auditLogin(req, { userId: data.user.id, email, success: false, reason: 'INACTIVE' });
     return res.status(403).json({ ok: false, error: 'INACTIVE_USER' });
   }
 
-  if (u.locked_until && new Date(u.locked_until).getTime() > Date.now()) {
-    await auditLogin({ username, userId: u.id, success: false, ip, userAgent: ua, reason: 'LOCKED' });
-    return res.status(423).json({ ok: false, error: 'LOCKED', locked_until: u.locked_until });
+  await adminClient.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', data.user.id);
+  await auditLogin(req, { userId: data.user.id, email, success: true, reason: 'OK' });
+  setSessionCookies(res, data.session);
+
+  return res.json({ ok: true, user: profile });
+});
+
+app.post('/auth/refresh', async (req, res) => {
+  if (!authClient) return res.status(503).json({ ok: false, error: 'SUPABASE_NOT_CONFIGURED' });
+  const refreshToken = req.cookies.korual_refresh_token;
+  if (!refreshToken) return res.status(401).json({ ok: false, error: 'NO_REFRESH_TOKEN' });
+
+  const { data, error } = await authClient.auth.refreshSession({ refresh_token: refreshToken });
+  if (error || !data.session) {
+    clearSessionCookies(res);
+    return res.status(401).json({ ok: false, error: 'REFRESH_FAILED' });
   }
 
-  const inputHash = sha256Hex(password); // 현재 시트의 PW_HASH 정책 유지(바로 전환)
-  const ok = (inputHash === u.pw_hash);
+  setSessionCookies(res, data.session);
+  return res.json({ ok: true });
+});
 
-  if (!ok) {
-    const newFail = (u.fail_count || 0) + 1;
-    let lockedUntil = null;
+app.get('/auth/whoami', requireAuth, (req, res) => {
+  res.json({ ok: true, user: req.profile });
+});
 
-    if (newFail >= MAX_FAIL) {
-      lockedUntil = new Date(Date.now() + LOCK_MINUTES * 60 * 1000).toISOString();
-    }
+app.post('/auth/logout', async (req, res) => {
+  const token = req.cookies.korual_access_token;
+  if (authClient && token) await authClient.auth.admin?.signOut?.(token).catch(() => {});
+  clearSessionCookies(res);
+  res.json({ ok: true });
+});
 
-    await db.query(
-      `UPDATE users
-       SET fail_count = $1,
-           locked_until = COALESCE($2::timestamptz, locked_until)
-       WHERE id = $3`,
-      [newFail, lockedUntil, u.id]
-    );
+app.get('/admin/users', requireAuth, requireAdmin, async (_req, res) => {
+  const { data, error } = await adminClient
+    .from('profiles')
+    .select('id,email,display_name,role,active,last_login_at,created_at,updated_at')
+    .order('created_at', { ascending: false })
+    .limit(200);
 
-    await auditLogin({ username, userId: u.id, success: false, ip, userAgent: ua, reason: 'WRONG_PW' });
-    return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS', fail_count: newFail, locked_until: lockedUntil });
+  if (error) return res.status(500).json({ ok: false, error: 'QUERY_FAILED' });
+  return res.json({ ok: true, users: data });
+});
+
+app.patch('/admin/users/:id', requireAuth, requireAdmin, async (req, res) => {
+  const changes = {};
+  if (['ADMIN', 'MANAGER', 'GUEST'].includes(req.body?.role)) changes.role = req.body.role;
+  if (typeof req.body?.active === 'boolean') changes.active = req.body.active;
+  if (Object.keys(changes).length === 0) {
+    return res.status(400).json({ ok: false, error: 'NO_VALID_CHANGES' });
   }
 
-  await db.query(
-    `UPDATE users
-     SET last_login_at = now(),
-         last_ip = $1::inet,
-         fail_count = 0,
-         locked_until = NULL
-     WHERE id = $2`,
-    [ip, u.id]
-  );
+  const { error } = await adminClient.from('profiles').update(changes).eq('id', req.params.id);
+  if (error) return res.status(500).json({ ok: false, error: 'UPDATE_FAILED' });
 
-  await auditLogin({ username, userId: u.id, success: true, ip, userAgent: ua, reason: 'OK' });
-
-  const token = signToken({
-    sub: u.id,
-    username: u.username,
-    role: u.role,
-    display_name: u.display_name || u.full_name || u.username
+  await adminClient.from('admin_actions').insert({
+    actor_user_id: req.user.id,
+    action: 'UPDATE_USER',
+    target_user_id: req.params.id,
+    meta: changes,
+    ip: clientIp(req),
   });
 
-  setAuthCookie(res, token);
-
-  return res.json({
-    ok: true,
-    user: {
-      id: u.id,
-      username: u.username,
-      role: u.role,
-      display_name: u.display_name || u.full_name || u.username
-    }
-  });
+  return res.json({ ok: true });
 });
 
-app.get('/auth/whoami', requireAuth, async (req, res) => {
-  const db = await initDb();
-  const { rows } = await db.query(
-    `SELECT id, username, full_name, email, role, display_name, mfa_enabled, active, last_login_at, last_ip
-     FROM users
-     WHERE id = $1
-     LIMIT 1`,
-    [req.user.sub]
-  );
-  if (rows.length === 0) return res.status(404).json({ ok: false, error: 'USER_NOT_FOUND' });
-  const u = rows[0];
-  return res.json({
-    ok: true,
-    user: {
-      id: u.id,
-      username: u.username,
-      role: u.role,
-      display_name: u.display_name || u.full_name || u.username,
-      mfa_enabled: u.mfa_enabled,
-      active: u.active,
-      last_login_at: u.last_login_at,
-      last_ip: u.last_ip
-    }
-  });
+app.get('/integrations', requireAuth, requireAdmin, async (_req, res) => {
+  const { data, error } = await adminClient
+    .from('integration_connections')
+    .select('id,provider,status,external_account_ref,capabilities,last_healthcheck_at,metadata,updated_at')
+    .order('provider');
+
+  if (error) return res.status(500).json({ ok: false, error: 'QUERY_FAILED' });
+  return res.json({ ok: true, integrations: data });
 });
 
-app.post('/auth/logout', (req, res) => {
-  clearAuthCookie(res);
-  res.json({ ok: true });
-});
+export default app;
 
-// Admin: 유저 목록 조회 / 잠금해제 / 활성화 / 역할 변경
-app.get('/admin/users', requireAuth, requireAdmin, async (req, res) => {
-  const db = await initDb();
-  const { rows } = await db.query(
-    `SELECT id, username, full_name, email, role, display_name, active, fail_count, locked_until, last_login_at, last_ip, created_at, updated_at
-     FROM users
-     ORDER BY created_at DESC
-     LIMIT 200`
-  );
-  res.json({ ok: true, users: rows });
-});
-
-app.post('/admin/users/unlock', requireAuth, requireAdmin, async (req, res) => {
-  const { username } = req.body || {};
-  if (!username) return res.status(400).json({ ok: false, error: 'MISSING_USERNAME' });
-
-  const db = await initDb();
-  await db.query(
-    `UPDATE users SET fail_count = 0, locked_until = NULL WHERE username = $1`,
-    [username]
-  );
-
-  const ip = getClientIp(req);
-  await db.query(
-    `INSERT INTO admin_actions (actor_username, action, target_username, meta, ip)
-     VALUES ($1, $2, $3, $4::jsonb, $5::inet)`,
-    [req.user.username, 'UNLOCK_USER', username, JSON.stringify({}), ip]
-  );
-
-  res.json({ ok: true });
-});
-
-app.post('/admin/users/set-role', requireAuth, requireAdmin, async (req, res) => {
-  const { username, role } = req.body || {};
-  if (!username || !role) return res.status(400).json({ ok: false, error: 'MISSING_PARAMS' });
-
-  const db = await initDb();
-  await db.query(`UPDATE users SET role = $1 WHERE username = $2`, [role, username]);
-
-  const ip = getClientIp(req);
-  await db.query(
-    `INSERT INTO admin_actions (actor_username, action, target_username, meta, ip)
-     VALUES ($1, $2, $3, $4::jsonb, $5::inet)`,
-    [req.user.username, 'SET_ROLE', username, JSON.stringify({ role }), ip]
-  );
-
-  res.json({ ok: true });
-});
-
-app.post('/admin/users/set-active', requireAuth, requireAdmin, async (req, res) => {
-  const { username, active } = req.body || {};
-  if (!username || typeof active !== 'boolean') return res.status(400).json({ ok: false, error: 'MISSING_PARAMS' });
-
-  const db = await initDb();
-  await db.query(`UPDATE users SET active = $1 WHERE username = $2`, [active, username]);
-
-  const ip = getClientIp(req);
-  await db.query(
-    `INSERT INTO admin_actions (actor_username, action, target_username, meta, ip)
-     VALUES ($1, $2, $3, $4::jsonb, $5::inet)`,
-    [req.user.username, 'SET_ACTIVE', username, JSON.stringify({ active }), ip]
-  );
-
-  res.json({ ok: true });
-});
-
-app.listen(PORT, () => {
-  console.log(`KORUAL Control Center running on :${PORT}`);
-});
+if (!process.env.VERCEL) {
+  const port = Number(process.env.PORT || 8080);
+  app.listen(port, () => console.log(`KORUAL Control Center running on :${port}`));
+}
