@@ -2,10 +2,13 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import { PostHog } from 'posthog-node';
 
 const app = express();
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
@@ -153,6 +156,10 @@ function requireAdmin(req, res, next) {
   }
   return next();
 }
+
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(currentDir, 'public', 'index.html'));
+});
 
 app.get('/health', async (_req, res) => {
   const configured = Boolean(authClient && adminClient);
