@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { createClient } from '@supabase/supabase-js';
+import { PostHog } from 'posthog-node';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -28,6 +29,13 @@ app.use(cors({
 const supabaseUrl = process.env.SUPABASE_URL;
 const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 const secretKey = process.env.SUPABASE_SECRET_KEY;
+const posthog = process.env.POSTHOG_API_KEY
+  ? new PostHog(process.env.POSTHOG_API_KEY, {
+      host: process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
+      flushAt: 1,
+      flushInterval: 0,
+    })
+  : null;
 
 if (!supabaseUrl || !publishableKey || !secretKey) {
   console.warn('Supabase environment variables are incomplete.');
@@ -74,6 +82,37 @@ async function auditLogin(req, fields) {
     user_agent: req.headers['user-agent'] || null,
     reason: fields.reason || null,
   });
+}
+
+async function captureEvent(distinctId, event, properties = {}) {
+  if (!posthog) return;
+  posthog.capture({ distinctId, event, properties });
+  await posthog.flush();
+}
+
+async function syncHubSpotContact(profile) {
+  if (!process.env.HUBSPOT_ACCESS_TOKEN || !profile?.email) return { skipped: true };
+
+  const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/batch/upsert', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      inputs: [{
+        idProperty: 'email',
+        id: profile.email,
+        properties: {
+          email: profile.email,
+          firstname: profile.display_name || profile.email,
+        },
+      }],
+    }),
+  });
+
+  if (!response.ok) throw new Error(`HUBSPOT_SYNC_FAILED_${response.status}`);
+  return { skipped: false };
 }
 
 async function requireAuth(req, res, next) {
@@ -168,6 +207,7 @@ app.post('/auth/login', async (req, res) => {
 
   await adminClient.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', data.user.id);
   await auditLogin(req, { userId: data.user.id, email, success: true, reason: 'OK' });
+  await captureEvent(data.user.id, 'user_logged_in', { role: profile.role });
   setSessionCookies(res, data.session);
 
   return res.json({ ok: true, user: profile });
@@ -240,6 +280,16 @@ app.get('/integrations', requireAuth, requireAdmin, async (_req, res) => {
 
   if (error) return res.status(500).json({ ok: false, error: 'QUERY_FAILED' });
   return res.json({ ok: true, integrations: data });
+});
+
+app.post('/integrations/hubspot/sync-me', requireAuth, async (req, res) => {
+  try {
+    const result = await syncHubSpotContact(req.profile);
+    await captureEvent(req.user.id, 'hubspot_contact_synced', result);
+    return res.json({ ok: true, ...result });
+  } catch (error) {
+    return res.status(502).json({ ok: false, error: error.message });
+  }
 });
 
 export default app;
