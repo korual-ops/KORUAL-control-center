@@ -117,3 +117,25 @@ create index if not exists login_audit_logs_created_at_idx on public.login_audit
 create index if not exists admin_actions_created_at_idx on public.admin_actions(created_at desc);
 create index if not exists automation_runs_created_at_idx on public.automation_runs(created_at desc);
 create index if not exists automation_runs_key_status_idx on public.automation_runs(automation_key, status);
+
+
+-- Explicitly deny Data API clients for server-only operational tables.
+drop policy if exists "deny_client_access" on public.login_audit_logs;
+create policy "deny_client_access" on public.login_audit_logs
+for all to anon, authenticated using (false) with check (false);
+
+drop policy if exists "deny_client_access" on public.admin_actions;
+create policy "deny_client_access" on public.admin_actions
+for all to anon, authenticated using (false) with check (false);
+
+drop policy if exists "deny_client_access" on public.integration_connections;
+create policy "deny_client_access" on public.integration_connections
+for all to anon, authenticated using (false) with check (false);
+
+drop policy if exists "deny_client_access" on public.automation_runs;
+create policy "deny_client_access" on public.automation_runs
+for all to anon, authenticated using (false) with check (false);
+
+create index if not exists login_audit_logs_user_id_idx on public.login_audit_logs(user_id);
+create index if not exists admin_actions_actor_user_id_idx on public.admin_actions(actor_user_id);
+create index if not exists admin_actions_target_user_id_idx on public.admin_actions(target_user_id);
