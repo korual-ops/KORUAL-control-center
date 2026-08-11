@@ -29,7 +29,7 @@ const fromCloud={products:x=>({id:x.id,name:x.name,sku:x.sku||'',category:x.cate
 const toCloud={products:x=>({name:x.name,sku:x.sku,category:x.category,price:Number(x.price)||0,stock:Number(x.stock)||0,status:x.status}),orders:x=>({customer_name:x.name,order_no:x.sku,amount:Number(x.price)||0,quantity:Number(x.stock)||0,status:x.status}),categories:x=>({name:x.name,code:x.sku,parent_name:x.category,sort_order:Number(x.price)||0,status:x.status}),content:x=>({title:x.name,code:x.sku,content_type:x.category,status:x.status})};
 
 function App(){
- const[data,setData]=useState(()=>{try{return JSON.parse(localStorage.getItem('korual-admin'))||seed}catch{return seed}});
+ const[data,setData]=useState(()=>{try{const saved=JSON.parse(localStorage.getItem('korual-admin'));return saved?{...seed,...saved}:seed}catch{return seed}});
  const[page,setPage]=useState('dashboard'),[query,setQuery]=useState(''),[status,setStatus]=useState('전체'),[editor,setEditor]=useState(null),[remove,setRemove]=useState(null),[toast,setToast]=useState(''),[mobile,setMobile]=useState(false);
  const[session,setSession]=useState(null),[authOpen,setAuthOpen]=useState(false),[email,setEmail]=useState(''),[syncing,setSyncing]=useState(false);
  useEffect(()=>localStorage.setItem('korual-admin',JSON.stringify(data)),[data]);
