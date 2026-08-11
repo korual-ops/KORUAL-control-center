@@ -53,8 +53,15 @@ end $$;
 revoke all on function private.enqueue_shipping_delay_notifications() from public, anon, authenticated;
 grant execute on function private.enqueue_shipping_delay_notifications() to service_role;
 
-select cron.schedule(
-  'korual-enqueue-shipping-delay-hourly',
-  '7 * * * *',
-  'select private.enqueue_shipping_delay_notifications();'
-);
+do $$
+declare existing_job bigint;
+begin
+  select jobid into existing_job from cron.job
+  where jobname = 'korual-enqueue-shipping-delay-hourly';
+  if existing_job is not null then perform cron.unschedule(existing_job); end if;
+  perform cron.schedule(
+    'korual-enqueue-shipping-delay-hourly',
+    '7 * * * *',
+    'select private.enqueue_shipping_delay_notifications();'
+  );
+end $$;
