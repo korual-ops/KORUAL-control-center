@@ -12,5 +12,7 @@ create table if not exists public.content_opportunities (
   status text not null default 'idea' check (status in ('idea','draft','approved','published','archived')), target_url text, notes text
 );
 alter table public.content_opportunities enable row level security;
-create policy "authenticated traffic read" on public.traffic_events for select to authenticated using ((select auth.uid()) is not null);
-create policy "authenticated opportunities read" on public.content_opportunities for select to authenticated using ((select auth.uid()) is not null);
+create policy "admin traffic read" on public.traffic_events for select to authenticated using ((select auth.jwt()->'app_metadata'->>'role') = 'admin');
+create policy "admin traffic write" on public.traffic_events for all to authenticated using ((select auth.jwt()->'app_metadata'->>'role') = 'admin') with check ((select auth.jwt()->'app_metadata'->>'role') = 'admin');
+create policy "admin opportunities read" on public.content_opportunities for select to authenticated using ((select auth.jwt()->'app_metadata'->>'role') = 'admin');
+create policy "admin opportunities write" on public.content_opportunities for all to authenticated using ((select auth.jwt()->'app_metadata'->>'role') = 'admin') with check ((select auth.jwt()->'app_metadata'->>'role') = 'admin');
