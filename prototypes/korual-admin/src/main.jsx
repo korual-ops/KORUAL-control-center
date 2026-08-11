@@ -1,0 +1,46 @@
+import React,{useEffect,useMemo,useState} from 'react';
+import{createRoot}from'react-dom/client';
+import{LayoutDashboard,Package,ShoppingBag,FolderTree,PanelsTopLeft,Users,Plug,Zap,BarChart3,Settings,Search,Plus,Pencil,Trash2,X,Check,AlertTriangle,Download,Menu,ChevronLeft}from'lucide-react';
+import'./styles.css';
+
+const seed={
+ products:[
+  {id:1,name:'KORUAL 시그니처 호텔 타월',sku:'KRU-000124',category:'타월',price:42000,stock:128,status:'판매 중'},
+  {id:2,name:'크림 엠보 페이스 타월 세트',sku:'KRU-000123',category:'타월',price:35000,stock:84,status:'판매 중'},
+  {id:3,name:'호텔 홈스파 트래블 키트',sku:'KRU-000122',category:'홈스파',price:49000,stock:16,status:'재고 부족'},
+  {id:4,name:'KORUAL 골드 디퓨저 200ml',sku:'KRU-000121',category:'향기',price:38000,stock:0,status:'품절'},
+ ],
+ orders:[{id:10031,name:'김민준',sku:'KRU-000124',category:'결제완료',price:84000,stock:2,status:'배송 준비'},{id:10030,name:'박서연',sku:'KRU-000123',category:'배송',price:35000,stock:1,status:'배송 중'}],
+ categories:[{id:1,name:'타월',sku:'TOWEL',category:'Brand',price:2,stock:2,status:'사용'},{id:2,name:'홈스파',sku:'SPA',category:'Brand',price:1,stock:1,status:'사용'}],
+ content:[{id:1,name:'첫 구매 3,000원 할인',sku:'BNR-001',category:'메인 배너',price:0,stock:1,status:'게시 중'},{id:2,name:'호텔의 휴식을 집으로',sku:'STORY-01',category:'브랜드 스토리',price:0,stock:1,status:'초안'}]
+};
+const sections={products:['상품 관리','상품을 등록, 수정, 삭제하고 판매 상태를 관리하세요.'],orders:['주문 관리','주문 상태와 배송 진행 상황을 관리하세요.'],categories:['카테고리','판매 구조와 진열 순서를 관리하세요.'],content:['콘텐츠','배너와 브랜드 콘텐츠를 관리하세요.']};
+const nav=[['dashboard','대시보드',LayoutDashboard],['products','상품 관리',Package],['orders','주문 관리',ShoppingBag],['categories','카테고리',FolderTree],['content','콘텐츠',PanelsTopLeft],['customers','고객 관리',Users],['integrations','연동 관리',Plug],['automation','자동화',Zap],['analytics','통계',BarChart3],['settings','시스템 설정',Settings]];
+const blank={name:'',sku:'',category:'타월',price:0,stock:0,status:'판매 중'};
+
+function App(){
+ const[data,setData]=useState(()=>{try{return JSON.parse(localStorage.getItem('korual-admin'))||seed}catch{return seed}});
+ const[page,setPage]=useState('products'),[query,setQuery]=useState(''),[status,setStatus]=useState('전체'),[editor,setEditor]=useState(null),[remove,setRemove]=useState(null),[toast,setToast]=useState(''),[mobile,setMobile]=useState(false);
+ useEffect(()=>localStorage.setItem('korual-admin',JSON.stringify(data)),[data]);
+ useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),2400);return()=>clearTimeout(t)}},[toast]);
+ const rows=data[page]||[];
+ const filtered=useMemo(()=>rows.filter(x=>(x.name+x.sku+x.category).toLowerCase().includes(query.toLowerCase())&&(status==='전체'||x.status===status)),[rows,query,status]);
+ const meta=sections[page]||['준비 중','이 메뉴는 다음 연동 단계에서 활성화됩니다.'];
+ const save=()=>{if(!editor.name.trim())return;setData(d=>({...d,[page]:editor.id?d[page].map(x=>x.id===editor.id?editor:x):[{...editor,id:Date.now()},...d[page]]}));setEditor(null);setToast('변경사항이 저장되었습니다.')};
+ const confirmDelete=()=>{setData(d=>({...d,[page]:d[page].filter(x=>x.id!==remove.id)}));setRemove(null);setToast('항목을 삭제했습니다.')};
+ const exportCsv=()=>{const csv=['이름,코드,분류,가격,재고,상태',...filtered.map(x=>[x.name,x.sku,x.category,x.price,x.stock,x.status].join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download=`korual-${page}.csv`;a.click();URL.revokeObjectURL(a.href)};
+ return <div className="app">
+  <aside className={mobile?'open':''}><div className="brand">KORUAL<small>코루알 관리</small></div><nav>{nav.map(([id,label,Icon])=><button key={id} className={page===id?'active':''} onClick={()=>{setPage(id);setEditor(null);setMobile(false)}}><Icon size={18}/><span>{label}</span>{id==='orders'&&<b>2</b>}</button>)}</nav><a href="https://korual.cafe24.com/" target="_blank">사이트 바로가기 ↗</a></aside>
+  <main><header><button className="icon mobile" onClick={()=>setMobile(!mobile)}><Menu/></button><div className="global"><Search size={17}/><input placeholder="전체 검색 (Ctrl + K)" value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="admin"><span>관리자</span><small>korual.admin</small></div></header>
+   <section className="workspace"><div className="title"><div><h1>{meta[0]}</h1><p>{meta[1]}</p></div>{sections[page]&&<button className="primary" onClick={()=>setEditor({...blank})}><Plus size={17}/>새 항목 추가</button>}</div>
+   {sections[page]?<><div className="stats"><Stat label="전체 항목" value={rows.length}/><Stat label="활성 항목" value={rows.filter(x=>!['품절','초안'].includes(x.status)).length}/><Stat label="재고 합계" value={rows.reduce((a,x)=>a+(Number(x.stock)||0),0)}/><Stat label="예상 판매가" value={'₩'+rows.reduce((a,x)=>a+(Number(x.price)||0),0).toLocaleString()}/></div>
+    <div className="toolbar"><label><Search size={17}/><input placeholder="이름, 코드, 분류 검색" value={query} onChange={e=>setQuery(e.target.value)}/></label><select value={status} onChange={e=>setStatus(e.target.value)}><option>전체</option>{[...new Set(rows.map(x=>x.status))].map(x=><option key={x}>{x}</option>)}</select><button onClick={exportCsv}><Download size={16}/>CSV</button></div>
+    <div className="table"><table><thead><tr><th>정보</th><th>코드</th><th>분류</th><th>가격</th><th>재고/수량</th><th>상태</th><th>관리</th></tr></thead><tbody>{filtered.map(x=><tr key={x.id}><td><strong>{x.name}</strong><small>#{x.id}</small></td><td>{x.sku}</td><td>{x.category}</td><td>₩{Number(x.price).toLocaleString()}</td><td>{x.stock}</td><td><i className={x.status.includes('품절')||x.status==='초안'?'off':''}>{x.status}</i></td><td><button className="icon" aria-label="수정" onClick={()=>setEditor({...x})}><Pencil size={16}/></button><button className="icon danger" aria-label="삭제" onClick={()=>setRemove(x)}><Trash2 size={16}/></button></td></tr>)}</tbody></table>{!filtered.length&&<div className="empty">검색 결과가 없습니다.</div>}</div></>:<div className="coming"><Settings size={34}/><h2>{meta[0]}</h2><p>{meta[1]}</p></div>}</section></main>
+  {editor&&<div className="overlay" onMouseDown={e=>e.target===e.currentTarget&&setEditor(null)}><div className="drawer"><div className="drawerHead"><div><h2>{editor.id?'항목 수정':'새 항목 추가'}</h2><p>필수 정보를 입력하고 저장하세요.</p></div><button className="icon" onClick={()=>setEditor(null)}><X/></button></div><div className="form"><Field label="이름 *" value={editor.name} onChange={name=>setEditor({...editor,name})}/><Field label="코드" value={editor.sku} onChange={sku=>setEditor({...editor,sku})}/><div className="grid"><Field label="분류" value={editor.category} onChange={category=>setEditor({...editor,category})}/><Field label="상태" value={editor.status} onChange={status=>setEditor({...editor,status})}/><Field label="가격" type="number" value={editor.price} onChange={price=>setEditor({...editor,price})}/><Field label="재고/수량" type="number" value={editor.stock} onChange={stock=>setEditor({...editor,stock})}/></div></div><div className="drawerFoot"><button onClick={()=>setEditor(null)}>취소</button><button className="primary" onClick={save}><Check size={17}/>저장</button></div></div></div>}
+  {remove&&<div className="overlay"><div className="modal"><AlertTriangle/><h2>정말 삭제하시겠습니까?</h2><p><strong>{remove.name}</strong><br/>삭제한 항목은 복구할 수 없습니다.</p><div><button onClick={()=>setRemove(null)}>취소</button><button className="delete" onClick={confirmDelete}>삭제</button></div></div></div>}
+  {toast&&<div className="toast"><Check size={18}/>{toast}</div>}
+ </div>
+}
+function Stat({label,value}){return <div className="stat"><small>{label}</small><strong>{value}</strong><span>실시간 저장</span></div>}
+function Field({label,value,onChange,type='text'}){return <label className="field"><span>{label}</span><input type={type} value={value} onChange={e=>onChange(e.target.value)}/></label>}
+createRoot(document.getElementById('root')).render(<App/>);
