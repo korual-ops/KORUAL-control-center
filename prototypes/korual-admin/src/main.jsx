@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useState} from 'react';
 import{createRoot}from'react-dom/client';
-import{LayoutDashboard,Package,ShoppingBag,FolderTree,PanelsTopLeft,Users,Plug,Zap,BarChart3,Settings,Search,Plus,Pencil,Trash2,X,Check,AlertTriangle,Download,Menu,Cloud,LogIn,LogOut,Bell,HelpCircle,ChevronRight}from'lucide-react';
+import{LayoutDashboard,Package,ShoppingBag,FolderTree,PanelsTopLeft,Users,Plug,Zap,BarChart3,Settings,Search,Plus,Pencil,Trash2,X,Check,AlertTriangle,Download,Menu,Cloud,LogIn,LogOut,Bell,HelpCircle,ChevronRight,Landmark,Factory,Headphones,Megaphone}from'lucide-react';
 import'./styles.css';
 import{supabase}from'./supabase';
 import{fromCloud,getCloudResource,toCloud}from'./data/database';
@@ -23,11 +23,15 @@ const seed={
  automation:[{id:1,name:'저재고 경보',sku:'AUTO-STOCK',category:'재고',price:10,stock:1,status:'실행 중'},{id:2,name:'입금대기 알림',sku:'AUTO-BANK',category:'주문',price:30,stock:1,status:'실행 중'},{id:3,name:'배송지연 카카오 알림톡',sku:'AUTO-KAKAO-DELAY',category:'배송',price:60,stock:1,status:'웹훅 설정 필요'},{id:4,name:'SEO 기회 수집',sku:'AUTO-SEO',category:'트래픽',price:1440,stock:1,status:'준비'}],
  analytics:[{id:1,name:'상품 조회',sku:'product_view',category:'퍼널',price:1240,stock:18,status:'상승'},{id:2,name:'장바구니',sku:'add_to_cart',category:'퍼널',price:186,stock:9,status:'관찰'},{id:3,name:'계좌이체 주문',sku:'bank_order',category:'전환',price:21,stock:4,status:'핵심'}],
  settings:[{id:1,name:'관리자 이메일',sku:'korual@naver.com',category:'보안',price:0,stock:1,status:'보호됨'},{id:2,name:'계좌이체 우선',sku:'PAY-BANK',category:'결제',price:0,stock:1,status:'사용'},{id:3,name:'데이터 백업',sku:'BACKUP-DAILY',category:'시스템',price:1,stock:1,status:'매일'}]
+ ,payments:[{id:1,name:'김민준',sku:'ORD-10031',category:'국민은행',price:84000,stock:96,status:'자동일치'},{id:2,name:'박서연',sku:'ORD-10032',category:'입금자 확인',price:35000,stock:62,status:'확인필요'}]
+ ,suppliers:[{id:1,name:'Shaoxing Premium Textile',sku:'SUP-CN-001',category:'중국 저장성',price:9,stock:100,status:'거래중'}]
+ ,support:[{id:1,name:'배송지연 확인 요청',sku:'CS-20260811-01',category:'배송',price:0,stock:3,status:'처리중'}]
+ ,campaigns:[{id:1,name:'호텔 타월 검색 유입',sku:'SEO-TOWEL-01',category:'SEO',price:300000,stock:6,status:'제작중'}]
 };
-const sections={dashboard:['대시보드','스토어 운영 현황을 한눈에 확인하세요.'],products:['상품 관리','상품을 등록, 수정, 삭제하고 판매 상태를 관리하세요.'],orders:['주문 관리','계좌이체 입금과 배송 진행 상황을 관리하세요.'],categories:['카테고리','판매 구조와 진열 순서를 관리하세요.'],content:['콘텐츠','배너와 브랜드 콘텐츠를 관리하세요.'],customers:['고객 관리','구매 이력과 고객 등급을 관리하세요.'],integrations:['연동 관리','클라우드와 외부 서비스 연결 상태를 관리하세요.'],automation:['자동화','반복 업무와 알림 규칙을 관리하세요.'],analytics:['통계','유입부터 구매까지 전환 흐름을 분석하세요.'],settings:['시스템 설정','권한, 결제, 백업 정책을 관리하세요.']};
-const nav=[['dashboard','대시보드',LayoutDashboard],['products','상품 관리',Package],['orders','주문 관리',ShoppingBag],['categories','카테고리',FolderTree],['content','콘텐츠',PanelsTopLeft],['customers','고객 관리',Users],['integrations','연동 관리',Plug],['automation','자동화',Zap],['analytics','통계',BarChart3],['settings','시스템 설정',Settings]];
+const sections={dashboard:['대시보드','스토어 운영 현황을 한눈에 확인하세요.'],products:['상품 관리','상품을 등록, 수정, 삭제하고 판매 상태를 관리하세요.'],orders:['주문 관리','계좌이체 입금과 배송 진행 상황을 관리하세요.'],payments:['입금 대사','계좌이체 주문과 입금자·금액을 비교하고 처리하세요.'],suppliers:['공급사·소싱','공급사, MOQ와 리드타임을 관리하세요.'],support:['교환·반품·CS','고객 요청의 우선순위와 환불 진행 상태를 관리하세요.'],campaigns:['캠페인·SEO','콘텐츠 일정, 채널과 예산을 관리하세요.'],categories:['카테고리','판매 구조와 진열 순서를 관리하세요.'],content:['콘텐츠','배너와 브랜드 콘텐츠를 관리하세요.'],customers:['고객 관리','구매 이력과 고객 등급을 관리하세요.'],integrations:['연동 관리','클라우드와 외부 서비스 연결 상태를 관리하세요.'],automation:['자동화','반복 업무와 알림 규칙을 관리하세요.'],analytics:['통계','유입부터 구매까지 전환 흐름을 분석하세요.'],settings:['시스템 설정','권한, 결제, 백업 정책을 관리하세요.']};
+const nav=[['dashboard','대시보드',LayoutDashboard],['products','상품 관리',Package],['orders','주문 관리',ShoppingBag],['payments','입금 대사',Landmark],['suppliers','공급사·소싱',Factory],['support','교환·반품·CS',Headphones],['campaigns','캠페인·SEO',Megaphone],['categories','카테고리',FolderTree],['content','콘텐츠',PanelsTopLeft],['customers','고객 관리',Users],['integrations','연동 관리',Plug],['automation','자동화',Zap],['analytics','통계',BarChart3],['settings','시스템 설정',Settings]];
 const mobileNav=nav.filter(([id])=>['dashboard','products','orders','automation'].includes(id));
-const groupBefore={dashboard:'운영 개요',products:'스토어 운영',customers:'고객·성장',integrations:'시스템'};
+const groupBefore={dashboard:'운영 개요',products:'스토어 운영',payments:'재무·공급망',support:'고객·성장',integrations:'시스템'};
 const pageUi={
  products:{columns:['상품','SKU','카테고리','판매가','재고','판매 상태'],stats:['전체 상품','판매 가능','총 재고','판매가 합계'],fields:['상품명','SKU','카테고리','판매 상태','판매가','재고'],add:'상품 등록',money:true},
  orders:{columns:['고객','주문번호','결제 구분','주문금액','수량','처리 상태'],stats:['전체 주문','처리 중','주문 수량','주문금액 합계'],fields:['고객명','주문번호','결제 구분','처리 상태','주문금액','수량'],add:'주문 등록',money:true},
@@ -38,6 +42,10 @@ const pageUi={
  automation:{columns:['자동화','규칙 코드','업무 영역','실행 주기(분)','활성 규칙','실행 상태'],stats:['전체 규칙','실행 가능','활성 규칙','주기 합계(분)'],fields:['자동화명','규칙 코드','업무 영역','실행 상태','실행 주기(분)','활성 규칙'],add:'규칙 추가'},
  analytics:{columns:['이벤트','이벤트 코드','퍼널 단계','발생 수','전환 지표','추세'],stats:['측정 이벤트','상승 지표','전환 지표','총 발생 수'],fields:['이벤트명','이벤트 코드','퍼널 단계','추세','발생 수','전환 지표'],add:'지표 추가'},
  settings:{columns:['설정','설정값','영역','주기','적용 수','상태'],stats:['전체 설정','안전 설정','적용 수','주기 합계'],fields:['설정명','설정값','설정 영역','상태','주기','적용 수'],add:'설정 추가'}
+ ,payments:{columns:['입금자','주문번호','입금은행','입금액','일치율','처리 상태'],stats:['입금 내역','처리 가능','평균 일치율','입금액 합계'],fields:['입금자명','주문번호','입금은행','처리 상태','입금액','일치율'],add:'입금 내역 추가',money:true}
+ ,suppliers:{columns:['공급사','공급사 코드','지역','리드타임(일)','MOQ','거래 상태'],stats:['전체 공급사','거래 가능','총 MOQ','리드타임 합계'],fields:['공급사명','공급사 코드','지역','거래 상태','리드타임(일)','MOQ'],add:'공급사 추가'}
+ ,support:{columns:['요청 내용','접수번호','유형','환불액','우선순위','처리 상태'],stats:['전체 요청','처리 가능','우선순위 합계','환불액 합계'],fields:['요청 제목','접수번호','요청 유형','처리 상태','환불액','우선순위'],add:'CS 접수',money:true}
+ ,campaigns:{columns:['캠페인','캠페인 코드','채널','예산','콘텐츠 수','진행 상태'],stats:['전체 캠페인','진행 가능','콘텐츠 수','예산 합계'],fields:['캠페인명','캠페인 코드','채널','진행 상태','예산','콘텐츠 수'],add:'캠페인 추가',money:true}
 };
 const blank={name:'',sku:'',category:'타월',price:0,stock:0,status:'판매 중'};
 
