@@ -3,6 +3,7 @@ import{createRoot}from'react-dom/client';
 import{LayoutDashboard,Package,ShoppingBag,FolderTree,PanelsTopLeft,Users,Plug,Zap,BarChart3,Settings,Search,Plus,Pencil,Trash2,X,Check,AlertTriangle,Download,Menu,Cloud,LogIn,LogOut}from'lucide-react';
 import'./styles.css';
 import{supabase}from'./supabase';
+import{fromCloud,getCloudResource,toCloud}from'./data/database';
 
 const seed={
  products:[
@@ -35,10 +36,6 @@ const pageUi={
  settings:{columns:['설정','설정값','영역','주기','적용 수','상태'],stats:['전체 설정','안전 설정','적용 수','주기 합계'],fields:['설정명','설정값','설정 영역','상태','주기','적용 수'],add:'설정 추가'}
 };
 const blank={name:'',sku:'',category:'타월',price:0,stock:0,status:'판매 중'};
-const tableFor={products:'products',orders:'orders',categories:'categories',content:'content_items'};
-const orderFor={products:'created_at',orders:'ordered_at',categories:'created_at',content:'created_at'};
-const fromCloud={products:x=>({id:x.id,name:x.name,sku:x.sku||'',category:x.category||'',price:x.price,stock:x.stock,status:x.status}),orders:x=>({id:x.id,name:x.customer_name,sku:x.order_no,category:'주문',price:x.amount,stock:x.quantity,status:x.status,customerPhone:x.customer_phone||'',shippingDueAt:x.shipping_due_at?.slice(0,16)||'',shippedAt:x.shipped_at?.slice(0,16)||'',trackingNumber:x.tracking_number||'',delayNotifiedAt:x.delay_notified_at}),categories:x=>({id:x.id,name:x.name,sku:x.code||'',category:x.parent_name||'',price:x.sort_order,stock:0,status:x.status}),content:x=>({id:x.id,name:x.title,sku:x.code||'',category:x.content_type||'',price:0,stock:0,status:x.status})};
-const toCloud={products:x=>({name:x.name,sku:x.sku,category:x.category,price:Number(x.price)||0,stock:Number(x.stock)||0,status:x.status}),orders:x=>({customer_name:x.name,order_no:x.sku,amount:Number(x.price)||0,quantity:Number(x.stock)||0,status:x.status,customer_phone:x.customerPhone||null,shipping_due_at:x.shippingDueAt?new Date(x.shippingDueAt).toISOString():null,shipped_at:x.shippedAt?new Date(x.shippedAt).toISOString():null,tracking_number:x.trackingNumber||null}),categories:x=>({name:x.name,code:x.sku,parent_name:x.category,sort_order:Number(x.price)||0,status:x.status}),content:x=>({title:x.name,code:x.sku,content_type:x.category,status:x.status})};
 
 function App(){
  const[data,setData]=useState(()=>{try{const saved=JSON.parse(localStorage.getItem('korual-admin'));return saved?{...seed,...saved}:seed}catch{return seed}});
@@ -47,13 +44,13 @@ function App(){
  useEffect(()=>localStorage.setItem('korual-admin',JSON.stringify(data)),[data]);
  useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),2400);return()=>clearTimeout(t)}},[toast]);
  useEffect(()=>{supabase.auth.getSession().then(({data:{session}})=>setSession(session));const{data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>setSession(session));return()=>subscription.unsubscribe()},[]);
- useEffect(()=>{if(!session||!tableFor[page])return;let live=true;setSyncing(true);supabase.from(tableFor[page]).select('*').order(orderFor[page],{ascending:false}).then(({data:items,error})=>{if(!live)return;if(error)setToast('클라우드 권한 확인이 필요합니다.');else setData(d=>({...d,[page]:items.map(fromCloud[page])}));setSyncing(false)});return()=>{live=false}},[session,page]);
+ useEffect(()=>{const resource=getCloudResource(page);if(!session||!resource)return;let live=true;setSyncing(true);supabase.from(resource.table).select('*').order(resource.orderBy,{ascending:false}).then(({data:items,error})=>{if(!live)return;if(error)setToast('클라우드 권한 확인이 필요합니다.');else setData(d=>({...d,[page]:items.map(fromCloud[page])}));setSyncing(false)});return()=>{live=false}},[session,page]);
  const rows=data[page]||[];
  const filtered=useMemo(()=>rows.filter(x=>(x.name+x.sku+x.category).toLowerCase().includes(query.toLowerCase())&&(status==='전체'||x.status===status)),[rows,query,status]);
  const meta=sections[page]||['준비 중','이 메뉴는 다음 연동 단계에서 활성화됩니다.'];
  const ui=pageUi[page];
- const save=async()=>{if(!editor.name.trim())return;const cloud=session&&tableFor[page];if(cloud){setSyncing(true);const q=editor.id?supabase.from(tableFor[page]).update(toCloud[page](editor)).eq('id',editor.id):supabase.from(tableFor[page]).insert(toCloud[page](editor));const{data:items,error}=await q.select().single();setSyncing(false);if(error)return setToast('저장 권한을 확인해 주세요.');const saved=fromCloud[page](items);setData(d=>({...d,[page]:editor.id?d[page].map(x=>x.id===editor.id?saved:x):[saved,...d[page]]}))}else setData(d=>({...d,[page]:editor.id?d[page].map(x=>x.id===editor.id?editor:x):[{...editor,id:Date.now()},...d[page]]}));setEditor(null);setToast(cloud?'클라우드에 저장되었습니다.':'관리 설정이 저장되었습니다.')};
- const confirmDelete=async()=>{if(session&&tableFor[page]){const{error}=await supabase.from(tableFor[page]).delete().eq('id',remove.id);if(error)return setToast('삭제 권한을 확인해 주세요.')}setData(d=>({...d,[page]:d[page].filter(x=>x.id!==remove.id)}));setRemove(null);setToast('항목을 삭제했습니다.')};
+ const save=async()=>{if(!editor.name.trim())return;const resource=getCloudResource(page);const cloud=session&&resource;if(cloud){setSyncing(true);const q=editor.id?supabase.from(resource.table).update(toCloud[page](editor)).eq('id',editor.id):supabase.from(resource.table).insert(toCloud[page](editor));const{data:items,error}=await q.select().single();setSyncing(false);if(error)return setToast(error.code==='23505'?'코드가 중복되었습니다. 고유한 값을 입력해 주세요.':'저장 권한을 확인해 주세요.');const saved=fromCloud[page](items);setData(d=>({...d,[page]:editor.id?d[page].map(x=>x.id===editor.id?saved:x):[saved,...d[page]]}))}else setData(d=>({...d,[page]:editor.id?d[page].map(x=>x.id===editor.id?editor:x):[{...editor,id:Date.now()},...d[page]]}));setEditor(null);setToast(cloud?'클라우드에 저장되었습니다.':'관리 설정이 저장되었습니다.')};
+ const confirmDelete=async()=>{const resource=getCloudResource(page);if(session&&resource){const{error}=await supabase.from(resource.table).delete().eq('id',remove.id);if(error)return setToast('삭제 권한을 확인해 주세요.')}setData(d=>({...d,[page]:d[page].filter(x=>x.id!==remove.id)}));setRemove(null);setToast('항목을 삭제했습니다.')};
  const sendMagicLink=async()=>{if(!email.includes('@'))return setToast('이메일을 확인해 주세요.');const{error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin}});if(error)return setToast('로그인 링크 발송에 실패했습니다.');setAuthOpen(false);setToast('이메일로 로그인 링크를 보냈습니다.')};
  const runKakaoDelay=async()=>{if(!session)return setToast('관리자 클라우드 로그인이 필요합니다.');setSyncing(true);const{data:result,error}=await supabase.functions.invoke('send-kakao-shipping-delays',{body:{limit:20}});setSyncing(false);if(error){const message=error?.context?.status===503?'웹훅 비밀값 4개를 먼저 설정해 주세요.':'알림 실행에 실패했습니다.';return setToast(message)}setToast(`지연 ${result.scanned}건 확인 · ${result.sent}건 발송 · ${result.failed}건 재시도`)};
  const exportCsv=()=>{const csv=['이름,코드,분류,가격,재고,상태',...filtered.map(x=>[x.name,x.sku,x.category,x.price,x.stock,x.status].join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download=`korual-${page}.csv`;a.click();URL.revokeObjectURL(a.href)};
