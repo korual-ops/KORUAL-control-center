@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Activity, Boxes, CalendarClock, Check, ChevronRight, CircleAlert, Cloud, Code2, ExternalLink, FileChartColumn, Home, Link2, PackageCheck, RefreshCw, Settings, Sheet, ShieldCheck, Sparkles, Truck, Workflow } from 'lucide-react';
 import { getPlatformHealth, runKorualAction } from './lib/korualApi.js';
+import { automationPipelines } from './lib/automationEngine.js';
 import './styles.css';
 
 const sheetsUrl = 'https://docs.google.com/spreadsheets/d/1-XYUbU6Os5q7P_9qFnTFmkva3o0KhrgPHd-AyA6-bts/edit';
@@ -21,6 +22,8 @@ const integrations = [
   { name: 'Cafe24', group: '커머스', state: 'planned', icon: Boxes },
   { name: 'Kakao 알림', group: '메시지', state: 'planned', icon: Activity },
   { name: '여행 API', group: '파트너', state: 'planned', icon: Link2 },
+  ...automationPipelines.map((pipeline) => ({ name: pipeline.name, group: '기존 엔진 도입', state: 'planned', icon: Workflow })),
+  { name: 'KORUAL Space', group: '기존 소스 도입', state: 'planned', icon: Home },
 ];
 const navItems = [
   { id: 'overview', label: 'KORUAL 운영', icon: Home }, { id: 'automation', label: '자동화', icon: Workflow },
