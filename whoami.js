@@ -18,10 +18,13 @@ export default async function handler(req, res) {
     });
   }
 
-  const GAS_WHOAMI_URL =
-    "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec" +
-    "?action=whoami&token=" +
-    encodeURIComponent(token);
+  const GAS_BASE_URL = process.env.KORUAL_GAS_URL;
+  if (!GAS_BASE_URL) {
+    return res.status(503).json({ ok: false, error: "KORUAL_UPSTREAM_NOT_CONFIGURED" });
+  }
+  const GAS_WHOAMI_URL = new URL(GAS_BASE_URL);
+  GAS_WHOAMI_URL.searchParams.set("action", "whoami");
+  GAS_WHOAMI_URL.searchParams.set("token", token);
 
   try {
     const r = await fetch(GAS_WHOAMI_URL, {
