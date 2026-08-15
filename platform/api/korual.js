@@ -1,5 +1,8 @@
 const UPSTREAM_TIMEOUT_MS = 15_000;
-const ALLOWED_ACTIONS = new Set(['ping', 'summary', 'syncProducts', 'syncOrders', 'syncShipping', 'dailyReport']);
+const ALLOWED_ACTIONS = new Set([
+  'ping', 'summary', 'syncProducts', 'syncOrders', 'syncShipping', 'dailyReport',
+  'listRecords', 'createRecord', 'updateRecord', 'deleteRecord',
+]);
 
 function getConfig() {
   const url = process.env.KORUAL_GAS_URL;
