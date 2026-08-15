@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Activity, BellRing, Boxes, Calculator, CalendarClock, Check, ChevronRight, CircleAlert, Cloud, Code2, ExternalLink, FileChartColumn, Home, Link2, PackageCheck, Pencil, Plus, RefreshCw, Search, Settings, Sheet, ShieldCheck, Sparkles, Trash2, TrendingUp, Truck, Workflow, X } from 'lucide-react';
 import { getPlatformHealth, runKorualAction } from './lib/korualApi.js';
-import { automationPipelines } from './lib/automationEngine.js';
 import './styles.css';
 import './crud.css';
 import './language.css';
 import './decision.css';
+import './roadmap.css';
 
 const sheetsUrl = 'https://docs.google.com/spreadsheets/d/1-XYUbU6Os5q7P_9qFnTFmkva3o0KhrgPHd-AyA6-bts/edit';
 const links = { sheets: sheetsUrl, drive: 'https://drive.google.com/drive/u/1/home', github: 'https://github.com/korual-ops/KORUAL-control-center', vercel: 'https://vercel.com/korual-ops-projects/korual-control-center-1xoe', script: 'https://script.google.com/u/1/home/projects/1bsmTlQME7petvQ5dydYU9n-c53qWpMjadwQ8-waOi0T4J8W3QEDpP1GN/edit' };
@@ -25,8 +25,6 @@ const integrations = [
   { name: 'Cafe24', group: '커머스', state: 'planned', icon: Boxes },
   { name: 'Kakao 알림', group: '메시지', state: 'planned', icon: Activity },
   { name: '여행 API', group: '파트너', state: 'planned', icon: Link2 },
-  ...automationPipelines.map((pipeline) => ({ name: pipeline.name, group: '기존 엔진 도입', state: 'planned', icon: Workflow })),
-  { name: 'KORUAL Space', group: '기존 소스 도입', state: 'planned', icon: Home },
 ];
 const navItems = [
   { id: 'overview', label: 'KORUAL 운영', icon: Home }, { id: 'automation', label: '자동화', icon: Workflow },
@@ -54,6 +52,16 @@ function DecisionCenter() {
   const margin = calc.price > 0 ? profit / calc.price * 100 : 0; const risk = margin < 20 ? '위험' : margin < 35 ? '점검' : '양호';
   return <section className="decision-center"><div className="decision-kpis"><article><span><Boxes size={17}/>상품</span><strong>{summary.products || 0}</strong><small>운영 SKU</small></article><article><span><PackageCheck size={17}/>주문</span><strong>{summary.orders || 0}</strong><small>누적 주문</small></article><article><span><BellRing size={17}/>승인 대기</span><strong>0</strong><small>발주·결제·메시지</small></article><article><span><TrendingUp size={17}/>자동화율</span><strong>62%</strong><small>목표 85%</small></article></div><div className="margin-lab panel"><div className="panel-heading"><div><h2>마진 의사결정 센터</h2><p>원가·수수료·물류·광고비를 포함해 판매 전 수익성을 검증합니다.</p></div><Calculator size={20}/></div><div className="margin-body"><div className="margin-fields">{[['cost','원가'],['price','판매가'],['fee','수수료율 %'],['shipping','배송비'],['ads','광고비']].map(([key,label])=><label key={key}><span>{label}</span><input type="number" min="0" value={calc[key]} onChange={(e)=>setCalc({...calc,[key]:Number(e.target.value)})}/></label>)}</div><div className={`margin-result ${risk === '위험' ? 'risk' : risk === '점검' ? 'warn' : ''}`}><span>예상 순이익</span><strong>₩{Math.round(profit).toLocaleString()}</strong><small>순마진 {margin.toFixed(1)}% · {risk}</small><p>{margin < 20 ? '등록 보류: 가격 또는 비용 구조를 먼저 개선하세요.' : '상품 등록 검토가 가능한 수익 구조입니다.'}</p></div></div></div></section>;
 }
+
+const roadmap = [
+  { phase:'NOW', title:'AI Commerce Decision OS', state:'운영', detail:'상품 입력 · 35% 마진 검증 · AI 상세페이지 · 판매 승인' },
+  { phase:'BUILD', title:'Order · 1688 · KORUAL Track', state:'구축', detail:'주문 수집 · MOQ 확인 · 발주 승인 · CJ 배송 · 지연 카카오 알림' },
+  { phase:'NEXT', title:'Membership · Points · BLACK', state:'다음', detail:'BRZ/SLV/GLD/BLK 등급 · 쿠폰 · 추천 · 디지털 카드' },
+  { phase:'NEXT', title:'Travel Meta Search', state:'다음', detail:'AI 일정 · 항공 · 호텔 · 지도 · 번역 · 파트너 예약 연결' },
+  { phase:'LATER', title:'KORUAL Space', state:'후속', detail:'촬영 공간 중개 · 호스트 승인 · 보증금 · 리뷰 · 15% 수수료' },
+  { phase:'HOLD', title:'KORUAL Pay', state:'보류', detail:'PG·정산·포인트부터 검증 후 규제 검토를 거쳐 확장' },
+];
+function Roadmap() { return <section className="panel roadmap-panel"><div className="panel-heading"><div><h2>KORUAL 실행 로드맵</h2><p>현금흐름 → 시스템화 → 자동화 → 자산화 순으로 실행합니다.</p></div><span className="count-label">6 단계</span></div><div className="roadmap-list">{roadmap.map(item=><article key={item.title}><span className={`phase ${item.phase.toLowerCase()}`}>{item.phase}</span><div><strong>{item.title}</strong><p>{item.detail}</p></div><small>{item.state}</small></article>)}</div><div className="scope-guard"><ShieldCheck size={17}/><p><strong>초기 제외:</strong> 자체 코인·송금·투자상품·직접 OTA·직접 공간 운영. 중개·구독·수수료 중심으로 성장합니다.</p></div></section>; }
 
 function DataManager({ addEvent, t }) {
   const [entity, setEntity] = useState('products'); const [records, setRecords] = useState([]); const [loading, setLoading] = useState(true);
@@ -101,6 +109,7 @@ function App() {
         <section id="activity" className="panel activity-panel"><div className="panel-heading"><div><h2>최근 활동</h2><p>자동화 실행 결과가 현재 브라우저에 표시됩니다.</p></div><Activity size={20} /></div>{events.length === 0 ? <div className="empty-state"><div className="empty-icon"><Workflow size={24} /></div><strong>실행 기록이 없습니다</strong><p>자동화를 실행하면 결과와 시간이 여기에 기록됩니다.</p></div> : <ul className="event-list">{events.map((event) => <li key={event.id}><span className={`event-icon ${event.ok ? 'success' : 'failure'}`}>{event.ok ? <Check size={16} /> : <CircleAlert size={16} />}</span><div><strong>{event.title}</strong><p>{event.detail}</p></div><time>{event.at.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</time></li>)}</ul>}</section></div>
       <DataManager addEvent={addEvent} t={t} />
       <DecisionCenter />
+      <Roadmap />
       <section id="settings" className="guardrail"><ShieldCheck size={20} /><div><strong>승인 기반 운영</strong><p>데이터 조회와 동기화는 자동화하고, 발주·결제·환불·고객 메시지는 운영자 승인 후 실행합니다.</p></div></section>
     </main>
     <nav className="mobile-nav" aria-label="모바일 주요 메뉴">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={activeNav === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={19} /><span>{label.replace('KORUAL ', '')}</span></button>)}</nav>
