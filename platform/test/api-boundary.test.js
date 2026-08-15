@@ -5,6 +5,8 @@ import { normalizeAction } from '../api/korual.js';
 
 test('only explicit automation actions are allowed', () => {
   assert.equal(normalizeAction('syncOrders'), 'syncOrders');
+  assert.equal(normalizeAction('createRecord'), 'createRecord');
+  assert.equal(normalizeAction('deleteRecord'), 'deleteRecord');
   assert.equal(normalizeAction('deleteAll'), null);
   assert.equal(normalizeAction(''), null);
 });
