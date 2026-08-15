@@ -16,3 +16,11 @@ test('browser source contains no Apps Script URL or secret lookup', async () => 
   assert.equal(source.includes('script.google.com'), false);
   assert.equal(source.includes('KORUAL_GAS_SECRET'), false);
 });
+
+test('versioned Apps Script source uses Script Properties and filters blank IDs', async () => {
+  const code = await readFile(new URL('../apps-script/Code.gs', import.meta.url), 'utf8');
+  const crud = await readFile(new URL('../apps-script/CRUD.gs', import.meta.url), 'utf8');
+  assert.equal(code.includes('getScriptProperties'), true);
+  assert.equal(code.includes('secret: \'9722'), false);
+  assert.equal(crud.includes("String(row[idIndex]||'').trim()"), true);
+});
