@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, Boxes, CalendarClock, Check, ChevronRight, CircleAlert, Cloud, Code2, ExternalLink, FileChartColumn, Home, Link2, PackageCheck, Pencil, Plus, RefreshCw, Search, Settings, Sheet, ShieldCheck, Sparkles, Trash2, Truck, Workflow, X } from 'lucide-react';
+import { Activity, BellRing, Boxes, Calculator, CalendarClock, Check, ChevronRight, CircleAlert, Cloud, Code2, ExternalLink, FileChartColumn, Home, Link2, PackageCheck, Pencil, Plus, RefreshCw, Search, Settings, Sheet, ShieldCheck, Sparkles, Trash2, TrendingUp, Truck, Workflow, X } from 'lucide-react';
 import { getPlatformHealth, runKorualAction } from './lib/korualApi.js';
 import { automationPipelines } from './lib/automationEngine.js';
 import './styles.css';
 import './crud.css';
 import './language.css';
+import './decision.css';
 
 const sheetsUrl = 'https://docs.google.com/spreadsheets/d/1-XYUbU6Os5q7P_9qFnTFmkva3o0KhrgPHd-AyA6-bts/edit';
 const links = { sheets: sheetsUrl, drive: 'https://drive.google.com/drive/u/1/home', github: 'https://github.com/korual-ops/KORUAL-control-center', vercel: 'https://vercel.com/korual-ops-projects/korual-control-center-1xoe', script: 'https://script.google.com/u/1/home/projects/1bsmTlQME7petvQ5dydYU9n-c53qWpMjadwQ8-waOi0T4J8W3QEDpP1GN/edit' };
@@ -45,6 +46,15 @@ const i18n = {
 };
 function StatusDot({ tone = 'good' }) { return <span className={`status-dot ${tone}`} aria-hidden="true" />; }
 
+function DecisionCenter() {
+  const [summary, setSummary] = useState({ products: 0, orders: 0, suppliers: 0 });
+  const [calc, setCalc] = useState({ cost: 17000, price: 35000, fee: 6, shipping: 3000, ads: 2000 });
+  useEffect(() => { runKorualAction('summary').then(setSummary).catch(() => {}); }, []);
+  const profit = calc.price - calc.cost - calc.shipping - calc.ads - calc.price * calc.fee / 100;
+  const margin = calc.price > 0 ? profit / calc.price * 100 : 0; const risk = margin < 20 ? '위험' : margin < 35 ? '점검' : '양호';
+  return <section className="decision-center"><div className="decision-kpis"><article><span><Boxes size={17}/>상품</span><strong>{summary.products || 0}</strong><small>운영 SKU</small></article><article><span><PackageCheck size={17}/>주문</span><strong>{summary.orders || 0}</strong><small>누적 주문</small></article><article><span><BellRing size={17}/>승인 대기</span><strong>0</strong><small>발주·결제·메시지</small></article><article><span><TrendingUp size={17}/>자동화율</span><strong>62%</strong><small>목표 85%</small></article></div><div className="margin-lab panel"><div className="panel-heading"><div><h2>마진 의사결정 센터</h2><p>원가·수수료·물류·광고비를 포함해 판매 전 수익성을 검증합니다.</p></div><Calculator size={20}/></div><div className="margin-body"><div className="margin-fields">{[['cost','원가'],['price','판매가'],['fee','수수료율 %'],['shipping','배송비'],['ads','광고비']].map(([key,label])=><label key={key}><span>{label}</span><input type="number" min="0" value={calc[key]} onChange={(e)=>setCalc({...calc,[key]:Number(e.target.value)})}/></label>)}</div><div className={`margin-result ${risk === '위험' ? 'risk' : risk === '점검' ? 'warn' : ''}`}><span>예상 순이익</span><strong>₩{Math.round(profit).toLocaleString()}</strong><small>순마진 {margin.toFixed(1)}% · {risk}</small><p>{margin < 20 ? '등록 보류: 가격 또는 비용 구조를 먼저 개선하세요.' : '상품 등록 검토가 가능한 수익 구조입니다.'}</p></div></div></div></section>;
+}
+
 function DataManager({ addEvent, t }) {
   const [entity, setEntity] = useState('products'); const [records, setRecords] = useState([]); const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState(''); const [editing, setEditing] = useState(null); const [form, setForm] = useState({}); const [saving, setSaving] = useState(false);
@@ -63,7 +73,7 @@ function DataManager({ addEvent, t }) {
 }
 
 function App() {
-  const detectedLanguage = ['en','zh','ja','vi'].find((code) => navigator.language.toLowerCase().startsWith(code)) || 'ko';
+  const detectedLanguage = localStorage.getItem('korual-language') || ['en','zh','ja','vi'].find((code) => navigator.language.toLowerCase().startsWith(code)) || 'ko';
   const [language, setLanguage] = useState(detectedLanguage); const t = i18n[language];
   const [health, setHealth] = useState({ state: 'loading' });
   const [running, setRunning] = useState(null);
@@ -71,7 +81,7 @@ function App() {
   const [activeNav, setActiveNav] = useState('overview');
   async function refreshHealth() { setHealth({ state: 'loading' }); try { setHealth({ state: 'ready', ...await getPlatformHealth() }); } catch (error) { setHealth({ state: 'error', message: error.message }); } }
   useEffect(() => { refreshHealth(); }, []);
-  useEffect(() => { document.documentElement.lang = language; }, [language]);
+  useEffect(() => { document.documentElement.lang = language; localStorage.setItem('korual-language', language); }, [language]);
   async function execute(action) {
     setRunning(action.id);
     try { const result = await runKorualAction(action.id); setEvents((items) => [{ id: crypto.randomUUID(), title: action.title, ok: result.ok !== false, detail: '자동화가 정상 완료됐습니다.', at: new Date() }, ...items].slice(0, 8)); }
@@ -90,6 +100,7 @@ function App() {
       <div className="secondary-grid"><section id="integrations" className="panel integrations-panel"><div className="panel-heading"><div><h2>연동 허브</h2><p>권한과 역할이 명확한 핵심 연결만 관리합니다.</p></div><span className="count-label">{integrations.filter((item) => item.state === 'connected').length} 연결</span></div><div className="integration-grid">{integrations.map(({ name, group, state, icon: Icon, url }) => { const body = <><div className="integration-icon"><Icon size={21} /></div><div><strong>{name}</strong><small>{group}</small></div><span className={`connection ${state}`}><StatusDot tone={state === 'connected' ? 'good' : 'pending'} />{state === 'connected' ? '연결됨' : '준비'}</span>{url && <ExternalLink className="external" size={14} />}</>; return url ? <a key={name} className="integration-item" href={url} target="_blank" rel="noreferrer">{body}</a> : <div key={name} className="integration-item planned" aria-label={`${name} 연동 준비 중`}>{body}</div>; })}</div></section>
         <section id="activity" className="panel activity-panel"><div className="panel-heading"><div><h2>최근 활동</h2><p>자동화 실행 결과가 현재 브라우저에 표시됩니다.</p></div><Activity size={20} /></div>{events.length === 0 ? <div className="empty-state"><div className="empty-icon"><Workflow size={24} /></div><strong>실행 기록이 없습니다</strong><p>자동화를 실행하면 결과와 시간이 여기에 기록됩니다.</p></div> : <ul className="event-list">{events.map((event) => <li key={event.id}><span className={`event-icon ${event.ok ? 'success' : 'failure'}`}>{event.ok ? <Check size={16} /> : <CircleAlert size={16} />}</span><div><strong>{event.title}</strong><p>{event.detail}</p></div><time>{event.at.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</time></li>)}</ul>}</section></div>
       <DataManager addEvent={addEvent} t={t} />
+      <DecisionCenter />
       <section id="settings" className="guardrail"><ShieldCheck size={20} /><div><strong>승인 기반 운영</strong><p>데이터 조회와 동기화는 자동화하고, 발주·결제·환불·고객 메시지는 운영자 승인 후 실행합니다.</p></div></section>
     </main>
     <nav className="mobile-nav" aria-label="모바일 주요 메뉴">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={activeNav === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={19} /><span>{label.replace('KORUAL ', '')}</span></button>)}</nav>
