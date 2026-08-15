@@ -1,40 +1,71 @@
-export async function POST(req) {
+const UPSTREAM_TIMEOUT_MS = 15_000;
+
+function getUpstreamConfig() {
+  const url = process.env.KORUAL_GAS_URL;
+  const secret = process.env.KORUAL_GAS_SECRET;
+
+  if (!url || !secret) {
+    throw new Error("KORUAL_UPSTREAM_NOT_CONFIGURED");
+  }
+
+  return { url, secret };
+}
+
+async function readUpstreamResponse(response) {
+  const text = await response.text();
   try {
-    const body = await req.json().catch(() => ({}));
-    const { username, password } = body || {};
-
-    if (!username || !password) {
-      return Response.json({ ok: false, error: "MISSING_CREDENTIALS" }, { status: 400 });
-    }
-
-    const GAS_URL =
-      "https://script.google.com/macros/s/AKfycby2FlBu4YXEpeGUAvtXWTbYCi4BNGHNl7GCsaQtsCHuvGXYMELveOkoctEAepFg2F_0/exec?action=login";
-
-    const r = await fetch(GAS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-      redirect: "follow",
-    });
-
-    const text = await r.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return Response.json(
-        { ok: false, error: "BAD_UPSTREAM_RESPONSE", upstreamStatus: r.status, sample: text.slice(0, 300) },
-        { status: 502 }
-      );
-    }
-
-    return Response.json(data, { status: 200 });
-  } catch (e) {
-    return Response.json({ ok: false, error: "PROXY_ERROR", message: String(e) }, { status: 500 });
+    return Response.json(JSON.parse(text), { status: response.status });
+  } catch {
+    return Response.json(
+      { ok: false, error: "BAD_UPSTREAM_RESPONSE", upstreamStatus: response.status },
+      { status: 502 }
+    );
   }
 }
 
-export async function GET() {
-  // 디버깅용: 라우트가 살아있는지 확인
-  return Response.json({ ok: false, error: "METHOD_NOT_ALLOWED", hint: "POST /api/korual/login" }, { status: 405 });
+async function proxyToGas({ method, body, query }) {
+  const { url, secret } = getUpstreamConfig();
+  const upstreamUrl = new URL(url);
+
+  for (const [key, value] of query) {
+    upstreamUrl.searchParams.set(key, value);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(upstreamUrl, {
+      method,
+      headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,
+      body: method === "POST" ? JSON.stringify({ ...body, secret }) : undefined,
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    return await readUpstreamResponse(response);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function POST(req) {
+  try {
+    const body = await req.json().catch(() => ({}));
+    return await proxyToGas({ method: "POST", body, query: [] });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "PROXY_ERROR";
+    const status = message === "KORUAL_UPSTREAM_NOT_CONFIGURED" ? 503 : 500;
+    return Response.json({ ok: false, error: message }, { status });
+  }
+}
+
+export async function GET(req) {
+  try {
+    const query = new URL(req.url).searchParams.entries();
+    return await proxyToGas({ method: "GET", body: {}, query });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "PROXY_ERROR";
+    const status = message === "KORUAL_UPSTREAM_NOT_CONFIGURED" ? 503 : 500;
+    return Response.json({ ok: false, error: message }, { status });
+  }
 }

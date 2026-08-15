@@ -18,6 +18,18 @@ npm install
 npm run dev
 ```
 
+## 실제 자동화 연결
+
+Vercel 프로젝트의 Root Directory를 `platform`으로 두고 다음 서버 전용 환경변수를 설정합니다.
+
+```env
+KORUAL_GAS_URL=https://script.google.com/macros/s/DEPLOYMENT_ID/exec
+KORUAL_GAS_SECRET=새로_발급한_비밀키
+KORUAL_SPREADSHEET_ID=1-XYUbU6Os5q7P_9qFnTFmkva3o0KhrgPHd-AyA6-bts
+```
+
+브라우저는 `/api/korual`만 호출하며 Apps Script URL과 비밀키를 직접 받지 않습니다. 허용된 자동화는 상품 동기화, 주문 동기화, 배송 점검, 일일 리포트입니다.
+
 ## 수익 엔진
 
 1. PB 상품 마진

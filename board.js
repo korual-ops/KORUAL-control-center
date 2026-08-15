@@ -4,7 +4,6 @@
 
   const META = window.KORUAL_META_APP || {};
   const API_BASE = META.api?.baseUrl || "";
-  const API_SECRET = META.api?.secret || "";
 
   const $ = (s) => document.querySelector(s);
 
@@ -22,7 +21,7 @@
     const res = await fetch(API_BASE, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payload, secret: API_SECRET }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data?.message || "API POST failed");

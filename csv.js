@@ -8,7 +8,6 @@
  *  - window.currentHeaders      (헤더 배열)
  *  - window.currentTableRows    (원본 rows 배열)  ← 한 줄만 table.js 에서 세팅해주면 됨
  *  - apiPost(payload)           (app.js)
- *  - API_SECRET                 (app.js)
  *  - loadSectionInternal(key, params) (app.js)
  ****************************************/
 
@@ -168,7 +167,6 @@
 
         const payload = {
           target: "bulkReplace",
-          secret: API_SECRET,
           key,
           headers: parsed.headers,
           rows: parsed.rows,
