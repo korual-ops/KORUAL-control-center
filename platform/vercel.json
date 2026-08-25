@@ -1,7 +1,8 @@
 {
-  "buildCommand": "npm run build",
+  "version": 2,
+  "buildCommand": "pnpm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "installCommand": "pnpm install",
   "framework": "vite",
   "headers": [
     {
@@ -16,6 +17,13 @@
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/health",
+      "destination": "/api/integrations/health"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
