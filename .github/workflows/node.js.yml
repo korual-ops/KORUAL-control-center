@@ -1,5 +1,6 @@
 # KORUAL Platform CI: dependency install, build, and smoke tests
-# Uses npm install because the repository lockfile is being migrated from Cloud SQL to Supabase.
+# Uses Node.js 22 because Supabase Realtime requires native WebSocket support.
+# Uses npm install while the repository lockfile is being migrated from Cloud SQL to Supabase.
 
 name: Node.js CI
 
@@ -15,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [20.x, 22.x]
+        node-version: [22.x]
 
     steps:
     - uses: actions/checkout@v4
