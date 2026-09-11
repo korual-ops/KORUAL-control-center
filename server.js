@@ -44,13 +44,8 @@ function getClientIp(req) {
   return req.socket?.remoteAddress || null;
 }
 
-function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-}
-
-function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET);
-}
+function signToken(payload) { return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN }); }
+function verifyToken(token) { return jwt.verify(token, JWT_SECRET); }
 
 function setAuthCookie(res, token) {
   res.cookie('korual_token', token, {
@@ -123,6 +118,40 @@ async function requireAdmin(req, res, next) {
   }
 }
 
+const SERVICE_NAMES = new Set(['입주청소', '이사', '인터넷', '정수기', '인테리어', '수리·시공']);
+const quoteRate = new Map();
+function quoteRateLimited(ip) {
+  const now = Date.now();
+  const current = quoteRate.get(ip) || { started: now, count: 0 };
+  if (now - current.started > 60_000) {
+    quoteRate.set(ip, { started: now, count: 1 });
+    return false;
+  }
+  current.count += 1;
+  quoteRate.set(ip, current);
+  return current.count > 20;
+}
+
+function validateQuoteRequest(body) {
+  const services = Array.isArray(body?.services)
+    ? [...new Set(body.services.map(v => String(v).trim()).filter(Boolean))]
+    : [];
+  const region = String(body?.region || '').trim();
+  const desiredDate = String(body?.date || '').trim();
+  const customerName = String(body?.name || '').trim();
+  const phone = String(body?.phone || '').trim();
+
+  if (!services.length || services.some(name => !SERVICE_NAMES.has(name))) return { error: 'INVALID_SERVICES' };
+  if (region.length < 2 || region.length > 100) return { error: 'INVALID_REGION' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(desiredDate)) return { error: 'INVALID_DATE' };
+  const parsedDate = new Date(`${desiredDate}T00:00:00Z`);
+  if (Number.isNaN(parsedDate.getTime())) return { error: 'INVALID_DATE' };
+  if (customerName.length < 2 || customerName.length > 50) return { error: 'INVALID_NAME' };
+  if (!/^[0-9+()\-\s]{7,20}$/.test(phone)) return { error: 'INVALID_PHONE' };
+
+  return { value: { services, region, desiredDate, customerName, phone } };
+}
+
 app.get('/', (_req, res) => {
   res.send(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KORUAL Platform</title><style>body{margin:0;background:#080a0d;color:#f6f4ee;font-family:Inter,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif}main{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(900px,100%);padding:48px;border:1px solid #2b3138;border-radius:24px;background:linear-gradient(145deg,#12171c,#090b0e);box-shadow:0 30px 80px #0008}h1{font-family:Georgia,serif;font-size:clamp(42px,7vw,72px);margin:0 0 12px;color:#f0d58d}p{color:#b8c0c8;line-height:1.7}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}.item{padding:18px;border:1px solid #2b3138;border-radius:14px}.item b{display:block;margin-bottom:7px}.item span{color:#8f98a2;font-size:13px}a{display:inline-block;margin-top:28px;padding:13px 18px;border-radius:12px;background:#f0d58d;color:#101112;text-decoration:none;font-weight:800}@media(max-width:700px){.card{padding:28px}.grid{grid-template-columns:1fr}}</style></head><body><main><section class="card"><h1>KORUAL</h1><p>Life Service Marketplace · Super Platform</p><p>입주청소 · 이사 · 렌탈 · 에어컨 청소 · 인터넷/TV · AI 견적비교</p><div class="grid"><div class="item"><b>Cashflow</b><span>현금흐름 중심 운영</span></div><div class="item"><b>Automation</b><span>시스템 자동화</span></div><div class="item"><b>Network</b><span>업체 경쟁견적 네트워크</span></div></div><a href="/platform/summary">Platform API 확인</a></section></main></body></html>`);
 });
@@ -130,25 +159,39 @@ app.get('/', (_req, res) => {
 app.get('/health', (_req, res) => res.json({ ok: true, database: 'supabase' }));
 
 app.get('/platform/summary', (_req, res) => {
-  res.json({
-    ok: true,
-    platform: 'KORUAL Super Platform',
-    version: '1.1.0',
-    database: 'Supabase',
-    modules: ['commerce', 'travel', 'ai-agent', 'business', 'finance', 'developer-api'],
-    operating_model: 'cashflow -> leverage -> system -> automation -> asset -> network effect'
-  });
+  res.json({ ok: true, platform: 'KORUAL Super Platform', version: '1.2.0', database: 'Supabase', modules: ['commerce', 'travel', 'ai-agent', 'business', 'finance', 'developer-api', 'life-services'], operating_model: 'cashflow -> leverage -> system -> automation -> asset -> network effect' });
+});
+
+app.post('/service-requests', async (req, res) => {
+  try {
+    const ip = getClientIp(req) || 'unknown';
+    if (quoteRateLimited(ip)) return res.status(429).json({ ok: false, error: 'RATE_LIMITED' });
+    const { error: validationError, value } = validateQuoteRequest(req.body);
+    if (validationError) return res.status(400).json({ ok: false, error: validationError });
+
+    const { data, error } = await supabaseAdmin.from('service_requests').insert({
+      services: value.services,
+      region: value.region,
+      desired_date: value.desiredDate,
+      customer_name: value.customerName,
+      phone: value.phone,
+      source: 'platform'
+    }).select('id,status,created_at').single();
+    if (error) throw error;
+    return res.status(201).json({ ok: true, request: data });
+  } catch (error) {
+    console.error('service request error:', error.message);
+    return res.status(500).json({ ok: false, error: 'SERVICE_REQUEST_FAILED' });
+  }
 });
 
 app.post('/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body || {};
     if (!username || !password) return res.status(400).json({ ok: false, error: 'MISSING_CREDENTIALS' });
-
     const ip = getClientIp(req);
     const ua = req.headers['user-agent'] || null;
     const profile = await getProfileByIdentifier(username);
-
     if (!profile) {
       await auditLogin({ email: username, userId: null, success: false, ip, userAgent: ua, reason: 'NO_USER' });
       return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS' });
@@ -161,7 +204,6 @@ app.post('/auth/login', async (req, res) => {
       await auditLogin({ email: profile.email, userId: profile.id, success: false, ip, userAgent: ua, reason: 'LOCKED' });
       return res.status(423).json({ ok: false, error: 'LOCKED', locked_until: profile.locked_until });
     }
-
     const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({ email: profile.email, password });
     if (authError || !authData.user) {
       const newFail = (profile.fail_count || 0) + 1;
@@ -170,13 +212,10 @@ app.post('/auth/login', async (req, res) => {
       await auditLogin({ email: profile.email, userId: profile.id, success: false, ip, userAgent: ua, reason: 'WRONG_PW' });
       return res.status(401).json({ ok: false, error: 'INVALID_CREDENTIALS', fail_count: newFail, locked_until: lockedUntil });
     }
-
     const { data: updated, error: updateError } = await supabaseAdmin.from('profiles').update({ last_login_at: new Date().toISOString(), last_ip: ip, fail_count: 0, locked_until: null }).eq('id', profile.id).select('*').single();
     if (updateError) throw updateError;
-
     await auditLogin({ email: updated.email, userId: updated.id, success: true, ip, userAgent: ua, reason: 'OK' });
-    const token = signToken({ sub: updated.id, email: updated.email, role: updated.role, display_name: updated.display_name || updated.email });
-    setAuthCookie(res, token);
+    setAuthCookie(res, signToken({ sub: updated.id, email: updated.email, role: updated.role, display_name: updated.display_name || updated.email }));
     return res.json({ ok: true, user: { id: updated.id, username: updated.display_name || updated.email, role: updated.role, display_name: updated.display_name || updated.email } });
   } catch (error) {
     console.error('login error:', error.message);
@@ -189,16 +228,7 @@ app.get('/auth/whoami', requireAuth, async (req, res) => {
     const profile = await getProfileById(req.user.sub);
     if (!profile) return res.status(404).json({ ok: false, error: 'USER_NOT_FOUND' });
     if (!profile.active) return res.status(403).json({ ok: false, error: 'INACTIVE_USER' });
-    return res.json({ ok: true, user: {
-      id: profile.id,
-      username: profile.display_name || profile.email,
-      role: profile.role,
-      display_name: profile.display_name || profile.email,
-      mfa_enabled: profile.mfa_enabled,
-      active: profile.active,
-      last_login_at: profile.last_login_at,
-      last_ip: profile.last_ip
-    }});
+    return res.json({ ok: true, user: { id: profile.id, username: profile.display_name || profile.email, role: profile.role, display_name: profile.display_name || profile.email, mfa_enabled: profile.mfa_enabled, active: profile.active, last_login_at: profile.last_login_at, last_ip: profile.last_ip } });
   } catch (error) {
     console.error('whoami error:', error.message);
     return res.status(500).json({ ok: false, error: 'WHOAMI_FAILED' });
@@ -210,8 +240,7 @@ app.post('/auth/logout', (_req, res) => { clearAuthCookie(res); res.json({ ok: t
 app.get('/admin/users', requireAuth, requireAdmin, async (_req, res) => {
   const { data, error } = await supabaseAdmin.from('profiles').select('id,email,display_name,role,active,fail_count,locked_until,last_login_at,last_ip,created_at,updated_at').order('created_at', { ascending: false }).limit(200);
   if (error) return res.status(500).json({ ok: false, error: 'USERS_QUERY_FAILED' });
-  const users = (data || []).map(u => ({ ...u, username: u.display_name || u.email }));
-  return res.json({ ok: true, users });
+  return res.json({ ok: true, users: (data || []).map(u => ({ ...u, username: u.display_name || u.email })) });
 });
 
 async function recordAdminAction({ actorUserId, action, targetUserId, meta, ip }) {
