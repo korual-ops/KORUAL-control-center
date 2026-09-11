@@ -3,6 +3,7 @@ import { ArrowRight, CheckCircle2, ChevronRight, Home, Search, ShieldCheck, Spar
 import { createRoot } from 'react-dom/client';
 import './life-os.css';
 
+const API_BASE = import.meta.env.VITE_KORUAL_API_BASE_URL || '';
 const services = [
   ['입주청소','새 집 입주 전 필수 서비스','18–25만원'],
   ['이사','지역·거리·짐 기준 비교','35–80만원'],
@@ -26,6 +27,8 @@ function App(){
   const [requestOpen,setRequestOpen]=useState(false);
   const [request,setRequest]=useState({name:'',region:'',date:'',phone:''});
   const [saved,setSaved]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [requestError,setRequestError]=useState('');
   const [online,setOnline]=useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const recommended=useMemo(()=>services.filter(([name])=>selected.includes(name)),[selected]);
 
@@ -43,14 +46,30 @@ function App(){
   function toggle(name){setSelected(v=>v.includes(name)?v.filter(x=>x!==name):[...v,name]);}
   function openRequest(){
     setSaved(false);
+    setSaving(false);
+    setRequestError('');
     setRequestOpen(true);
   }
-  function submitRequest(e){
+  async function submitRequest(e){
     e.preventDefault();
-    const item={id:crypto.randomUUID?.() || String(Date.now()), createdAt:new Date().toISOString(), services:selected, ...request};
-    const existing=JSON.parse(localStorage.getItem('korual_quote_requests') || '[]');
-    localStorage.setItem('korual_quote_requests', JSON.stringify([item,...existing].slice(0,20)));
-    setSaved(true);
+    if(saving) return;
+    setSaving(true); setRequestError('');
+    try{
+      if(!online) throw new Error('OFFLINE');
+      const response=await fetch(`${API_BASE}/service-requests`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body:JSON.stringify({services:selected,...request})
+      });
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok) throw new Error(payload.error || 'SERVICE_REQUEST_FAILED');
+      setSaved(true);
+      setRequest({name:'',region:'',date:'',phone:''});
+    }catch(error){
+      const message=error.message==='OFFLINE'?'인터넷 연결이 없어 접수할 수 없습니다.':error.message==='RATE_LIMITED'?'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.':'견적 요청 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      setRequestError(message);
+    }finally{setSaving(false)}
   }
 
   return <div className="app">
@@ -76,13 +95,13 @@ function App(){
 
       <section id="how" className="how section"><div className="section-head"><div><span className="label">HOW KORUAL WORKS</span><h2>검색 → 비교가 아니라<br/>문제 → 해결입니다.</h2></div></div><div className="steps">{[['01','상황 입력','한 문장으로 생활 문제를 설명합니다.'],['02','AI 판단','필요한 서비스와 불필요한 서비스를 구분합니다.'],['03','가격 비교','시장가격과 실제 견적의 차이를 계산합니다.'],['04','거래 연결','검증된 업체와 예약까지 연결합니다.']].map(([n,t,d])=><article key={n}><span>{n}</span><h3>{t}</h3><p>{d}</p></article>)}</div></section>
 
-      {online && <aside className="card" aria-label="광고 영역"><small><Wifi size={13}/> KORUAL AD · 온라인 연결 상태에서만 표시</small></aside>}
+      {online && <aside className="card ad-slot" aria-label="광고 영역"><small><Wifi size={13}/> KORUAL AD · 온라인 연결 상태에서만 표시</small></aside>}
     </main>
     <footer><div className="logo">✦ KORUAL</div><span>생활을 KORUAL 하나로.</span><small>Decision first · Transaction second</small></footer>
 
     {detail && <div className="modal-backdrop" onClick={()=>setDetail(null)}><div className="modal card" onClick={e=>e.stopPropagation()}><button aria-label="상세 닫기" className="close" onClick={()=>setDetail(null)}><X size={18}/></button><span className="label">KORUAL SCORE</span><h2>{detail.name}</h2><div className="modal-score"><strong>{detail.score}</strong><span>/ 100</span></div><p>가격 · 품질 · 응답속도 · 추가금 위험 · 취소율을 종합해 산출한 데모 점수입니다.</p><button className="primary" onClick={()=>{setDetail(null);openRequest()}}>비교 목록에 담기 <ArrowRight size={17}/></button></div></div>}
 
-    {requestOpen && <div className="modal-backdrop" onClick={()=>setRequestOpen(false)}><form className="modal card" onSubmit={submitRequest} onClick={e=>e.stopPropagation()}><button type="button" aria-label="견적 요청 닫기" className="close" onClick={()=>setRequestOpen(false)}><X size={18}/></button><span className="label">QUOTE REQUEST</span><h2>업체 견적 요청</h2>{saved ? <><div className="modal-score"><CheckCircle2 size={30}/><strong>접수 완료</strong></div><p>견적 요청이 이 기기에 안전하게 저장되었습니다. 실제 운영에서는 Supabase와 제휴업체 배정 API로 연결됩니다.</p><button type="button" className="primary" onClick={()=>setRequestOpen(false)}>확인</button></> : <><p>{recommended.map(([n])=>n).join(' · ') || '선택 서비스 없음'}</p><label><MapPin size={15}/> 지역<input required value={request.region} onChange={e=>setRequest({...request,region:e.target.value})} placeholder="예: 인천 청라"/></label><label><CalendarDays size={15}/> 희망일<input required type="date" value={request.date} onChange={e=>setRequest({...request,date:e.target.value})}/></label><label>이름<input required value={request.name} onChange={e=>setRequest({...request,name:e.target.value})} placeholder="성함"/></label><label>연락처<input required inputMode="tel" value={request.phone} onChange={e=>setRequest({...request,phone:e.target.value})} placeholder="연락 가능한 번호"/></label><button className="primary" type="submit">견적 요청 저장 <ArrowRight size={17}/></button></>}</form></div>}
+    {requestOpen && <div className="modal-backdrop" onClick={()=>setRequestOpen(false)}><form className="modal card" onSubmit={submitRequest} onClick={e=>e.stopPropagation()}><button type="button" aria-label="견적 요청 닫기" className="close" onClick={()=>setRequestOpen(false)}><X size={18}/></button><span className="label">QUOTE REQUEST</span><h2>업체 견적 요청</h2>{saved ? <><div className="modal-score"><CheckCircle2 size={30}/><strong>접수 완료</strong></div><p>견적 요청이 KORUAL 서버에 접수되었습니다. 이제 제휴업체 배정과 견적 수집 단계로 연결할 수 있습니다.</p><button type="button" className="primary" onClick={()=>setRequestOpen(false)}>확인</button></> : <><p>{recommended.map(([n])=>n).join(' · ') || '선택 서비스 없음'}</p><label><MapPin size={15}/> 지역<input required value={request.region} onChange={e=>setRequest({...request,region:e.target.value})} placeholder="예: 인천 청라"/></label><label><CalendarDays size={15}/> 희망일<input required type="date" value={request.date} onChange={e=>setRequest({...request,date:e.target.value})}/></label><label>이름<input required value={request.name} onChange={e=>setRequest({...request,name:e.target.value})} placeholder="성함"/></label><label>연락처<input required inputMode="tel" value={request.phone} onChange={e=>setRequest({...request,phone:e.target.value})} placeholder="연락 가능한 번호"/></label>{requestError&&<p role="alert" className="request-error">{requestError}</p>}<button className="primary" type="submit" disabled={saving}>{saving?'접수 중…':'견적 요청 접수'} {!saving&&<ArrowRight size={17}/>}</button></>}</form></div>}
   </div>
 }
 
