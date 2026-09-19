@@ -154,6 +154,16 @@ function validateQuoteRequest(body) {
   const desiredDate = String(body?.date || '').trim();
   const customerName = String(body?.name || '').trim();
   const phone = String(body?.phone || '').trim();
+  const cleanOptional = (value, max = 120) => {
+    const text = String(value || '').trim();
+    return text ? text.slice(0, max) : null;
+  };
+  const sessionId = cleanOptional(body?.session_id, 128);
+  const utmSource = cleanOptional(body?.utm_source, 120);
+  const utmMedium = cleanOptional(body?.utm_medium, 120);
+  const utmCampaign = cleanOptional(body?.utm_campaign, 160);
+  const referrerHost = cleanOptional(body?.referrer_host, 255);
+  const landingPath = cleanOptional(body?.landing_path, 300);
 
   if (!services.length || services.some(name => !SERVICE_NAMES.has(name))) return { error: 'INVALID_SERVICES' };
   if (region.length < 2 || region.length > 100) return { error: 'INVALID_REGION' };
@@ -163,7 +173,7 @@ function validateQuoteRequest(body) {
   if (customerName.length < 2 || customerName.length > 50) return { error: 'INVALID_NAME' };
   if (!/^[0-9+()\-\s]{7,20}$/.test(phone)) return { error: 'INVALID_PHONE' };
 
-  return { value: { services, region, desiredDate, customerName, phone } };
+  return { value: { services, region, desiredDate, customerName, phone, sessionId, utmSource, utmMedium, utmCampaign, referrerHost, landingPath } };
 }
 
 app.get('/', (_req, res) => {
@@ -268,7 +278,61 @@ app.get('/platform/summary', (_req, res) => {
   res.json({ ok: true, platform: 'KORUAL Super Platform', version: '1.2.0', database: 'Supabase', modules: ['commerce', 'travel', 'ai-agent', 'business', 'finance', 'developer-api', 'life-services'], operating_model: 'cashflow -> leverage -> system -> automation -> asset -> network effect' });
 });
 
-app.use(['/service-requests', '/auth', '/admin'], requireRuntimeConfig);
+app.use(['/service-requests', '/marketplace', '/auth', '/admin'], requireRuntimeConfig);
+
+app.get('/marketplace/summary', async (req, res) => {
+  try {
+    const service = String(req.query.service || '').trim();
+    const region = String(req.query.region || '').trim();
+    if (service && !SERVICE_NAMES.has(service)) return res.status(400).json({ ok: false, error: 'INVALID_SERVICE' });
+    if (region.length > 100) return res.status(400).json({ ok: false, error: 'INVALID_REGION' });
+
+    let providersQuery = supabaseAdmin
+      .from('providers')
+      .select('id,name,rating,review_count,verified,korual_score,avg_response_minutes,completed_jobs,service_categories,regions')
+      .eq('active', true)
+      .eq('verified', true)
+      .order('korual_score', { ascending: false })
+      .order('rating', { ascending: false })
+      .limit(3);
+    if (service) providersQuery = providersQuery.contains('service_categories', [service]);
+    if (region) providersQuery = providersQuery.contains('regions', [region]);
+
+    let benchmarkQuery = supabaseAdmin
+      .from('price_benchmarks')
+      .select('service_category,region,min_amount,median_amount,max_amount,sample_count,confidence_score,source,updated_at')
+      .order('confidence_score', { ascending: false })
+      .limit(1);
+    if (service) benchmarkQuery = benchmarkQuery.eq('service_category', service);
+    if (region) benchmarkQuery = benchmarkQuery.eq('region', region);
+
+    const [providersResult, benchmarkResult, providerCountResult, benchmarkCountResult] = await Promise.all([
+      providersQuery,
+      benchmarkQuery.maybeSingle(),
+      supabaseAdmin.from('providers').select('id', { count: 'exact', head: true }).eq('active', true).eq('verified', true),
+      supabaseAdmin.from('price_benchmarks').select('id', { count: 'exact', head: true })
+    ]);
+
+    if (providersResult.error) throw providersResult.error;
+    if (benchmarkResult.error) throw benchmarkResult.error;
+    if (providerCountResult.error) throw providerCountResult.error;
+    if (benchmarkCountResult.error) throw benchmarkCountResult.error;
+
+    res.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    return res.json({
+      ok: true,
+      network: {
+        verified_providers: providerCountResult.count || 0,
+        price_benchmarks: benchmarkCountResult.count || 0
+      },
+      benchmark: benchmarkResult.data || null,
+      providers: providersResult.data || []
+    });
+  } catch (error) {
+    console.error('marketplace summary error:', error.message);
+    return res.status(500).json({ ok: false, error: 'MARKETPLACE_SUMMARY_FAILED' });
+  }
+});
 
 app.post('/service-requests', async (req, res) => {
   try {
@@ -283,8 +347,14 @@ app.post('/service-requests', async (req, res) => {
       desired_date: value.desiredDate,
       customer_name: value.customerName,
       phone: value.phone,
-      source: 'platform'
-    }).select('id,status,created_at').single();
+      source: 'platform',
+      session_id: value.sessionId,
+      utm_source: value.utmSource,
+      utm_medium: value.utmMedium,
+      utm_campaign: value.utmCampaign,
+      referrer_host: value.referrerHost,
+      landing_path: value.landingPath
+    }).select('id,request_code,status,created_at').single();
     if (error) throw error;
     return res.status(201).json({ ok: true, request: data });
   } catch (error) {
