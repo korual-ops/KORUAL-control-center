@@ -95,8 +95,8 @@ function App(){
   const liveQuotes=(marketSummary.providers || []).map(provider=>({
     name:provider.name,
     score:provider.korual_score || Math.round(Number(provider.rating || 0) * 20),
-    price:liveBenchmark?.median_amount ? money(liveBenchmark.median_amount) : '견적 확인',
-    delta:'실데이터',
+    price:'개별 견적',
+    delta:'검증업체',
     extra:provider.verified ? '검증' : '확인',
     live:true
   }));
@@ -183,7 +183,10 @@ function App(){
     );
   }
 
-  function openRequest(){
+  function openRequest(defaultService){
+    if(selected.length===0){
+      setSelected([defaultService || '입주청소']);
+    }
     setSaved(null);
     setSaving(false);
     setRequestError('');
@@ -386,14 +389,14 @@ function App(){
             <h2>기능은 줄이지 않고, 필요한 순간에 꺼내 씁니다.</h2>
             <p>홈은 간결하게 유지하고 생활·여행·지도·공지·파트너·데이터·운영 기능은 하나의 플랫폼 안에서 연결합니다.</p>
           </div>
-          <span className="hub-network"><i/>{marketSummary.network?.integrations_connected || 0}/{marketSummary.network?.integrations_total || 0} 연동</span>
+          <span className="hub-network"><i/>{marketLoading?'연동 확인 중':`${marketSummary.network?.integrations_connected || 0}/${marketSummary.network?.integrations_total || 0} 연동`}</span>
         </div>
 
         <div className="platform-module-grid">
           {platformModules.map(module=>{
             const Icon=module.icon;
             const liveStatus=module.id==='control'
-              ? `${marketSummary.network?.integrations_connected || 0}/${marketSummary.network?.integrations_total || 0}`
+              ? (marketLoading ? 'SYNC' : `${marketSummary.network?.integrations_connected || 0}/${marketSummary.network?.integrations_total || 0}`)
               : module.status;
             const openModule=()=>{
               if(module.target){
@@ -427,22 +430,22 @@ function App(){
         <div className="data-metric-grid">
           <article>
             <span>시스템 연동</span>
-            <strong>{marketSummary.network?.integrations_connected || 0}<em>/ {marketSummary.network?.integrations_total || 0}</em></strong>
+            <strong>{marketLoading?'—':marketSummary.network?.integrations_connected || 0}<em>{marketLoading?'':'/ ' + (marketSummary.network?.integrations_total || 0)}</em></strong>
             <small>connected / total</small>
           </article>
           <article>
             <span>검증 업체</span>
-            <strong>{marketSummary.network?.verified_providers || 0}</strong>
+            <strong>{marketLoading?'—':marketSummary.network?.verified_providers || 0}</strong>
             <small>실제 verified provider</small>
           </article>
           <article>
             <span>견적 요청</span>
-            <strong>{marketSummary.network?.service_requests || 0}</strong>
+            <strong>{marketLoading?'—':marketSummary.network?.service_requests || 0}</strong>
             <small>service request 누적</small>
           </article>
           <article>
             <span>예약</span>
-            <strong>{marketSummary.network?.bookings || 0}</strong>
+            <strong>{marketLoading?'—':marketSummary.network?.bookings || 0}</strong>
             <small>booking 누적</small>
           </article>
         </div>
@@ -671,8 +674,8 @@ function App(){
         <h2>{detail.name}</h2>
         <div className="modal-score"><strong>{detail.score}</strong><span>/ 100</span></div>
         <p>{detail.live?'실제 등록된 검증 업체 데이터입니다.':'가격 · 품질 · 응답속도 · 추가금 위험을 설명하기 위한 Beta 데모 점수입니다.'}</p>
-        <button className="primary" onClick={()=>{setDetail(null);openRequest()}}>
-          비교 목록에 담기 <ArrowRight size={17}/>
+        <button className="primary" onClick={()=>{setDetail(null);openRequest('입주청소')}}>
+          견적 요청으로 이어가기 <ArrowRight size={17}/>
         </button>
       </div>
     </div>}
