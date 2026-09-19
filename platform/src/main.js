@@ -48,6 +48,7 @@ if (!rootElement) {
     console.error('KORUAL window error', event.error || event.message);
   });
 
+  rootElement.replaceChildren();
   createRoot(rootElement).render(
     React.createElement(
       AppBoundary,
