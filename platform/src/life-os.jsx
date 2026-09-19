@@ -43,7 +43,7 @@ import {
   services
 } from './app.js';
 
-const BUILD_ID='2026.09.19-R6';
+const BUILD_ID='2026.09.19-R6.1';
 
 const platformModules=[
   {id:'life',title:'생활서비스',desc:'청소·이사·인터넷·정수기·인테리어',status:'LIVE',icon:Home,target:'#services'},
@@ -68,6 +68,19 @@ const moduleIconMap={
 };
 
 function App(){
+  useEffect(()=>{
+    try{
+      window.__KORUAL_READY__=true;
+      window.__KORUAL_BOOT_STAGE__='ready';
+      document.documentElement.dataset.app='ready';
+      fetch('/__boot?stage=ready&build=' + encodeURIComponent(BUILD_ID), {
+        cache:'no-store',
+        keepalive:true,
+        credentials:'omit'
+      }).catch(()=>{});
+    }catch{}
+  },[]);
+
   const [query,setQuery]=useState('');
   const [result,setResult]=useState(null);
   const [selected,setSelected]=useState([]);
