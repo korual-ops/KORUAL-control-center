@@ -14,8 +14,10 @@ import {
   Radar,
   Route,
   MapPin,
+  Moon,
   Search,
   ShieldCheck,
+  Sun,
   Sparkles,
   Star,
   WandSparkles,
@@ -51,6 +53,11 @@ function App(){
   const [marketError,setMarketError]=useState(false);
   const [requestError,setRequestError]=useState('');
   const [online,setOnline]=useState(typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [theme,setTheme]=useState(
+    typeof document === 'undefined'
+      ? 'light'
+      : document.documentElement.dataset.theme || 'light'
+  );
 
   const recommended=useMemo(
     ()=>services.filter(([name])=>selected.includes(name)),
@@ -71,6 +78,29 @@ function App(){
   const benchmarkMin=hasLiveBenchmark ? money(liveBenchmark.min_amount) : '18만원';
   const benchmarkMedian=hasLiveBenchmark ? money(liveBenchmark.median_amount) : '21만원';
   const benchmarkMax=hasLiveBenchmark ? money(liveBenchmark.max_amount) : '25만원';
+
+  useEffect(()=>{
+    const root=document.documentElement;
+    root.dataset.theme=theme;
+    root.style.colorScheme=theme;
+    localStorage.setItem('korual-theme',theme);
+
+    const themeMeta=document.querySelector('meta[name="theme-color"]');
+    if(themeMeta){
+      themeMeta.setAttribute('content',theme==='dark' ? '#08090b' : '#f7f8fa');
+    }
+  },[theme]);
+
+  useEffect(()=>{
+    const media=window.matchMedia('(prefers-color-scheme: dark)');
+    const syncSystemTheme=event=>{
+      if(!localStorage.getItem('korual-theme')){
+        setTheme(event.matches ? 'dark' : 'light');
+      }
+    };
+    media.addEventListener?.('change',syncSystemTheme);
+    return()=>media.removeEventListener?.('change',syncSystemTheme);
+  },[]);
 
   useEffect(()=>{
     const on=()=>setOnline(true);
@@ -172,6 +202,20 @@ function App(){
         <span className={online?'nav-status online':'nav-status offline'}>
           <i/>{online?'ONLINE':'OFFLINE'}
         </span>
+        <button
+          className="theme-toggle"
+          type="button"
+          onClick={()=>setTheme(current=>current==='dark'?'light':'dark')}
+          aria-label={theme==='dark'?'라이트 모드로 전환':'다크 모드로 전환'}
+          aria-pressed={theme==='dark'}
+          title={theme==='dark'?'라이트 모드':'다크 모드'}
+        >
+          <span className="theme-toggle-track">
+            <Sun size={14}/>
+            <Moon size={14}/>
+            <i className="theme-toggle-knob"/>
+          </span>
+        </button>
         <button className="ghost" onClick={()=>setDetail({name:'KORUAL Beta',score:100})}>Beta</button>
       </div>
     </header>
