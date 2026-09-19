@@ -3,265 +3,253 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f5f7fb" />
-  <meta name="description" content="KORUAL — AI matching, service comparison, booking and operations." />
+  <meta name="theme-color" content="#f6f7fb" />
+  <meta name="description" content="KORUAL — AI service matching, quote comparison, booking and repeat purchase." />
   <meta name="application-name" content="KORUAL" />
   <meta name="format-detection" content="telephone=no" />
-  <title>KORUAL — AI Service Platform</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="KORUAL" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <title>KORUAL — Mobile Service OS</title>
   <link rel="stylesheet" href="/site.css" />
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="#home" aria-label="KORUAL 홈">
-      <span class="brand-mark">K</span>
-      <span class="brand-copy"><strong>KORUAL</strong><small>AI SERVICE OS</small></span>
-    </a>
-    <nav class="desktop-nav" aria-label="주요 메뉴">
-      <a href="#home">Home</a><a href="#match">AI Match</a><a href="#services">Services</a><a href="#control">Control</a>
-    </nav>
-    <div class="header-actions">
-      <span class="online-pill"><i></i>Online</span>
-      <button id="themeToggle" class="icon-btn" aria-label="테마 변경" title="테마 변경"><span class="theme-icon">◐</span></button>
-      <button id="menuToggle" class="icon-btn menu-btn" aria-label="메뉴 열기" aria-expanded="false">☰</button>
-    </div>
-  </header>
+  <div class="app-frame">
+    <header class="app-header">
+      <div class="header-left">
+        <span class="logo">K</span>
+        <div class="header-copy">
+          <strong id="headerTitle">KORUAL</strong>
+          <small id="headerSubtitle">AI Service OS</small>
+        </div>
+      </div>
+      <div class="header-right">
+        <button id="statusButton" class="header-chip" type="button" aria-label="플랫폼 상태"><span class="live-dot"></span><span>LIVE</span></button>
+        <button id="themeToggle" class="header-icon" type="button" aria-label="테마 변경">◐</button>
+      </div>
+    </header>
 
-  <div id="mobileMenuBackdrop" class="menu-backdrop" hidden>
-    <nav id="mobileMenu" class="mobile-menu" aria-label="모바일 메뉴">
-      <div class="menu-head"><div><small>KORUAL</small><strong>빠른 이동</strong></div><button id="menuClose" aria-label="메뉴 닫기">×</button></div>
-      <a href="#home"><span>01</span><strong>홈</strong><small>오늘의 KORUAL</small></a>
-      <a href="#match"><span>02</span><strong>AI 매칭</strong><small>서비스 찾기</small></a>
-      <a href="#services"><span>03</span><strong>서비스</strong><small>카테고리 탐색</small></a>
-      <a href="#control"><span>04</span><strong>Control</strong><small>운영 상태</small></a>
-    </nav>
-  </div>
-
-  <main>
-    <section id="home" class="hero">
-      <div class="hero-main">
-        <p class="eyebrow"><span></span>KORUAL BETA · LIVE</p>
-        <h1>필요한 서비스를<br><strong>한 번에 연결.</strong></h1>
-        <p class="lead">가격비교, AI 매칭, 예약, 운영 데이터를 하나의 흐름으로 연결합니다. 복잡한 선택은 줄이고 실행은 더 빠르게.</p>
-
-        <form id="quickMatchForm" class="match-box">
-          <label for="matchInput">무엇이 필요하세요?</label>
-          <div class="match-input-row">
-            <input id="matchInput" type="text" inputmode="search" autocomplete="off" placeholder="예: 다음 달 이사 + 입주청소 같이 알아보기" />
-            <button type="submit">AI 매칭</button>
+    <main class="mobile-main">
+      <section class="screen screen-home is-active" data-screen="home" aria-label="홈">
+        <div class="home-hero">
+          <div class="hero-topline">
+            <span class="eyebrow">KORUAL BETA</span>
+            <span id="todayLabel" class="date-label">Today</span>
           </div>
-          <div class="quick-chips" aria-label="빠른 서비스 선택">
-            <button type="button" data-service="이사">이사</button>
-            <button type="button" data-service="입주청소">입주청소</button>
-            <button type="button" data-service="인터넷">인터넷</button>
-            <button type="button" data-service="에어컨">에어컨</button>
-            <button type="button" data-service="여행">여행</button>
+          <h1>필요한 서비스를<br><em>더 빠르게.</em></h1>
+          <p>AI가 요청을 이해하고 필요한 서비스 묶음과 비교 기준을 정리합니다.</p>
+          <button class="hero-cta" type="button" data-open-screen="match">
+            <span class="cta-icon">✦</span>
+            <span class="cta-copy"><small>KORUAL AI</small><strong>무엇이 필요하세요?</strong></span>
+            <span class="cta-arrow">→</span>
+          </button>
+        </div>
+
+        <div class="section-block">
+          <div class="section-title">
+            <div><small>QUICK START</small><h2>바로 시작</h2></div>
+            <button type="button" data-open-screen="services">전체 보기</button>
+          </div>
+          <div class="quick-grid">
+            <button type="button" class="quick-card" data-service="이사"><span class="quick-icon">M</span><strong>이사</strong><small>비교 견적</small></button>
+            <button type="button" class="quick-card" data-service="입주청소"><span class="quick-icon">C</span><strong>청소</strong><small>빠른 매칭</small></button>
+            <button type="button" class="quick-card" data-service="인터넷 설치"><span class="quick-icon">N</span><strong>인터넷</strong><small>설치 비교</small></button>
+            <button type="button" class="quick-card" data-service="여행"><span class="quick-icon">T</span><strong>여행</strong><small>여정 연결</small></button>
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-title">
+            <div><small>SMART FLOW</small><h2>한 번에 연결</h2></div>
+          </div>
+          <article class="flow-card">
+            <div class="flow-line"><span class="flow-step active">1</span><i></i><span class="flow-step">2</span><i></i><span class="flow-step">3</span><i></i><span class="flow-step">4</span></div>
+            <div class="flow-labels"><span>요청</span><span>매칭</span><span>비교</span><span>예약</span></div>
+            <p>입력은 한 번만. 조건 분석부터 견적 비교와 예약까지 같은 흐름에서 이어집니다.</p>
+          </article>
+        </div>
+
+        <div class="section-block">
+          <div class="section-title">
+            <div><small>FOR YOU</small><h2>다음 추천</h2></div>
+          </div>
+          <article class="recommend-card" id="homeRecommendation">
+            <div class="recommend-badge">AI</div>
+            <div><small>아직 요청이 없어요</small><strong>필요한 서비스를 입력해보세요.</strong><p>최근 요청을 기반으로 다음 행동을 여기에 추천합니다.</p></div>
+            <button type="button" data-open-screen="match">→</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="match" aria-label="AI 매칭" hidden>
+        <div class="screen-heading">
+          <span class="eyebrow">AI MATCH</span>
+          <h2>조건을 말하면<br>AI가 정리합니다.</h2>
+          <p>복잡한 폼 대신 자연어로 입력하세요.</p>
+        </div>
+
+        <form id="matchForm" class="composer">
+          <textarea id="matchInput" rows="4" maxlength="240" placeholder="예: 다음 달에 34평 아파트로 이사해. 입주청소랑 인터넷 설치도 같이 비교해줘."></textarea>
+          <div class="composer-footer">
+            <div id="composerHint"><span></span>자연어 요청 가능</div>
+            <button type="submit">분석하기 <b>→</b></button>
           </div>
         </form>
 
-        <div class="hero-stats" aria-label="플랫폼 핵심 흐름">
-          <article><strong>01</strong><span>조건 입력</span><small>필요한 서비스 정의</small></article>
-          <article><strong>02</strong><span>AI 매칭</span><small>조건에 맞는 선택지</small></article>
-          <article><strong>03</strong><span>비교 · 예약</span><small>결정까지 한 흐름</small></article>
-        </div>
-      </div>
-
-      <aside class="mobile-preview" aria-label="KORUAL 모바일 앱 미리보기">
-        <div class="preview-shell">
-          <div class="preview-top"><span>9:41</span><i></i><b>●●●</b></div>
-          <div class="preview-brand"><span>K</span><div><strong>KORUAL</strong><small>Today</small></div><em>LIVE</em></div>
-          <div class="preview-welcome"><small>오늘 필요한 서비스</small><strong>AI가 먼저 정리했어요.</strong><p>비교부터 예약까지 한 번에 진행하세요.</p></div>
-          <div class="preview-actions">
-            <article><span>MOVE</span><strong>이사</strong><small>견적 비교</small></article>
-            <article><span>CLEAN</span><strong>청소</strong><small>빠른 매칭</small></article>
-          </div>
-          <div class="preview-recommend">
-            <div class="mini-icon">AI</div><div><small>KORUAL 추천</small><strong>이사 + 입주청소 묶음 비교</strong></div><b>→</b>
-          </div>
-          <div class="preview-nav"><span class="active">홈</span><span>매칭</span><span>예약</span><span>내 정보</span></div>
-        </div>
-      </aside>
-    </section>
-
-    <section id="match" class="section match-section">
-      <div class="section-head split-head">
-        <div><p class="kicker">AI MATCHING</p><h2>조건은 간단하게.<br>비교는 똑똑하게.</h2></div>
-        <p>서비스 종류, 일정, 지역, 예산을 바탕으로 후보를 정리하고 가격·후기·응답성·조건을 한 화면에서 비교하는 구조입니다.</p>
-      </div>
-
-      <div class="match-layout">
-        <div class="journey">
-          <article class="journey-item active"><span>1</span><div><strong>요청</strong><small>서비스와 조건 입력</small></div></article>
-          <article class="journey-item"><span>2</span><div><strong>매칭</strong><small>AI가 후보 정리</small></div></article>
-          <article class="journey-item"><span>3</span><div><strong>비교</strong><small>가격 · 조건 · 리뷰</small></div></article>
-          <article class="journey-item"><span>4</span><div><strong>예약</strong><small>선택 후 일정 확정</small></div></article>
+        <div class="prompt-row">
+          <button type="button" data-prompt="다음 달 이사와 입주청소를 같이 비교해줘">이사 + 청소</button>
+          <button type="button" data-prompt="에어컨 설치와 세척 가격을 비교해줘">에어컨</button>
+          <button type="button" data-prompt="3박 4일 여행 항공 숙박과 공항 이동을 정리해줘">여행</button>
         </div>
 
-        <div id="matchResult" class="match-result" aria-live="polite">
-          <div class="result-head"><span class="result-badge">BETA DEMO</span><span id="resultStatus">READY</span></div>
-          <div id="resultContent">
-            <p class="result-kicker">KORUAL AI</p>
-            <h3>서비스를 선택하면<br>추천 흐름을 보여드려요.</h3>
-            <p>위의 빠른 서비스 버튼을 누르거나 필요한 내용을 직접 입력해보세요.</p>
+        <article id="analysisCard" class="analysis-card">
+          <div class="analysis-head">
+            <div><small>KORUAL INTENT ENGINE</small><strong id="analysisTitle">요청을 기다리는 중</strong></div>
+            <span id="analysisState" class="state-badge">READY</span>
           </div>
-          <div class="result-metrics">
-            <article><span>PRICE</span><strong>비교</strong></article>
-            <article><span>QUALITY</span><strong>검증</strong></article>
-            <article><span>SPEED</span><strong>최적화</strong></article>
+          <div id="detectedBundle" class="detected-bundle">
+            <span>서비스 감지</span><span>조건 구조화</span><span>비교 기준</span>
           </div>
+          <div class="analysis-grid">
+            <div><small>서비스</small><strong id="analysisService">—</strong></div>
+            <div><small>우선순위</small><strong id="analysisPriority">가격 + 신뢰</strong></div>
+            <div><small>다음 단계</small><strong id="analysisNext">견적 비교</strong></div>
+          </div>
+          <button id="goQuotes" class="wide-primary" type="button" disabled>견적 비교로 이동 <span>→</span></button>
+        </article>
+      </section>
+
+      <section class="screen" data-screen="quotes" aria-label="견적 비교" hidden>
+        <div class="screen-heading compact">
+          <span class="eyebrow">SMART QUOTES</span>
+          <h2>가격만 말고<br>신뢰까지 비교.</h2>
+          <p id="quoteContext">요청을 분석하면 맞춤 견적 비교가 시작됩니다.</p>
         </div>
-      </div>
-    </section>
 
+        <div class="filter-strip">
+          <button class="is-active" type="button" data-sort="recommended">AI 추천</button>
+          <button type="button" data-sort="price">낮은 가격</button>
+          <button type="button" data-sort="trust">신뢰도</button>
+        </div>
 
-    <section id="compare" class="section compare-section">
-      <div class="section-head split-head">
-        <div><p class="kicker">COMPARE & TRUST</p><h2>가격만 말고,<br>신뢰까지 비교.</h2></div>
-        <p>AI 추천 이유를 숨기지 않고 가격, 검증 상태, 후기 품질, 응답 속도, 취소 조건을 같이 보여주는 구조입니다. 아래 데이터는 현재 베타 샘플입니다.</p>
-      </div>
+        <div id="quoteList" class="quote-list">
+          <article class="quote-card featured" data-quote-card="best" data-price="142000" data-trust="96">
+            <div class="quote-top"><span class="ai-pick">AI PICK</span><span class="verified">✓ 검증</span></div>
+            <div class="provider-row"><span class="provider-avatar">B</span><div><strong>Partner B</strong><small>생활서비스 파트너 · 샘플</small></div><button type="button" aria-label="업체 정보">⋯</button></div>
+            <div class="price-row"><div><small>예상 견적</small><strong>₩142,000</strong></div><span>추천</span></div>
+            <div class="trust-row"><div><small>KORUAL Trust</small><strong>96</strong></div><div class="score"><i style="width:96%"></i></div></div>
+            <div class="fact-grid"><span><small>후기</small><b>4.9</b></span><span><small>응답</small><b>매우 빠름</b></span><span><small>취소</small><b>유연</b></span></div>
+            <button class="select-quote" type="button" data-quote="best">이 견적 선택 <span>→</span></button>
+          </article>
 
-      <div class="bundle-strip">
-        <div><small>AI SERVICE BUNDLE</small><strong id="bundleTitle">요청을 입력하면 필요한 서비스 묶음을 구성합니다.</strong></div>
-        <div id="bundleChips" class="bundle-chips"><span>조건 분석</span><span>서비스 묶음</span><span>견적 비교</span></div>
-      </div>
+          <article class="quote-card" data-quote-card="value" data-price="128000" data-trust="91">
+            <div class="quote-top"><span class="value-pick">VALUE</span><span class="verified">✓ 검증</span></div>
+            <div class="provider-row"><span class="provider-avatar">A</span><div><strong>Partner A</strong><small>생활서비스 파트너 · 샘플</small></div><button type="button" aria-label="업체 정보">⋯</button></div>
+            <div class="price-row"><div><small>예상 견적</small><strong>₩128,000</strong></div><span>가성비</span></div>
+            <div class="trust-row"><div><small>KORUAL Trust</small><strong>91</strong></div><div class="score"><i style="width:91%"></i></div></div>
+            <div class="fact-grid"><span><small>후기</small><b>4.8</b></span><span><small>응답</small><b>빠름</b></span><span><small>취소</small><b>유연</b></span></div>
+            <button class="select-quote" type="button" data-quote="value">이 견적 선택 <span>→</span></button>
+          </article>
 
-      <div class="quote-toolbar">
-        <div><small>SMART QUOTES</small><strong id="quoteSummary">샘플 견적 3개를 비교해보세요.</strong></div>
-        <span class="sample-label">BETA SAMPLE DATA</span>
-      </div>
+          <article class="quote-card" data-quote-card="premium" data-price="169000" data-trust="94">
+            <div class="quote-top"><span class="premium-pick">PREMIUM</span><span class="verified">✓ 검증</span></div>
+            <div class="provider-row"><span class="provider-avatar">C</span><div><strong>Partner C</strong><small>생활서비스 파트너 · 샘플</small></div><button type="button" aria-label="업체 정보">⋯</button></div>
+            <div class="price-row"><div><small>예상 견적</small><strong>₩169,000</strong></div><span>보증 강화</span></div>
+            <div class="trust-row"><div><small>KORUAL Trust</small><strong>94</strong></div><div class="score"><i style="width:94%"></i></div></div>
+            <div class="fact-grid"><span><small>후기</small><b>5.0</b></span><span><small>응답</small><b>빠름</b></span><span><small>보증</small><b>확장</b></span></div>
+            <button class="select-quote" type="button" data-quote="premium">이 견적 선택 <span>→</span></button>
+          </article>
+        </div>
 
-      <div id="quoteGrid" class="quote-grid">
-        <article class="quote-card" data-quote-card="value">
-          <div class="quote-badges"><span class="quote-rank">VALUE</span><span class="verified">✓ 검증</span></div>
-          <div class="quote-provider"><div class="provider-avatar">A</div><div><strong>Partner A</strong><small>생활서비스 파트너 · 샘플</small></div></div>
-          <div class="quote-price"><small>예상 견적</small><strong>₩128,000</strong><span>샘플 가격</span></div>
-          <div class="trust-score"><div><span>KORUAL Trust</span><strong>91</strong></div><div class="score-bar"><i style="width:91%"></i></div></div>
-          <dl class="quote-facts"><div><dt>응답</dt><dd>빠름</dd></div><div><dt>후기</dt><dd>4.8</dd></div><div><dt>취소</dt><dd>유연</dd></div></dl>
-          <button type="button" data-quote="value">이 견적 선택 <span>→</span></button>
-        </article>
-        <article class="quote-card recommended" data-quote-card="best">
-          <div class="quote-badges"><span class="quote-rank">AI PICK</span><span class="verified">✓ 검증</span></div>
-          <div class="quote-provider"><div class="provider-avatar">B</div><div><strong>Partner B</strong><small>생활서비스 파트너 · 샘플</small></div></div>
-          <div class="quote-price"><small>예상 견적</small><strong>₩142,000</strong><span>샘플 가격</span></div>
-          <div class="trust-score"><div><span>KORUAL Trust</span><strong>96</strong></div><div class="score-bar"><i style="width:96%"></i></div></div>
-          <dl class="quote-facts"><div><dt>응답</dt><dd>매우 빠름</dd></div><div><dt>후기</dt><dd>4.9</dd></div><div><dt>취소</dt><dd>유연</dd></div></dl>
-          <button type="button" data-quote="best">추천 견적 선택 <span>→</span></button>
-        </article>
-        <article class="quote-card" data-quote-card="premium">
-          <div class="quote-badges"><span class="quote-rank">PREMIUM</span><span class="verified">✓ 검증</span></div>
-          <div class="quote-provider"><div class="provider-avatar">C</div><div><strong>Partner C</strong><small>생활서비스 파트너 · 샘플</small></div></div>
-          <div class="quote-price"><small>예상 견적</small><strong>₩169,000</strong><span>샘플 가격</span></div>
-          <div class="trust-score"><div><span>KORUAL Trust</span><strong>94</strong></div><div class="score-bar"><i style="width:94%"></i></div></div>
-          <dl class="quote-facts"><div><dt>응답</dt><dd>빠름</dd></div><div><dt>후기</dt><dd>5.0</dd></div><div><dt>보증</dt><dd>확장</dd></div></dl>
-          <button type="button" data-quote="premium">이 견적 선택 <span>→</span></button>
-        </article>
-      </div>
+        <div id="quoteSticky" class="sticky-action">
+          <div><small>SELECTED</small><strong id="stickyQuoteName">견적을 선택하세요</strong></div>
+          <div><span id="stickyQuotePrice">—</span><button id="bookSelected" type="button" disabled>예약</button></div>
+        </div>
+      </section>
 
-      <div id="bookingBar" class="booking-bar">
-        <div><small>SELECTED QUOTE</small><strong id="selectedQuoteText">아직 선택한 견적이 없습니다.</strong></div>
-        <div class="booking-bar-action"><span id="selectedPrice">—</span><button id="bookNow" type="button" disabled>예약 요청</button></div>
-      </div>
-    </section>
+      <section class="screen" data-screen="bookings" aria-label="예약" hidden>
+        <div class="screen-heading compact">
+          <span class="eyebrow">BOOKINGS</span>
+          <h2>예약과 진행상태를<br>한눈에.</h2>
+          <p>요청부터 완료, 후기, 다음 추천까지 이어집니다.</p>
+        </div>
 
-    <section id="repeat" class="section repeat-section">
-      <div class="section-head split-head">
-        <div><p class="kicker">REPEAT ENGINE</p><h2>한 번의 거래를<br>다음 거래로.</h2></div>
-        <p>KORUAL의 자산은 화면이 아니라 거래 이력입니다. 완료된 서비스에서 다음 필요 시점과 연관 서비스를 예측해 재구매 흐름을 만듭니다.</p>
-      </div>
-      <div class="repeat-grid">
-        <article><span>NOW</span><strong id="lifecycleNow">서비스 요청 생성</strong><p>요청 조건과 선택 이유를 구조화해 저장합니다.</p></article>
-        <article><span>NEXT</span><strong id="lifecycleNext">예약 · 완료 · 후기</strong><p>거래 이후 품질 데이터를 Trust Score에 다시 반영합니다.</p></article>
-        <article><span>REPEAT</span><strong id="lifecycleRepeat">다음 서비스 예측</strong><p>주기와 연관성을 바탕으로 적절한 시점에 다시 제안합니다.</p></article>
-      </div>
-    </section>
+        <div id="emptyBooking" class="empty-card">
+          <span class="empty-icon">B</span>
+          <strong>아직 예약이 없습니다.</strong>
+          <p>견적을 선택하고 예약 요청을 저장하면 여기에 표시됩니다.</p>
+          <button type="button" data-open-screen="match">서비스 찾기</button>
+        </div>
 
-    <section id="services" class="section">
-      <div class="section-head">
-        <p class="kicker">SERVICES</p>
-        <h2>생활부터 여행까지,<br>KORUAL 하나로.</h2>
-        <p>처음에는 거래 빈도가 높고 비교가 필요한 서비스부터 시작하고, 같은 계정·결제·리뷰 구조를 다른 카테고리로 확장합니다.</p>
-      </div>
-
-      <div class="service-grid">
-        <article class="service-card featured">
-          <div class="service-top"><span>CORE</span><b>01</b></div>
-          <div class="service-symbol">H</div>
-          <h3>생활 서비스</h3><p>이사, 청소, 설치, 인터넷 등 반복 수요가 있는 생활 서비스를 비교합니다.</p>
-          <ul><li>복수 견적 비교</li><li>AI 적정 조건 추천</li><li>예약 · 후기 연결</li></ul>
-          <button type="button" data-service="생활 서비스">AI로 찾아보기 <span>→</span></button>
-        </article>
-        <article class="service-card">
-          <div class="service-top"><span>TRAVEL</span><b>02</b></div>
-          <div class="service-symbol">T</div>
-          <h3>KORUAL Travel</h3><p>항공, 숙박, 일정과 공항 이동을 하나의 여정으로 연결합니다.</p>
-          <ul><li>일정 기반 추천</li><li>여행 서비스 연결</li><li>예약 흐름 통합</li></ul>
-          <button type="button" data-service="여행">여행 매칭 <span>→</span></button>
-        </article>
-        <article class="service-card">
-          <div class="service-top"><span>COMMERCE</span><b>03</b></div>
-          <div class="service-symbol">C</div>
-          <h3>Commerce</h3><p>상품, 주문, 공급처, 배송 정보를 하나의 운영 데이터로 관리합니다.</p>
-          <ul><li>상품 운영</li><li>주문 · 배송 상태</li><li>파트너 데이터</li></ul>
-          <button type="button" data-scroll="control">운영 보기 <span>→</span></button>
-        </article>
-        <article class="service-card">
-          <div class="service-top"><span>AI OS</span><b>04</b></div>
-          <div class="service-symbol">AI</div>
-          <h3>KORUAL AI</h3><p>사용자의 조건과 운영 데이터를 바탕으로 다음 행동을 추천합니다.</p>
-          <ul><li>의사결정 지원</li><li>자동 분류 · 추천</li><li>반복 업무 자동화</li></ul>
-          <button type="button" data-service="AI 추천">AI 사용하기 <span>→</span></button>
-        </article>
-      </div>
-    </section>
-
-    <section id="control" class="section control-section">
-      <div class="section-head split-head">
-        <div><p class="kicker">CONTROL CENTER</p><h2>플랫폼 상태를<br>한눈에.</h2></div>
-        <p>KORUAL은 화면보다 운영이 먼저입니다. 배포, 소스, 데이터, 자동화를 분리해 문제가 생겨도 원인을 빠르게 찾는 구조로 가져갑니다.</p>
-      </div>
-
-      <div class="control-grid">
-        <article class="control-main">
-          <div class="control-title"><div><small>PLATFORM STATUS</small><strong>모든 핵심 서비스 정상</strong></div><span class="status-light"></span></div>
-          <div class="control-metrics">
-            <div><span>Railway</span><strong>Online</strong><small>Production</small></div>
-            <div><span>GitHub</span><strong>Connected</strong><small>Main branch</small></div>
-            <div><span>Mobile UI</span><strong>Ready</strong><small>Static-first</small></div>
-            <div><span>Health</span><strong>200 OK</strong><small>/ healthcheck</small></div>
+        <article id="bookingCard" class="booking-card" hidden>
+          <div class="booking-card-head"><div><small>REQUESTED</small><strong id="bookingId">—</strong></div><span>접수됨</span></div>
+          <div class="booking-service"><span class="service-avatar">K</span><div><small id="bookingServiceLabel">서비스</small><strong id="bookingProviderLabel">Partner</strong></div><b id="bookingPriceLabel">—</b></div>
+          <div class="timeline">
+            <div class="timeline-item done"><i></i><div><strong>예약 요청</strong><small>요청이 저장되었습니다.</small></div></div>
+            <div class="timeline-item"><i></i><div><strong>업체 확인</strong><small>파트너 확인 단계</small></div></div>
+            <div class="timeline-item"><i></i><div><strong>서비스 완료</strong><small>완료 후 후기를 남길 수 있습니다.</small></div></div>
           </div>
+          <div class="booking-actions"><button type="button" data-open-screen="quotes">견적 다시 보기</button><button id="completeDemo" type="button">완료 시뮬레이션</button></div>
         </article>
 
-        <article class="control-side">
-          <small>ARCHITECTURE</small><h3>Fail-safe UI</h3><p>핵심 화면은 HTML 자체로 렌더링하고 JavaScript는 인터랙션만 담당합니다.</p>
-          <div class="arch-flow"><span>HTML</span><i>→</i><span>CSS</span><i>→</i><span>JS</span></div>
+        <article id="repeatCard" class="repeat-card">
+          <div><small>REPEAT ENGINE</small><strong>다음 필요를 미리 준비</strong><p id="repeatMessage">거래가 쌓이면 주기와 연관성을 바탕으로 다음 서비스를 추천합니다.</p></div>
+          <span>↻</span>
         </article>
-      </div>
-    </section>
+      </section>
 
-    <section id="vision" class="vision">
-      <div><p class="kicker">KORUAL OS</p><h2>거래가 쌓일수록<br>더 강해지는 플랫폼.</h2></div>
-      <p>비교 → 매칭 → 예약 → 후기 → 재구매 데이터가 쌓일수록 가격 예측과 추천 정확도를 높이는 구조를 지향합니다.</p>
-      <a href="#home">다시 시작하기 <span>↑</span></a>
-    </section>
-  </main>
+      <section class="screen" data-screen="services" aria-label="서비스" hidden>
+        <div class="screen-heading compact">
+          <span class="eyebrow">SERVICES</span>
+          <h2>KORUAL<br>서비스 맵.</h2>
+          <p>하나의 계정과 데이터 흐름 위에 카테고리를 확장합니다.</p>
+        </div>
 
+        <div class="service-list">
+          <button type="button" class="service-row" data-service="생활 서비스"><span class="service-icon">H</span><span><small>CORE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 인터넷</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-service="여행"><span class="service-icon">T</span><span><small>TRAVEL</small><strong>KORUAL Travel</strong><em>항공 · 숙박 · 공항 이동</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-service="커머스 운영"><span class="service-icon">C</span><span><small>COMMERCE</small><strong>Commerce</strong><em>상품 · 주문 · 공급처 · 배송</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-service="AI 추천"><span class="service-icon">AI</span><span><small>INTELLIGENCE</small><strong>KORUAL AI</strong><em>조건 분석 · 추천 · 자동화</em></span><b>→</b></button>
+        </div>
+      </section>
 
-  <div id="bookingModal" class="booking-modal" hidden>
-    <div class="booking-dialog" role="dialog" aria-modal="true" aria-labelledby="bookingTitle">
-      <div class="booking-dialog-head"><div><small>KORUAL BOOKING</small><strong id="bookingTitle">예약 요청 확인</strong></div><button id="bookingClose" type="button" aria-label="닫기">×</button></div>
-      <div class="booking-summary"><span>선택 서비스</span><strong id="bookingService">—</strong><span>선택 견적</span><strong id="bookingQuote">—</strong></div>
-      <p>현재 베타에서는 실제 결제 없이 예약 흐름만 저장합니다. 실제 파트너·결제 API가 연결되면 이 단계에서 일정과 결제 승인을 받도록 확장합니다.</p>
-      <div class="booking-actions"><button id="bookingCancel" type="button">취소</button><button id="bookingConfirm" type="button">예약 요청 저장</button></div>
-    </div>
+      <section class="screen" data-screen="profile" aria-label="내 정보" hidden>
+        <div class="profile-hero">
+          <span class="profile-avatar">K</span>
+          <div><small>KORUAL BETA</small><strong>My KORUAL</strong><p>요청, 예약, 설정을 한 곳에서 관리합니다.</p></div>
+        </div>
+
+        <div class="profile-stats">
+          <article><small>요청</small><strong id="requestCount">0</strong></article>
+          <article><small>예약</small><strong id="bookingCount">0</strong></article>
+          <article><small>완료</small><strong id="completeCount">0</strong></article>
+        </div>
+
+        <div class="settings-card">
+          <button type="button" id="profileTheme"><span>◐</span><div><strong>화면 테마</strong><small>라이트 / 다크 모드</small></div><b>→</b></button>
+          <button type="button" id="showPlatformStatus"><span>●</span><div><strong>플랫폼 상태</strong><small>Railway · GitHub · Health</small></div><b>→</b></button>
+          <button type="button" id="resetDemo"><span>↺</span><div><strong>베타 데이터 초기화</strong><small>로컬 요청·예약 상태 삭제</small></div><b>→</b></button>
+        </div>
+
+        <article id="platformPanel" class="platform-panel" hidden>
+          <div class="platform-panel-head"><div><small>CONTROL CENTER</small><strong>Production Status</strong></div><span class="status-ok">ONLINE</span></div>
+          <div class="platform-grid"><div><small>Railway</small><strong>Online</strong></div><div><small>GitHub</small><strong>Connected</strong></div><div><small>UI</small><strong>Static-first</strong></div><div><small>Health</small><strong>200 OK</strong></div></div>
+        </article>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
+    <nav class="tabbar" aria-label="주요 탐색">
+      <button class="tab is-active" type="button" data-tab="home"><span class="tab-icon">⌂</span><small>홈</small></button>
+      <button class="tab" type="button" data-tab="match"><span class="tab-icon">✦</span><small>AI매칭</small></button>
+      <button class="tab" type="button" data-tab="quotes"><span class="tab-icon">≡</span><small>견적</small></button>
+      <button class="tab" type="button" data-tab="bookings"><span class="tab-icon">□</span><small>예약</small></button>
+      <button class="tab" type="button" data-tab="profile"><span class="tab-icon">○</span><small>내정보</small></button>
+    </nav>
   </div>
-
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-
-  <nav class="bottom-nav" aria-label="모바일 탐색">
-    <a href="#home" data-nav="home" class="active"><b>01</b><span>홈</span></a>
-    <a href="#match" data-nav="match"><b>02</b><span>매칭</span></a>
-    <a href="#services" data-nav="services"><b>03</b><span>서비스</span></a>
-    <a href="#control" data-nav="control"><b>04</b><span>운영</span></a>
-  </nav>
 
   <script src="/site.js" defer></script>
 </body>
