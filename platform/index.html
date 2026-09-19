@@ -54,5 +54,67 @@
       </main>
     </div>
     <script type="module" src="/src/main.js"></script>
+    <script>
+      (function () {
+        window.__KORUAL_READY__ = false;
+        window.__KORUAL_BOOT_STAGE__ = window.__KORUAL_BOOT_STAGE__ || 'html';
+
+        function report(stage) {
+          try {
+            fetch('/__boot?stage=' + encodeURIComponent(stage) + '&build=2026.09.19-R6.1', {
+              cache: 'no-store',
+              keepalive: true,
+              credentials: 'omit'
+            }).catch(function(){});
+          } catch (e) {}
+        }
+
+        report('html');
+
+        setTimeout(function () {
+          if (window.__KORUAL_READY__) return;
+
+          report('stalled-' + (window.__KORUAL_BOOT_STAGE__ || 'html'));
+
+          var notice = document.createElement('div');
+          notice.id = 'korual-boot-notice';
+          notice.setAttribute('role', 'status');
+          notice.style.cssText =
+            'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9999;' +
+            'display:flex;align-items:center;gap:10px;max-width:calc(100% - 28px);padding:10px 12px;' +
+            'border:1px solid #e2d2b1;border-radius:12px;background:rgba(255,255,255,.96);' +
+            'box-shadow:0 14px 45px rgba(30,44,60,.14);font:600 12px/1.4 system-ui;color:#5f6973';
+          notice.innerHTML =
+            '<span style="width:8px;height:8px;border-radius:50%;background:#c49348;display:inline-block"></span>' +
+            '<span>최신 앱 연결을 자동 복구 중입니다.</span>';
+          document.body.appendChild(notice);
+
+          var script = document.querySelector('script[type="module"][src]');
+          if (!script || window.__KORUAL_BOOT_RETRY__) return;
+
+          window.__KORUAL_BOOT_RETRY__ = true;
+          var src = script.src + (script.src.indexOf('?') >= 0 ? '&' : '?') + 'retry=R61';
+
+          import(src).then(function () {
+            report('retry-loaded');
+          }).catch(function () {
+            report('retry-failed');
+            var label = notice.querySelector('span:last-child');
+            if (label) label.textContent = '앱 연결이 지연되고 있습니다. 새로고침하면 최신 버전으로 다시 연결합니다.';
+            notice.style.cursor = 'pointer';
+            notice.onclick = function () {
+              window.location.reload();
+            };
+          });
+        }, 2500);
+
+        setTimeout(function () {
+          if (window.__KORUAL_READY__) {
+            var notice = document.getElementById('korual-boot-notice');
+            if (notice) notice.remove();
+          }
+        }, 5000);
+      })();
+    </script>
   </body>
 </html>
