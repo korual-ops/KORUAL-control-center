@@ -407,3 +407,15 @@ footer small{margin-left:auto}
   .preview-grid{gap:7px}
   .preview-grid article{padding:11px}
 }
+
+
+/* KORUAL marketplace feedback */
+.request-code{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:14px 0 2px;padding:12px 13px;border:1px solid rgba(199,162,93,.22);
+  border-radius:11px;background:rgba(199,162,93,.055)
+}
+.request-code span{color:var(--muted);font-size:9px;letter-spacing:.05em}
+.request-code strong{color:var(--gold-bright);font:800 12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em}
+.live{display:inline-flex;align-items:center;padding:5px 8px;border:1px solid rgba(76,202,121,.12);border-radius:999px;background:rgba(76,202,121,.035)}
+@media(max-width:760px){.request-code{padding:11px}.live{white-space:nowrap}}
