@@ -244,6 +244,7 @@ function partyStep(){
     '<p class="kicker">01 / 04 · PARTY</p>' +
     '<h1 class="question">누구와<br>떠나시나요?</h1>' +
     '<p class="sub">인원에 따라 객실 수, 이동수단, 일정 속도와 예산을 자동으로 맞춥니다.</p>' +
+    '<div class="fast-mission"><label>FAST MISSION · 한 문장으로 시작</label><div class="fast-row"><input id="fastMissionInput" placeholder="예: 10월 오사카 커플 3박4일 120만원"><button id="fastMissionBtn" type="button">분석</button></div><small>목적지·동행·기간·예산을 먼저 읽고, 부족한 조건만 이어서 묻습니다.</small></div>' +
     '<div class="option-grid">' +
       PARTY.map(function(x){
         return '<button class="option ' + (state.party===x.id?"selected":"") + '" data-party="' + x.id + '" type="button">' +
@@ -413,6 +414,45 @@ function dealCards(d,e){
   }).join("");
 }
 
+function parseFastMission(text){
+  const raw = String(text || "").trim();
+  if(!raw) return false;
+
+  Object.keys(DESTINATIONS).forEach(function(name){
+    if(raw.includes(name)) state.destination = name;
+  });
+
+  if(/혼자|솔로/.test(raw)){ state.party="solo"; state.adults=1; state.children=0; state.seniors=0; }
+  else if(/커플|연인|여자친구|남자친구/.test(raw)){ state.party="couple"; state.adults=Math.max(2,state.adults); }
+  else if(/가족|아이|부모님/.test(raw)){ state.party="family"; }
+  else if(/친구/.test(raw)){ state.party="friends"; }
+
+  const people = raw.match(/(\d+)\s*명/);
+  if(people && state.party!=="solo"){
+    state.adults = Math.max(1,Math.min(12,Number(people[1])));
+    state.children = 0;
+    state.seniors = 0;
+  }
+
+  const nights = raw.match(/(\d+)\s*박/);
+  if(nights) state.nights = Math.max(2,Math.min(7,Number(nights[1])));
+
+  const budget = raw.match(/(\d+(?:\.\d+)?)\s*만\s*원?/);
+  if(budget){
+    state.budget = Math.max(500000,Math.min(6000000,Math.round(Number(budget[1])*10000)));
+    state.budgetTouched = true;
+  }
+
+  if(/휴양|리조트|쉬|여유/.test(raw)) state.style="relax";
+  if(/맛집|미식|먹방|카페/.test(raw)) state.style="food";
+  if(/쇼핑|야경|도시|핫플/.test(raw)) state.style="city";
+  if(/다이빙|호핑|액티비티|투어|체험/.test(raw)) state.style="active";
+
+  state.step = state.budgetTouched ? 3 : 2;
+  saveState();
+  return true;
+}
+
 function render(){
   if(state.result){
     app.innerHTML = resultView();
@@ -431,6 +471,19 @@ function render(){
 function bindWizard(){
   const reset = document.getElementById("resetBtn");
   if(reset) reset.onclick = resetAll;
+
+  const fastInput = document.getElementById("fastMissionInput");
+  const fastBtn = document.getElementById("fastMissionBtn");
+  if(fastBtn && fastInput){
+    const runFast = function(){
+      if(!parseFastMission(fastInput.value)){ toast("여행 조건을 한 문장으로 입력해 주세요."); return; }
+      toast("조건을 읽었습니다. 부족한 항목만 확인할게요.");
+      render();
+      scrollTo({top:0,behavior:"smooth"});
+    };
+    fastBtn.onclick = runFast;
+    fastInput.onkeydown = function(e){ if(e.key==="Enter") runFast(); };
+  }
 
   document.querySelectorAll("[data-party]").forEach(function(btn){
     btn.onclick = function(){
