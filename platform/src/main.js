@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './life-os.jsx';
 import './style.css';
 
-const BUILD_ID = '2026.09.19-R6.1';
+const BUILD_ID = '2026.09.19-R6.2';
 const rootElement = document.getElementById('root');
 
 function reportBoot(stage) {
