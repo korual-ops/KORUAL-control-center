@@ -31,9 +31,11 @@ import {
   X
 } from 'lucide-react';
 import {
+  createClientRequestId,
   createServiceRequest,
   demoQuotes,
   fetchMarketplaceSummary,
+  fetchPlatformStatus,
   inferServices,
   money,
   quickPrompts,
@@ -41,7 +43,7 @@ import {
   services
 } from './app.js';
 
-const BUILD_ID='2026.09.19-R5';
+const BUILD_ID='2026.09.19-R6';
 
 const platformModules=[
   {id:'life',title:'생활서비스',desc:'청소·이사·인터넷·정수기·인테리어',status:'LIVE',icon:Home,target:'#services'},
@@ -54,6 +56,17 @@ const platformModules=[
   {id:'control',title:'Control Center',desc:'운영·보안·자동화 통합 관제',status:'BETA',icon:LayoutDashboard}
 ];
 
+const moduleIconMap={
+  home:Home,
+  price:CircleDollarSign,
+  plane:Plane,
+  map:Map,
+  bell:BellRing,
+  building:Building2,
+  database:Database,
+  dashboard:LayoutDashboard
+};
+
 function App(){
   const [query,setQuery]=useState('');
   const [result,setResult]=useState(null);
@@ -61,6 +74,7 @@ function App(){
   const [detail,setDetail]=useState(null);
   const [requestOpen,setRequestOpen]=useState(false);
   const [request,setRequest]=useState({name:'',region:'',date:'',phone:''});
+  const [requestKey,setRequestKey]=useState(()=>createClientRequestId());
   const [saved,setSaved]=useState(null);
   const [saving,setSaving]=useState(false);
   const [marketSummary,setMarketSummary]=useState({
@@ -77,6 +91,8 @@ function App(){
   });
   const [marketLoading,setMarketLoading]=useState(true);
   const [marketError,setMarketError]=useState(false);
+  const [platformStatus,setPlatformStatus]=useState({modules:[],integrations:{total:0,connected:0,items:[]}});
+  const [platformLoading,setPlatformLoading]=useState(true);
   const [requestError,setRequestError]=useState('');
   const [moduleDetail,setModuleDetail]=useState(null);
   const [online,setOnline]=useState(typeof navigator === 'undefined' ? true : navigator.onLine);
@@ -105,6 +121,18 @@ function App(){
   const benchmarkMin=hasLiveBenchmark ? money(liveBenchmark.min_amount) : '18만원';
   const benchmarkMedian=hasLiveBenchmark ? money(liveBenchmark.median_amount) : '21만원';
   const benchmarkMax=hasLiveBenchmark ? money(liveBenchmark.max_amount) : '25만원';
+  const resolvedPlatformModules=useMemo(()=>{
+    if(!platformStatus.modules?.length) return platformModules;
+    return platformStatus.modules.map(module=>({
+      id:module.module_key,
+      title:module.name,
+      desc:module.description,
+      status:String(module.status || 'planned').toUpperCase(),
+      icon:moduleIconMap[module.icon] || Layers3,
+      target:module.route || undefined,
+      capabilities:module.capabilities || []
+    }));
+  },[platformStatus]);
 
   useEffect(()=>{
     const root=document.documentElement;
@@ -147,18 +175,33 @@ function App(){
   useEffect(()=>{
     if(!online){
       setMarketLoading(false);
+      setPlatformLoading(false);
       return;
     }
     const controller=new AbortController();
     setMarketLoading(true);
+    setPlatformLoading(true);
     setMarketError(false);
 
-    fetchMarketplaceSummary(controller.signal)
-      .then(setMarketSummary)
-      .catch(error=>{
-        if(error.name!=='AbortError') setMarketError(true);
-      })
-      .finally(()=>setMarketLoading(false));
+    Promise.allSettled([
+      fetchMarketplaceSummary(controller.signal),
+      fetchPlatformStatus(controller.signal)
+    ]).then(([summaryResult,platformResult])=>{
+      if(summaryResult.status==='fulfilled'){
+        setMarketSummary(summaryResult.value);
+      }else if(summaryResult.reason?.name!=='AbortError'){
+        setMarketError(true);
+      }
+
+      if(platformResult.status==='fulfilled'){
+        setPlatformStatus(platformResult.value);
+      }else if(platformResult.reason?.name!=='AbortError'){
+        setMarketError(true);
+      }
+    }).finally(()=>{
+      setMarketLoading(false);
+      setPlatformLoading(false);
+    });
 
     return()=>controller.abort();
   },[online]);
@@ -187,6 +230,7 @@ function App(){
     if(selected.length===0){
       setSelected([defaultService || '입주청소']);
     }
+    setRequestKey(createClientRequestId());
     setSaved(null);
     setSaving(false);
     setRequestError('');
@@ -202,7 +246,8 @@ function App(){
       if(!online) throw new Error('OFFLINE');
       const payload=await createServiceRequest({
         services:selected,
-        ...request
+        ...request,
+        idempotency_key:requestKey
       });
       setSaved(payload.request || {status:'NEW'});
       setRequest({name:'',region:'',date:'',phone:''});
@@ -389,15 +434,13 @@ function App(){
             <h2>기능은 줄이지 않고, 필요한 순간에 꺼내 씁니다.</h2>
             <p>홈은 간결하게 유지하고 생활·여행·지도·공지·파트너·데이터·운영 기능은 하나의 플랫폼 안에서 연결합니다.</p>
           </div>
-          <span className="hub-network"><i/>{marketLoading?'연동 확인 중':`${marketSummary.network?.integrations_connected || 0}/${marketSummary.network?.integrations_total || 0} 연동`}</span>
+          <span className="hub-network"><i/>{platformLoading?'플랫폼 동기화 중':`${platformStatus.integrations?.connected || 0}/${platformStatus.integrations?.total || 0} 연동`}</span>
         </div>
 
         <div className="platform-module-grid">
-          {platformModules.map(module=>{
+          {resolvedPlatformModules.map(module=>{
             const Icon=module.icon;
-            const liveStatus=module.id==='control'
-              ? (marketLoading ? 'SYNC' : `${marketSummary.network?.integrations_connected || 0}/${marketSummary.network?.integrations_total || 0}`)
-              : module.status;
+            const liveStatus=platformLoading ? 'SYNC' : module.status;
             const openModule=()=>{
               if(module.target){
                 document.querySelector(module.target)?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -659,7 +702,7 @@ function App(){
         <div className="module-modal-info">
           <span>현재 상태</span>
           <strong>{moduleDetail.status}</strong>
-          <small>{moduleDetail.status==='BETA' || moduleDetail.status==='READY'
+          <small>{['BETA','READY','PLANNED'].includes(String(moduleDetail.status).toUpperCase())
             ? '기능 구조는 플랫폼에 포함하고 실제 운영 데이터·권한 연결을 순차 적용합니다.'
             : '현재 Beta 운영 데이터와 연결된 기능입니다.'}</small>
         </div>
