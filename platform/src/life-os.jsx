@@ -35,6 +35,8 @@ import {
   services
 } from './app.js';
 
+const BUILD_ID='2026.09.19-R3';
+
 function App(){
   const [query,setQuery]=useState('');
   const [result,setResult]=useState(null);
@@ -191,7 +193,7 @@ function App(){
         <span>✦</span>
         <div><b>KORUAL</b><small>AI LIFE OS</small></div>
       </div>
-      <span className="version-badge">BETA · RAILWAY</span>
+      <span className="version-badge">BETA · {BUILD_ID}</span>
       <nav>
         <a href="#overview">Overview</a>
         <a href="#compare">가격 비교</a>
@@ -526,7 +528,7 @@ function App(){
     <footer>
       <div className="logo"><span>✦</span><div><b>KORUAL</b><small>AI LIFE OS</small></div></div>
       <span>생활을 KORUAL 하나로.</span>
-      <small>Decision first · Transaction second</small>
+      <small>Decision first · Transaction second · {BUILD_ID}</small>
     </footer>
 
     {recommended.length>0 && <div className="floating-plan">
