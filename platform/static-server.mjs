@@ -37,7 +37,7 @@ async function sendFile(res, path, cache = false) {
   res.end(data);
 }
 
-http.createServer(async (req, res) => {
+const handler = async (req, res) => {
   try {
     const url = new URL(req.url || '/', 'http://localhost');
 
@@ -59,6 +59,14 @@ http.createServer(async (req, res) => {
     res.writeHead(500, {'Content-Type':'application/json; charset=utf-8'});
     res.end(JSON.stringify({ok:false,error:'STATIC_SERVER_ERROR'}));
   }
-}).listen(port, '0.0.0.0', () => {
+};
+
+http.createServer(handler).listen(port, '0.0.0.0', () => {
   console.log(`KORUAL Beta listening on :${port}`);
 });
+
+if (port !== 3000) {
+  http.createServer(handler).listen(3000, '0.0.0.0', () => {
+    console.log('KORUAL Beta compatibility listener on :3000');
+  });
+}
