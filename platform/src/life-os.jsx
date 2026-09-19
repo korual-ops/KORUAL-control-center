@@ -43,7 +43,7 @@ import {
   services
 } from './app.js';
 
-const BUILD_ID='2026.09.19-R6.1';
+const BUILD_ID='2026.09.19-R6.2';
 
 const platformModules=[
   {id:'life',title:'생활서비스',desc:'청소·이사·인터넷·정수기·인테리어',status:'LIVE',icon:Home,target:'#services'},
