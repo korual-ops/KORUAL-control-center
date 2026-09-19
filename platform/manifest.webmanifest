@@ -1,0 +1,17 @@
+{
+  "name": "KORUAL Mobile Service OS",
+  "short_name": "KORUAL",
+  "start_url": "/#home",
+  "display": "standalone",
+  "background_color": "#f6f7fb",
+  "theme_color": "#f6f7fb",
+  "description": "AI service matching, quote comparison, booking and repeat purchase.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
