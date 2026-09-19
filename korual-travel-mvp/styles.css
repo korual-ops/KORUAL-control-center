@@ -73,6 +73,16 @@ a{color:inherit}
 .sub{
   margin-top:14px;color:var(--muted);font-size:16px;line-height:1.55
 }
+.fast-mission{
+  margin-top:24px;padding:14px;border-radius:22px;background:rgba(255,255,255,.9);
+  border:1px solid rgba(8,39,54,.07);box-shadow:0 10px 30px rgba(65,49,20,.035)
+}
+.fast-mission label{display:block;font-size:11px;font-weight:900;color:#0b789f;letter-spacing:.08em;margin-bottom:9px}
+.fast-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+.fast-row input{width:100%;min-width:0;border:0;background:transparent;color:var(--ink);font-size:14px;padding:10px 8px;outline:0}
+.fast-row button{border:0;border-radius:14px;background:var(--navy);color:#fff;padding:0 14px;font-weight:900}
+.fast-mission small{display:block;color:var(--muted);font-size:10px;line-height:1.45;margin:7px 7px 0}
+
 .option-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:30px}
 .option{
   min-height:150px;padding:20px;border-radius:28px;background:rgba(255,255,255,.92);
