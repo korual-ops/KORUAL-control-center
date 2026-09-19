@@ -23,12 +23,25 @@ const REQUIRE_IP_ALLOWLIST = process.env.REQUIRE_IP_ALLOWLIST === 'true';
 const IP_ALLOWLIST = (process.env.IP_ALLOWLIST || '').split(',').map(s => s.trim()).filter(Boolean);
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
 
-if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) throw new Error('Missing SUPABASE_URL or SUPABASE_SECRET_KEY');
-if (!JWT_SECRET || JWT_SECRET === 'CHANGE_ME') throw new Error('Missing secure JWT_SECRET');
+const missingRuntimeConfig = [
+  ...(!SUPABASE_URL || !SUPABASE_SECRET_KEY ? ['SUPABASE'] : []),
+  ...(!JWT_SECRET || JWT_SECRET === 'CHANGE_ME' ? ['JWT_SECRET'] : [])
+];
 
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
+const supabaseAdmin = missingRuntimeConfig.includes('SUPABASE')
+  ? null
+  : createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+function requireRuntimeConfig(_req, res, next) {
+  if (missingRuntimeConfig.length === 0) return next();
+  return res.status(503).json({
+    ok: false,
+    error: 'SERVICE_NOT_CONFIGURED',
+    missing: missingRuntimeConfig
+  });
+}
 
 app.use(cors({
   origin(origin, cb) {
@@ -157,11 +170,20 @@ app.get('/', (_req, res) => {
   res.send(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KORUAL Platform</title><style>body{margin:0;background:#080a0d;color:#f6f4ee;font-family:Inter,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif}main{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(900px,100%);padding:48px;border:1px solid #2b3138;border-radius:24px;background:linear-gradient(145deg,#12171c,#090b0e);box-shadow:0 30px 80px #0008}h1{font-family:Georgia,serif;font-size:clamp(42px,7vw,72px);margin:0 0 12px;color:#f0d58d}p{color:#b8c0c8;line-height:1.7}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}.item{padding:18px;border:1px solid #2b3138;border-radius:14px}.item b{display:block;margin-bottom:7px}.item span{color:#8f98a2;font-size:13px}a{display:inline-block;margin-top:28px;padding:13px 18px;border-radius:12px;background:#f0d58d;color:#101112;text-decoration:none;font-weight:800}@media(max-width:700px){.card{padding:28px}.grid{grid-template-columns:1fr}}</style></head><body><main><section class="card"><h1>KORUAL</h1><p>Life Service Marketplace · Super Platform</p><p>입주청소 · 이사 · 렌탈 · 에어컨 청소 · 인터넷/TV · AI 견적비교</p><div class="grid"><div class="item"><b>Cashflow</b><span>현금흐름 중심 운영</span></div><div class="item"><b>Automation</b><span>시스템 자동화</span></div><div class="item"><b>Network</b><span>업체 경쟁견적 네트워크</span></div></div><a href="/platform/summary">Platform API 확인</a></section></main></body></html>`);
 });
 
-app.get('/health', (_req, res) => res.json({ ok: true, database: 'supabase' }));
+app.get('/health', (_req, res) => {
+  const configured = missingRuntimeConfig.length === 0;
+  return res.status(configured ? 200 : 503).json({
+    ok: configured,
+    database: configured ? 'supabase' : 'not_configured',
+    missing: missingRuntimeConfig
+  });
+});
 
 app.get('/platform/summary', (_req, res) => {
   res.json({ ok: true, platform: 'KORUAL Super Platform', version: '1.2.0', database: 'Supabase', modules: ['commerce', 'travel', 'ai-agent', 'business', 'finance', 'developer-api', 'life-services'], operating_model: 'cashflow -> leverage -> system -> automation -> asset -> network effect' });
 });
+
+app.use(['/service-requests', '/auth', '/admin'], requireRuntimeConfig);
 
 app.post('/service-requests', async (req, res) => {
   try {
