@@ -1,24 +1,70 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
-  <meta name="theme-color" content="#f6f8fb" />
-  <meta name="color-scheme" content="light dark" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f9fc" />
   <meta name="description" content="KORUAL — Travel, Commerce, AI and Operations in one platform." />
-  <meta name="application-name" content="KORUAL" />
-  <meta name="format-detection" content="telephone=no" />
   <title>KORUAL — One Platform</title>
-  <script>
-    try {
-      const theme = localStorage.getItem('korual-theme') === 'dark' ? 'dark' : 'light';
-      document.documentElement.dataset.theme = theme;
-      document.documentElement.style.colorScheme = theme;
-    } catch (_) {}
-  </script>
+  <link rel="stylesheet" href="/site.css" />
 </head>
 <body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.js"></script>
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="KORUAL 홈"><span class="brand-mark">K</span><span>KORUAL</span><em>BETA</em></a>
+    <nav class="desktop-nav"><a href="#platform">Platform</a><a href="#services">Services</a><a href="#about">About</a></nav>
+    <div class="header-actions"><button id="themeToggle" class="icon-btn" aria-label="테마 변경">◐</button><button id="menuToggle" class="icon-btn menu-btn" aria-label="메뉴 열기">☰</button></div>
+  </header>
+
+  <div id="mobileMenu" class="mobile-menu" hidden>
+    <a href="#home">홈</a><a href="#platform">플랫폼</a><a href="#services">서비스</a><a href="#about">AI</a>
+  </div>
+
+  <main>
+    <section id="home" class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span>KORUAL BETA · MOBILE FIRST</p>
+        <h1>하나의 플랫폼.<br><strong>더 빠른 실행.</strong></h1>
+        <p class="lead">여행, 커머스, AI, 운영 도구를 하나의 디지털 자산으로 연결하는 KORUAL입니다.</p>
+        <div class="hero-actions"><a class="primary" href="#platform">플랫폼 보기 →</a><a class="secondary" href="#services">기능 살펴보기</a></div>
+        <div class="trust"><span>✓ 안정적 구조</span><span>⚡ 모바일 우선</span><span>◎ 확장 가능한 플랫폼</span></div>
+      </div>
+      <div class="phone-stage" aria-label="KORUAL 모바일 미리보기">
+        <div class="phone">
+          <div class="phone-status"><span>9:41</span><i></i></div>
+          <div class="phone-head"><b>K</b><div><strong>KORUAL</strong><small>Control Center</small></div><span class="online"></span></div>
+          <div class="phone-hero"><small>오늘의 운영</small><strong>모든 시스템 정상</strong><span>핵심 상태를 한눈에 확인하세요.</span></div>
+          <div class="mini-grid"><article><small>Railway</small><strong>Online</strong></article><article><small>GitHub</small><strong>Synced</strong></article></div>
+          <div class="ai-card"><span>✦</span><div><small>KORUAL AI</small><strong>다음 실행 추천</strong></div><b>→</b></div>
+          <div class="phone-tabs"><span>⌂</span><span>▦</span><span>⌕</span><span>✦</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="platform" class="panel">
+      <div><p class="kicker">CONTROL CENTER</p><h2>운영을 한눈에.</h2><p>복잡한 기능을 단순한 카드와 명확한 탐색 구조로 정리했습니다.</p></div>
+      <aside class="status-card"><div class="live"><span></span>LIVE</div><strong>Platform Online</strong><small>Railway · GitHub · Mobile</small><ul><li>Railway 배포 정상</li><li>GitHub 소스 연결</li><li>모바일 UX 최적화</li></ul></aside>
+    </section>
+
+    <section id="services" class="section">
+      <div class="section-head"><p class="kicker">ECOSYSTEM</p><h2>KORUAL 핵심 모듈</h2><p>하나의 계정과 데이터 흐름 위에서 서비스가 연결됩니다.</p></div>
+      <div class="cards">
+        <article><span class="card-icon">✈</span><small>TRAVEL</small><h3>KORUAL Travel</h3><p>항공·숙박·일정을 하나의 흐름으로 관리합니다.</p><em>검색 → 비교 → 예약</em></article>
+        <article><span class="card-icon">▣</span><small>COMMERCE</small><h3>Commerce</h3><p>상품·주문·파트너 운영을 한 화면에서 연결합니다.</p><em>상품 → 주문 → 정산</em></article>
+        <article><span class="card-icon">✦</span><small>AI</small><h3>KORUAL AI</h3><p>업무와 여행 데이터를 기반으로 다음 행동을 제안합니다.</p><em>분석 → 추천 → 실행</em></article>
+        <article><span class="card-icon">▦</span><small>OPS</small><h3>Control Center</h3><p>운영 상태와 핵심 지표를 모바일에서도 빠르게 확인합니다.</p><em>상태 → 알림 → 조치</em></article>
+      </div>
+    </section>
+
+    <section id="about" class="cta"><p class="kicker">KORUAL OS</p><h2>현금흐름에서 자산화까지,<br>시스템으로 연결합니다.</h2><p>가볍게 시작하고 데이터와 자동화를 단계적으로 확장하는 구조입니다.</p><a href="#home">KORUAL 시작하기 →</a></section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="모바일 탐색">
+    <a href="#home" data-nav="home" class="active"><span>⌂</span><small>홈</small></a>
+    <a href="#platform" data-nav="platform"><span>▦</span><small>플랫폼</small></a>
+    <a href="#services" data-nav="services"><span>⌕</span><small>서비스</small></a>
+    <a href="#about" data-nav="about"><span>✦</span><small>AI</small></a>
+  </nav>
+
+  <script src="/site.js" defer></script>
 </body>
 </html>
