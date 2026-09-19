@@ -13,8 +13,7 @@
       (function () {
         try {
           var saved = localStorage.getItem('korual-theme');
-          var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var theme = saved === 'dark' || saved === 'light' ? saved : (systemDark ? 'dark' : 'light');
+          var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
           document.documentElement.dataset.theme = theme;
           document.documentElement.style.colorScheme = theme;
           var meta = document.querySelector('meta[name="theme-color"]');
