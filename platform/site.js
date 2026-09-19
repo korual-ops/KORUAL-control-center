@@ -533,5 +533,39 @@
     showToast('이 기기의 표시 상태를 초기화했습니다.');
   });
 
+
+  function initMeta3D(){
+    const stage=$('#metaStage');
+    if(!stage)return;
+    const reduce=matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const fine=matchMedia?.('(pointer:fine)')?.matches;
+    if(reduce||!fine)return;
+
+    let raf=0;
+    stage.addEventListener('pointermove',event=>{
+      if(raf)cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(()=>{
+        const rect=stage.getBoundingClientRect();
+        const x=(event.clientX-rect.left)/rect.width-.5;
+        const y=(event.clientY-rect.top)/rect.height-.5;
+        stage.style.setProperty('--ry',(x*7).toFixed(2)+'deg');
+        stage.style.setProperty('--rx',(-y*6).toFixed(2)+'deg');
+        const core=$('.meta-core',stage);
+        if(core)core.style.transform='translateZ(48px) rotateX('+(-y*6).toFixed(2)+'deg) rotateY('+(x*7).toFixed(2)+'deg)';
+        const nodes=$('.meta-node',stage);
+        nodes.forEach((node,index)=>{
+          const depth=10+(index%3)*4;
+          node.style.translate=(x*depth).toFixed(1)+'px '+(y*depth).toFixed(1)+'px';
+        });
+      });
+    });
+    stage.addEventListener('pointerleave',()=>{
+      const core=$('.meta-core',stage);
+      if(core)core.style.transform='';
+      $('.meta-node',stage).forEach(node=>node.style.translate='');
+    });
+  }
+  initMeta3D();
+
   if(state.currentRequest) loadQuotes(state.currentRequest);
 })();
