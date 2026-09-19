@@ -12,8 +12,13 @@
     <script>
       (function () {
         try {
+          var themeVersion = localStorage.getItem('korual-theme-version');
           var saved = localStorage.getItem('korual-theme');
-          var theme = saved === 'dark' || saved === 'light' ? saved : 'light';
+          var theme = themeVersion === 'R4.1' && (saved === 'dark' || saved === 'light') ? saved : 'light';
+          if (themeVersion !== 'R4.1') {
+            localStorage.setItem('korual-theme', 'light');
+            localStorage.setItem('korual-theme-version', 'R4.1');
+          }
           document.documentElement.dataset.theme = theme;
           document.documentElement.style.colorScheme = theme;
           var meta = document.querySelector('meta[name="theme-color"]');
