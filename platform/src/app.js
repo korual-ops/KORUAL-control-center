@@ -48,20 +48,24 @@ export function money(value) {
     : value;
 }
 
+let volatileSessionId = null;
+
 export function getSessionId() {
   const key = 'korual-session-id';
   let value = null;
 
   try {
-    value = window.localStorage?.getItem(key) || null;
+    value = window.sessionStorage?.getItem(key) || null;
   } catch {}
 
   if (!value) {
-    value = globalThis.crypto?.randomUUID?.() ||
+    value = volatileSessionId ||
+      globalThis.crypto?.randomUUID?.() ||
       'ks-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    volatileSessionId = value;
 
     try {
-      window.localStorage?.setItem(key, value);
+      window.sessionStorage?.setItem(key, value);
     } catch {}
   }
 
