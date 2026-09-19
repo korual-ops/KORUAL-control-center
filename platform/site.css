@@ -494,3 +494,201 @@ html[data-theme="dark"] .meta-node{
   .meta-stage::before,.core-aura,.meta-particle{animation:none!important}
   .meta-core,.meta-node{transition:none!important}
 }
+
+
+/* ===== KORUAL BRAND & TYPOGRAPHY SYSTEM ===== */
+:root{
+  --font-body:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Segoe UI",sans-serif;
+  --font-display:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Segoe UI",sans-serif;
+  --tracking-label:.13em;
+  --tracking-title:-.035em;
+}
+body{
+  font-family:var(--font-body);
+  font-feature-settings:"kern" 1,"liga" 1;
+  font-kerning:normal;
+  word-break:keep-all;
+}
+.header-copy strong,
+.home-hero h1,
+.screen-heading h2,
+.section-title h2,
+.service-row strong,
+.quick-card strong,
+.quote-card strong{
+  font-family:var(--font-display);
+}
+.brand-symbol{
+  width:39px;
+  height:39px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  overflow:visible;
+  border-radius:14px;
+  background:
+    radial-gradient(circle at 32% 25%,rgba(255,255,255,.28),transparent 30%),
+    linear-gradient(145deg,#0d1730,#14275a 56%,#281d63);
+  box-shadow:
+    0 10px 28px rgba(48,83,220,.24),
+    inset 0 1px 0 rgba(255,255,255,.2),
+    inset 0 -10px 18px rgba(0,0,0,.18);
+}
+.brand-symbol svg{
+  width:31px;
+  height:31px;
+  overflow:visible;
+}
+.brand-orbit{
+  fill:none;
+  stroke:url(#korualLogoGradient);
+  stroke-width:2.8;
+  stroke-linecap:round;
+  opacity:.95;
+}
+.brand-k{
+  fill:none;
+  stroke:#fff;
+  stroke-width:5.6;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.brand-node{
+  fill:#76eeff;
+  filter:drop-shadow(0 0 4px rgba(118,238,255,.8));
+}
+.header-copy strong{
+  font-size:15px;
+  font-weight:820;
+  letter-spacing:-.025em;
+}
+.header-copy small{
+  margin-top:5px;
+  font-size:6.5px;
+  font-weight:760;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+.eyebrow,
+.section-title small,
+.screen-heading .eyebrow,
+.service-row small,
+.category-kicker,
+.analysis-head small,
+.quote-top span,
+.profile-hero small{
+  font-weight:800;
+  letter-spacing:var(--tracking-label);
+}
+.section-title small,
+.category-kicker,
+.service-row small{
+  color:var(--muted2);
+}
+.section-title h2{
+  font-size:20px;
+  font-weight:780;
+  letter-spacing:-.038em;
+}
+.quick-card{
+  padding-top:13px;
+  padding-bottom:13px;
+}
+.quick-card .quick-icon{
+  width:37px;
+  height:37px;
+  margin-bottom:8px;
+  font-size:7px;
+  font-weight:850;
+  letter-spacing:.06em;
+}
+.quick-card .category-kicker{
+  display:block;
+  margin:0 0 3px;
+  font-size:5.5px;
+  line-height:1.1;
+  white-space:nowrap;
+}
+.quick-card strong{
+  display:block;
+  font-size:11.5px;
+  line-height:1.25;
+  font-weight:760;
+  letter-spacing:-.028em;
+}
+.quick-card em{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:7px;
+  line-height:1.2;
+  font-style:normal;
+  font-weight:520;
+  letter-spacing:-.01em;
+}
+.service-row{
+  min-height:86px;
+}
+.service-row>span:nth-child(2) small{
+  font-size:6.5px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:.14em;
+}
+.service-row>span:nth-child(2) strong{
+  margin-top:5px;
+  font-size:13.5px;
+  line-height:1.2;
+  font-weight:780;
+  letter-spacing:-.03em;
+}
+.service-row>span:nth-child(2) em{
+  margin-top:5px;
+  font-size:8.5px;
+  line-height:1.3;
+  font-weight:480;
+  letter-spacing:-.015em;
+}
+.service-icon{
+  width:47px;
+  height:47px;
+  border-radius:16px;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.06em;
+  background:
+    radial-gradient(circle at 30% 24%,rgba(255,255,255,.28),transparent 30%),
+    linear-gradient(145deg,color-mix(in srgb,var(--accent) 13%,var(--surface)),color-mix(in srgb,var(--accent2) 9%,var(--surface2)));
+}
+.node-copy small{
+  font-size:5.5px;
+  font-weight:800;
+  letter-spacing:.14em;
+}
+.node-copy strong{
+  margin-top:3px;
+  font-size:9.5px;
+  font-weight:780;
+  letter-spacing:-.018em;
+}
+.core-shell small{
+  font-size:6.2px;
+  font-weight:780;
+  letter-spacing:.18em;
+}
+.core-shell strong{
+  margin-top:3px;
+  font-size:17px;
+  font-weight:820;
+  letter-spacing:-.035em;
+}
+.tab small{
+  font-size:8px;
+  font-weight:720;
+  letter-spacing:-.015em;
+}
+@media(max-width:380px){
+  .quick-card .category-kicker{font-size:5px}
+  .quick-card strong{font-size:10.5px}
+  .service-row>span:nth-child(2) strong{font-size:12.5px}
+}
