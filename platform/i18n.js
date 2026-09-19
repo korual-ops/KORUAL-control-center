@@ -138,6 +138,29 @@
     ['.meta-hud>strong','metaConnect'],['.meta-hud>small','tapNode']
   ];
 
+  const DYNAMIC={
+    ko:{
+      '조건 분석 완료':'조건 분석 완료','검증 파트너 · 베타':'검증 파트너 · 베타','추천':'추천','가성비':'가성비','프리미엄':'프리미엄','매우 빠름':'매우 빠름','빠름':'빠름','유연':'유연','보증 강화':'보증 강화',
+      '서버에서 검증된 베타 견적을 불러오는 중…':'서버에서 검증된 베타 견적을 불러오는 중…','저장 중…':'저장 중…','완료됨':'완료됨','처리 중…':'처리 중…'
+    },
+    en:{
+      '조건 분석 완료':'Analysis complete','검증 파트너 · 베타':'Verified partner · Beta','추천':'Recommended','가성비':'Best value','프리미엄':'Premium','매우 빠름':'Very fast','빠름':'Fast','유연':'Flexible','보증 강화':'Extended guarantee',
+      '서버에서 검증된 베타 견적을 불러오는 중…':'Loading server-verified beta quotes…','저장 중…':'Saving…','완료됨':'Completed','처리 중…':'Processing…'
+    },
+    ja:{
+      '조건 분석 완료':'条件分析完了','검증 파트너 · 베타':'認証パートナー · Beta','추천':'おすすめ','가성비':'コスパ','프리미엄':'プレミアム','매우 빠름':'非常に速い','빠름':'速い','유연':'柔軟','보증 강화':'保証強化',
+      '서버에서 검증된 베타 견적을 불러오는 중…':'サーバー検証済みのベータ見積を読み込み中…','저장 중…':'保存中…','완료됨':'完了','처리 중…':'処理中…'
+    },
+    zh:{
+      '조건 분석 완료':'条件分析完成','검증 파트너 · 베타':'认证伙伴 · Beta','추천':'推荐','가성비':'高性价比','프리미엄':'高级','매우 빠름':'非常快','빠름':'快速','유연':'灵活','보증 강화':'加强保障',
+      '서버에서 검증된 베타 견적을 불러오는 중…':'正在加载服务器验证的Beta报价…','저장 중…':'保存中…','완료됨':'已完成','처리 중…':'处理中…'
+    },
+    vi:{
+      '조건 분석 완료':'Phân tích hoàn tất','검증 파트너 · 베타':'Đối tác đã xác minh · Beta','추천':'Đề xuất','가성비':'Giá tốt','프리미엄':'Cao cấp','매우 빠름':'Rất nhanh','빠름':'Nhanh','유연':'Linh hoạt','보증 강화':'Bảo đảm mở rộng',
+      '서버에서 검증된 베타 견적을 불러오는 중…':'Đang tải báo giá Beta đã được máy chủ xác minh…','저장 중…':'Đang lưu…','완료됨':'Hoàn tất','처리 중…':'Đang xử lý…'
+    }
+  };
+
   const exact={
     '아직 요청이 없어요':'noRequest','필요한 서비스를 입력해보세요.':'tryService','최근 요청을 기반으로 다음 행동을 여기에 추천합니다.':'recentHelp',
     '견적을 선택하세요':'selectPrompt','요청을 기다리는 중':'waiting','가격 + 신뢰':'priceTrust','3개 견적 비교':'threeQuotes',
@@ -208,9 +231,10 @@
     while(el){
       if(el.children.length===0){
         const source=el.dataset?.i18nSource||el.textContent.trim();
-        if(exact[source]){
+        const dynamic=(DYNAMIC[lang]||{})[source];
+        if(exact[source]||dynamic){
           if(el.dataset)el.dataset.i18nSource=source;
-          el.textContent=dict[exact[source]]||source;
+          el.textContent=dynamic||dict[exact[source]]||source;
         }
       }
       el=walker.nextNode();
@@ -242,9 +266,10 @@
         const parent=record.target.nodeType===3?record.target.parentElement:record.target;
         if(parent&&parent.children.length===0){
           const src=parent.textContent.trim();
-          if(exact[src]){
+          const dynamic=(DYNAMIC[lang]||{})[src];
+          if(exact[src]||dynamic){
             parent.dataset.i18nSource=src;
-            parent.textContent=(T[lang]||T.ko)[exact[src]]||src;
+            parent.textContent=dynamic||(T[lang]||T.ko)[exact[src]]||src;
           }
         }
       }
