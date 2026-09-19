@@ -2,7 +2,9 @@
   const $=(q,root=document)=>root.querySelector(q);
   const $$=(q,root=document)=>[...root.querySelectorAll(q)];
   const root=document.documentElement;
-  const storageKey='korual-mobile-state-v2';
+  const STATE_KEY='korual-mobile-state-v3';
+  const SESSION_KEY='korual-session-v1';
+  const API_URL='https://dtmmjkikyfgkeimhevso.supabase.co/functions/v1/korual-public-api';
 
   const screens=$$('.screen[data-screen]');
   const tabs=$$('.tab[data-tab]');
@@ -21,10 +23,10 @@
     profile:['My KORUAL','설정과 플랫폼 상태']
   };
 
-  const quoteCatalog={
-    best:{id:'best',name:'Partner B',price:142000,trust:96,label:'AI 추천'},
-    value:{id:'value',name:'Partner A',price:128000,trust:91,label:'가성비'},
-    premium:{id:'premium',name:'Partner C',price:169000,trust:94,label:'프리미엄'}
+  let quoteCatalog={
+    best:{id:'best',name:'KORUAL Demo Recommended',price:142000,trust:96,label:'AI 추천',provider_key:'demo_best'},
+    value:{id:'value',name:'KORUAL Demo Value',price:128000,trust:91,label:'가성비',provider_key:'demo_value'},
+    premium:{id:'premium',name:'KORUAL Demo Premium',price:169000,trust:94,label:'프리미엄',provider_key:'demo_premium'}
   };
 
   let state={
@@ -36,12 +38,20 @@
   };
 
   try{
-    const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
+    const saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null');
     if(saved&&typeof saved==='object') state={...state,...saved};
   }catch(_){}
 
+  let sessionId='';
+  try{sessionId=localStorage.getItem(SESSION_KEY)||''}catch(_){}
+  if(!/^[A-Za-z0-9_-]{12,80}$/.test(sessionId)){
+    const raw=globalThis.crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2));
+    sessionId=('ks_'+raw.replace(/-/g,'_')).slice(0,80);
+    try{localStorage.setItem(SESSION_KEY,sessionId)}catch(_){}
+  }
+
   function save(){
-    try{localStorage.setItem(storageKey,JSON.stringify(state))}catch(_){}
+    try{localStorage.setItem(STATE_KEY,JSON.stringify(state))}catch(_){}
     renderState();
   }
 
@@ -51,7 +61,7 @@
     clearTimeout(toastTimer);
     toast.textContent=message;
     toast.hidden=false;
-    toastTimer=setTimeout(()=>toast.hidden=true,2200);
+    toastTimer=setTimeout(()=>toast.hidden=true,2400);
   }
 
   function syncTheme(){
@@ -66,7 +76,6 @@
 
   function toggleTheme(){
     const next=root.dataset.theme==='dark'?'light':'dark';
-    root.dataset.theme=next;
     try{localStorage.setItem('korual-theme',next)}catch(_){}
     syncTheme();
   }
@@ -89,7 +98,6 @@
 
   tabs.forEach(tab=>tab.addEventListener('click',()=>showScreen(tab.dataset.tab)));
   $$('[data-open-screen]').forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.openScreen)));
-
   window.addEventListener('hashchange',()=>showScreen(location.hash.slice(1)||'home',{updateHash:false}));
   const initial=location.hash.slice(1);
   if(initial&&titles[initial]) showScreen(initial,{updateHash:false});
@@ -98,6 +106,37 @@
   if(today){
     try{today.textContent=new Intl.DateTimeFormat('ko-KR',{month:'long',day:'numeric',weekday:'short'}).format(new Date())}
     catch(_){today.textContent='Today'}
+  }
+
+  function escapeHtml(value){
+    return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  }
+
+  function makeIdempotency(){
+    const raw=globalThis.crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2));
+    return ('kb_'+raw.replace(/-/g,'_')).slice(0,80);
+  }
+
+  async function fetchApi(action,payload={}){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),9000);
+    try{
+      const res=await fetch(API_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-korual-session':sessionId},
+        body:JSON.stringify({action,...payload}),
+        signal:controller.signal
+      });
+      const data=await res.json().catch(()=>({ok:false,error:'INVALID_RESPONSE'}));
+      if(!res.ok||!data.ok){
+        const err=new Error(data.error||'API_ERROR');
+        err.code=data.error||'API_ERROR';
+        throw err;
+      }
+      return data;
+    }finally{
+      clearTimeout(timer);
+    }
   }
 
   function inferRequest(text){
@@ -157,7 +196,56 @@
     if(analysisPriority) analysisPriority.textContent=request.priority;
     if(analysisNext) analysisNext.textContent='3개 견적 비교';
     if(goQuotes) goQuotes.disabled=false;
-    if(quoteContext) quoteContext.textContent=request.service+' · '+request.priority+' 기준의 베타 샘플 견적입니다.';
+    if(quoteContext) quoteContext.textContent=request.service+' · '+request.priority+' 기준의 베타 견적입니다.';
+  }
+
+  async function loadQuotes(request){
+    if(!request)return;
+    if(quoteContext) quoteContext.textContent='서버에서 검증된 베타 견적을 불러오는 중…';
+    try{
+      const data=await fetchApi('quotes',{request});
+      if(Array.isArray(data.quotes)&&data.quotes.length){
+        for(const q of data.quotes){
+          quoteCatalog[q.key]={
+            id:q.key,
+            name:q.provider_name,
+            price:Number(q.amount)||0,
+            trust:Number(q.trust)||0,
+            label:q.label||'견적',
+            provider_key:q.provider_key
+          };
+          updateQuoteCard(q);
+        }
+        if(quoteContext) quoteContext.textContent=data.request.service+' · 실제 Supabase 베타 파트너 데이터';
+      }
+    }catch(err){
+      if(quoteContext) quoteContext.textContent=request.service+' · 연결 실패 시 표시되는 로컬 샘플 견적';
+      showToast('견적 서버 연결이 불안정해 샘플 모드로 표시합니다.');
+    }
+    renderQuotesSelection();
+  }
+
+  function updateQuoteCard(q){
+    const card=$('[data-quote-card="'+q.key+'"]');
+    if(!card)return;
+    card.dataset.price=String(q.amount||0);
+    card.dataset.trust=String(q.trust||0);
+    const providerName=$('.provider-row strong',card);
+    const providerMeta=$('.provider-row small',card);
+    const price=$('.price-row strong',card);
+    const priceLabel=$('.price-row > span',card);
+    const trust=$('.trust-row strong',card);
+    const score=$('.score i',card);
+    const rating=$('.fact-grid span:nth-child(1) b',card);
+    const response=$('.fact-grid span:nth-child(2) b',card);
+    if(providerName) providerName.textContent=q.provider_name||'KORUAL Demo Partner';
+    if(providerMeta) providerMeta.textContent='검증 파트너 · 베타';
+    if(price) price.textContent='₩'+Number(q.amount||0).toLocaleString('ko-KR');
+    if(priceLabel) priceLabel.textContent=q.label||'견적';
+    if(trust) trust.textContent=String(q.trust||0);
+    if(score) score.style.width=Math.max(0,Math.min(100,Number(q.trust)||0))+'%';
+    if(rating) rating.textContent=Number(q.rating||0).toFixed(1);
+    if(response) response.textContent=q.response_minutes==null?'—':(q.response_minutes<=10?'매우 빠름':q.response_minutes<=20?'빠름':q.response_minutes+'분');
   }
 
   function analyze(text,{count=true}={}){
@@ -169,6 +257,7 @@
     save();
     renderAnalysis(request);
     renderQuotesSelection();
+    loadQuotes(request);
     showToast('요청을 분석했습니다.');
   }
 
@@ -177,19 +266,13 @@
     if(matchInput) matchInput.value=btn.dataset.prompt||'';
     analyze(btn.dataset.prompt);
   }));
-
   $$('[data-service]').forEach(btn=>btn.addEventListener('click',()=>{
     const value=btn.dataset.service||'';
     showScreen('match');
     if(matchInput) matchInput.value=value;
     analyze(value);
   }));
-
   goQuotes?.addEventListener('click',()=>showScreen('quotes'));
-
-  function escapeHtml(value){
-    return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-  }
 
   const quoteList=$('#quoteList');
   const stickyQuoteName=$('#stickyQuoteName');
@@ -197,10 +280,7 @@
   const bookSelected=$('#bookSelected');
 
   function renderQuotesSelection(){
-    $$('[data-quote-card]').forEach(card=>{
-      const selected=state.selectedQuote?.id===card.dataset.quoteCard;
-      card.classList.toggle('selected',selected);
-    });
+    $$('[data-quote-card]').forEach(card=>card.classList.toggle('selected',state.selectedQuote?.id===card.dataset.quoteCard));
     if(state.selectedQuote){
       if(stickyQuoteName) stickyQuoteName.textContent=state.selectedQuote.label+' · '+state.selectedQuote.name;
       if(stickyQuotePrice) stickyQuotePrice.textContent='₩'+Number(state.selectedQuote.price).toLocaleString('ko-KR');
@@ -212,7 +292,9 @@
     }
   }
 
-  $$('[data-quote]').forEach(btn=>btn.addEventListener('click',()=>{
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest?.('[data-quote]');
+    if(!btn)return;
     const quote=quoteCatalog[btn.dataset.quote];
     if(!quote)return;
     if(!state.currentRequest){
@@ -221,9 +303,8 @@
     }
     state.selectedQuote={...quote};
     save();
-    renderQuotesSelection();
     showToast(quote.name+' 견적을 선택했습니다.');
-  }));
+  });
 
   $$('.filter-strip [data-sort]').forEach(btn=>btn.addEventListener('click',()=>{
     $$('.filter-strip [data-sort]').forEach(x=>x.classList.toggle('is-active',x===btn));
@@ -238,21 +319,97 @@
     }).forEach(card=>quoteList.appendChild(card));
   }));
 
-  function createBooking(){
-    if(!state.selectedQuote){showToast('먼저 견적을 선택해주세요.');return}
-    if(!state.currentRequest) state.currentRequest=inferRequest('생활 서비스');
-    state.booking={
-      id:'KR-'+Date.now().toString(36).toUpperCase(),
-      status:'REQUESTED',
-      service:state.currentRequest.service,
-      quote:{...state.selectedQuote},
-      createdAt:Date.now()
-    };
-    save();
-    showScreen('bookings');
-    showToast('예약 요청을 저장했습니다.');
+  const bookingSheet=$('#bookingSheet');
+  const bookingForm=$('#bookingForm');
+  const closeBookingSheet=$('#closeBookingSheet');
+  const cancelBookingSheet=$('#cancelBookingSheet');
+  const submitBooking=$('#submitBooking');
+  const desiredDate=$('#desiredDate');
+  let pendingIdempotency='';
+
+  function localDateString(date){
+    const y=date.getFullYear();
+    const m=String(date.getMonth()+1).padStart(2,'0');
+    const d=String(date.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+d;
   }
-  bookSelected?.addEventListener('click',createBooking);
+
+  function openBookingSheet(){
+    if(!state.selectedQuote){showToast('먼저 견적을 선택해주세요.');return}
+    if(!state.currentRequest){showToast('먼저 서비스 요청을 분석해주세요.');return}
+    $('#sheetService').textContent=state.currentRequest.service;
+    $('#sheetQuote').textContent=state.selectedQuote.name+' · ₩'+Number(state.selectedQuote.price).toLocaleString('ko-KR');
+    const todayDate=new Date();
+    const tomorrow=new Date(todayDate.getFullYear(),todayDate.getMonth(),todayDate.getDate()+1);
+    if(desiredDate){
+      desiredDate.min=localDateString(todayDate);
+      if(!desiredDate.value) desiredDate.value=localDateString(tomorrow);
+    }
+    pendingIdempotency=makeIdempotency();
+    bookingSheet.hidden=false;
+    document.body.style.overflow='hidden';
+  }
+
+  function closeSheet(){
+    bookingSheet.hidden=true;
+    document.body.style.overflow='';
+  }
+
+  bookSelected?.addEventListener('click',openBookingSheet);
+  closeBookingSheet?.addEventListener('click',closeSheet);
+  cancelBookingSheet?.addEventListener('click',closeSheet);
+  bookingSheet?.addEventListener('click',e=>{if(e.target===bookingSheet)closeSheet()});
+
+  bookingForm?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!state.selectedQuote||!state.currentRequest)return;
+    const customer={
+      name:$('#customerName')?.value||'',
+      phone:$('#customerPhone')?.value||'',
+      region:$('#customerRegion')?.value||'',
+      desired_date:desiredDate?.value||''
+    };
+    if(submitBooking){submitBooking.disabled=true;submitBooking.textContent='저장 중…'}
+    try{
+      const data=await fetchApi('book',{
+        request:state.currentRequest,
+        quote_key:state.selectedQuote.id,
+        customer,
+        idempotency_key:pendingIdempotency||makeIdempotency()
+      });
+      const b=data.booking||{};
+      state.booking={
+        id:b.request_code||b.booking_id||('KR-'+Date.now().toString(36).toUpperCase()),
+        backend_id:b.booking_id||null,
+        request_id:b.request_id||null,
+        status:'REQUESTED',
+        service:state.currentRequest.service,
+        quote:{
+          id:state.selectedQuote.id,
+          name:b.provider_name||state.selectedQuote.name,
+          price:Number(b.amount??state.selectedQuote.price)
+        },
+        createdAt:Date.now()
+      };
+      save();
+      closeSheet();
+      showScreen('bookings');
+      showToast('Supabase에 예약 요청을 저장했습니다.');
+    }catch(err){
+      const code=err?.code||'API_ERROR';
+      const messages={
+        NAME_REQUIRED:'이름을 확인해주세요.',
+        PHONE_INVALID:'연락처를 확인해주세요.',
+        REGION_REQUIRED:'서비스 지역을 입력해주세요.',
+        DATE_INVALID:'희망일을 확인해주세요.',
+        RATE_LIMITED:'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+        ORIGIN_NOT_ALLOWED:'현재 접속 주소에서는 예약 저장을 사용할 수 없습니다.'
+      };
+      showToast(messages[code]||'예약 저장에 실패했습니다. 다시 시도해주세요.');
+    }finally{
+      if(submitBooking){submitBooking.disabled=false;submitBooking.textContent='예약 요청 저장'}
+    }
+  });
 
   function renderBooking(){
     const empty=$('#emptyBooking');
@@ -273,7 +430,7 @@
     if(state.booking.status==='COMPLETED'){
       timeline.forEach(x=>x.classList.add('done'));
       const repeat=$('#repeatMessage');
-      if(repeat) repeat.textContent='서비스 완료 데이터가 저장되었습니다. 후기와 다음 연관 서비스 추천 단계로 연결됩니다.';
+      if(repeat) repeat.textContent='완료 데이터가 DB에 기록되었습니다. 후기와 다음 연관 서비스 추천 단계로 연결됩니다.';
       const complete=$('#completeDemo');
       if(complete){complete.textContent='완료됨';complete.disabled=true}
     }else{
@@ -283,13 +440,25 @@
     }
   }
 
-  $('#completeDemo')?.addEventListener('click',()=>{
+  $('#completeDemo')?.addEventListener('click',async()=>{
     if(!state.booking)return;
-    if(state.booking.status!=='COMPLETED'){
-      state.booking.status='COMPLETED';
-      state.completes=(Number(state.completes)||0)+1;
-      save();
-      showToast('서비스 완료 상태로 변경했습니다.');
+    const button=$('#completeDemo');
+    if(!state.booking.backend_id){
+      showToast('서버에 저장된 베타 예약만 완료 처리할 수 있습니다.');
+      return;
+    }
+    if(button){button.disabled=true;button.textContent='처리 중…'}
+    try{
+      await fetchApi('complete_demo',{booking_id:state.booking.backend_id});
+      if(state.booking.status!=='COMPLETED'){
+        state.booking.status='COMPLETED';
+        state.completes=(Number(state.completes)||0)+1;
+        save();
+      }
+      showToast('완료 상태를 Supabase에 기록했습니다.');
+    }catch(err){
+      showToast('완료 처리에 실패했습니다.');
+      if(button){button.disabled=false;button.textContent='완료 시뮬레이션'}
     }
   });
 
@@ -297,11 +466,13 @@
     const card=$('#homeRecommendation');
     if(!card)return;
     if(state.booking?.status==='COMPLETED'){
-      card.innerHTML='<div class="recommend-badge">↻</div><div><small>REPEAT ENGINE</small><strong>다음 연관 서비스를 준비했어요.</strong><p>'+escapeHtml(state.booking.service)+' 완료 이력을 기반으로 후속 서비스를 추천할 수 있습니다.</p></div><button type="button" data-open-screen="services">→</button>';
+      card.innerHTML='<div class="recommend-badge">↻</div><div><small>REPEAT ENGINE</small><strong>다음 연관 서비스를 준비했어요.</strong><p>'+escapeHtml(state.booking.service)+' 완료 이력을 기반으로 후속 서비스를 추천합니다.</p></div><button type="button" data-open-screen="services">→</button>';
     }else if(state.booking){
       card.innerHTML='<div class="recommend-badge">B</div><div><small>예약 진행 중</small><strong>'+escapeHtml(state.booking.service)+' 예약을 확인하세요.</strong><p>'+escapeHtml(state.booking.quote?.name||'Partner')+' · '+escapeHtml(state.booking.id)+'</p></div><button type="button" data-open-screen="bookings">→</button>';
     }else if(state.currentRequest){
       card.innerHTML='<div class="recommend-badge">AI</div><div><small>최근 요청</small><strong>'+escapeHtml(state.currentRequest.service)+' 견적을 비교해보세요.</strong><p>'+state.currentRequest.bundle.map(escapeHtml).join(' · ')+'</p></div><button type="button" data-open-screen="quotes">→</button>';
+    }else{
+      card.innerHTML='<div class="recommend-badge">AI</div><div><small>아직 요청이 없어요</small><strong>필요한 서비스를 입력해보세요.</strong><p>최근 요청을 기반으로 다음 행동을 여기에 추천합니다.</p></div><button type="button" data-open-screen="match">→</button>';
     }
     $$('[data-open-screen]',card).forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.openScreen)));
   }
@@ -322,20 +493,35 @@
   }
   renderState();
 
-  statusButton?.addEventListener('click',()=>{
+  statusButton?.addEventListener('click',async()=>{
     showScreen('profile');
     const panel=$('#platformPanel');
     if(panel) panel.hidden=false;
+    const status=$('.status-ok');
+    if(status){status.textContent='CHECKING';status.style.opacity='.65'}
+    try{
+      await fetchApi('health');
+      if(status){status.textContent='ONLINE';status.style.opacity='1'}
+      showToast('KORUAL API가 정상입니다.');
+    }catch(_){
+      if(status){status.textContent='DEGRADED';status.style.opacity='1'}
+      showToast('API 상태를 확인하지 못했습니다.');
+    }
   });
-  $('#showPlatformStatus')?.addEventListener('click',()=>{
+
+  $('#showPlatformStatus')?.addEventListener('click',async()=>{
     const panel=$('#platformPanel');
     if(panel) panel.hidden=!panel.hidden;
+    if(panel&&!panel.hidden){
+      try{await fetchApi('health');showToast('플랫폼 API 정상')}
+      catch(_){showToast('플랫폼 API 확인 실패')}
+    }
   });
 
   $('#resetDemo')?.addEventListener('click',()=>{
-    if(!confirm('KORUAL 베타 요청과 예약 데이터를 초기화할까요?'))return;
+    if(!confirm('이 기기에 저장된 KORUAL 표시 상태를 초기화할까요? 서버 예약 기록은 삭제되지 않습니다.'))return;
     state={requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null};
-    try{localStorage.removeItem(storageKey)}catch(_){}
+    try{localStorage.removeItem(STATE_KEY)}catch(_){}
     if(matchInput) matchInput.value='';
     if(analysisTitle) analysisTitle.textContent='요청을 기다리는 중';
     if(analysisState){analysisState.textContent='READY';analysisState.classList.remove('ready')}
@@ -344,6 +530,8 @@
     if(goQuotes) goQuotes.disabled=true;
     save();
     showScreen('home');
-    showToast('베타 데이터를 초기화했습니다.');
+    showToast('이 기기의 표시 상태를 초기화했습니다.');
   });
+
+  if(state.currentRequest) loadQuotes(state.currentRequest);
 })();
