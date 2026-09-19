@@ -73,14 +73,22 @@ function App(){
   }
 
   return <div className="app">
-    <header className="nav"><div className="logo"><span>✦</span>KORUAL</div><nav><a href="#how">작동 방식</a><a href="#compare">가격 비교</a><a href="#services">생활서비스</a></nav><button className="ghost" onClick={()=>setDetail({name:'KORUAL Account',score:100})}>로그인</button></header>
+    <header className="nav"><div className="logo"><span>✦</span><div><b>KORUAL</b><small>AI LIFE OS</small></div></div><nav><a href="#overview">Overview</a><a href="#compare">가격 비교</a><a href="#services">생활서비스</a><a href="#how">작동 방식</a></nav><div className="nav-actions"><span className={online?'nav-status online':'nav-status offline'}><i/>{online?'ONLINE':'OFFLINE'}</span><button className="ghost" onClick={()=>setDetail({name:'KORUAL Account',score:100})}>계정</button></div></header>
     <main>
-      <section className="hero">
-        <div className="eyebrow"><Sparkles size={15}/> AI LIFE DECISION OS</div>
-        <h1>뭘 해야 할지 모르겠다면,<br/><em>KORUAL</em>에 맡기세요.</h1>
-        <p>생활 문제를 입력하면 필요한 서비스만 골라주고,<br/>시장가격·견적·업체를 한 번에 비교합니다.</p>
+      <section id="overview" className="hero">
+        <div className="hero-glow" aria-hidden="true"/>
+        <div className="eyebrow"><Sparkles size={15}/> KORUAL · AI LIFE DECISION OS</div>
+        <h1>생활의 다음 행동을<br/><em>더 빠르게 결정합니다.</em></h1>
+        <p>한 문장만 입력하면 필요한 서비스, 적정가격, 비교할 업체와 다음 행동을 한 화면에서 정리합니다.</p>
         <div className="search"><Search size={20}/><input aria-label="생활 문제 검색" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&analyze()} placeholder="예: 청라 신축 아파트 입주 준비해줘"/><button onClick={analyze}>AI 분석 <ArrowRight size={17}/></button></div>
-        <div className="trust"><span><ShieldCheck size={15}/> 필요한 것만 추천</span><span><CheckCircle2 size={15}/> 가격 투명성</span><span><Star size={15}/> KORUAL Score</span></div>
+        <div className="trust"><span><ShieldCheck size={15}/> 불필요한 서비스 제외</span><span><CheckCircle2 size={15}/> 적정가격 우선 판단</span><span><Star size={15}/> KORUAL Score</span></div>
+      </section>
+
+      <section className="command-strip" aria-label="KORUAL 핵심 상태">
+        <article><span><Sparkles size={16}/>Decision AI</span><strong>문제 → 해결</strong><small>검색보다 먼저 판단</small></article>
+        <article><span><ShieldCheck size={16}/>Price Guard</span><strong>적정가 검증</strong><small>시장가격 기준 비교</small></article>
+        <article><span><Star size={16}/>KORUAL Score</span><strong>100점 기준</strong><small>가격·품질·위험 통합</small></article>
+        <article><span><Wifi size={16}/>Live Platform</span><strong>{online?'Connected':'Offline'}</strong><small>실시간 연결 상태</small></article>
       </section>
 
       {result && <section className="analysis card"><div><span className="label">KORUAL AI 분석 완료</span><h2>“{result.title}”</h2><p>{result.note}</p></div><button aria-label="분석 닫기" className="close" onClick={()=>setResult(null)}><X size={17}/></button><div className="chips">{services.map(([name])=><button key={name} className={selected.includes(name)?'chip active':'chip'} onClick={()=>toggle(name)}>{name}{selected.includes(name)&&' ✓'}</button>)}</div></section>}
@@ -97,7 +105,8 @@ function App(){
 
       {online && <aside className="card ad-slot" aria-label="광고 영역"><small><Wifi size={13}/> KORUAL AD · 온라인 연결 상태에서만 표시</small></aside>}
     </main>
-    <footer><div className="logo">✦ KORUAL</div><span>생활을 KORUAL 하나로.</span><small>Decision first · Transaction second</small></footer>
+    <footer><div className="logo"><span>✦</span><div><b>KORUAL</b><small>AI LIFE OS</small></div></div><span>생활을 KORUAL 하나로.</span><small>Decision first · Transaction second</small></footer>
+    <nav className="mobile-dock" aria-label="모바일 주요 메뉴"><a href="#overview">홈</a><a href="#compare">가격</a><a href="#services">서비스</a><a href="#how">방식</a></nav>
 
     {detail && <div className="modal-backdrop" onClick={()=>setDetail(null)}><div className="modal card" onClick={e=>e.stopPropagation()}><button aria-label="상세 닫기" className="close" onClick={()=>setDetail(null)}><X size={18}/></button><span className="label">KORUAL SCORE</span><h2>{detail.name}</h2><div className="modal-score"><strong>{detail.score}</strong><span>/ 100</span></div><p>가격 · 품질 · 응답속도 · 추가금 위험 · 취소율을 종합해 산출한 데모 점수입니다.</p><button className="primary" onClick={()=>{setDetail(null);openRequest()}}>비교 목록에 담기 <ArrowRight size={17}/></button></div></div>}
 
