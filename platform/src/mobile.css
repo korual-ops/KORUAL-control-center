@@ -1,0 +1,60 @@
+/* KORUAL Mobile UX Layer — R6.4 */
+:root{
+  --mobile-gutter:clamp(16px,4.5vw,22px);
+  --tap-size:44px;
+}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
+body{overscroll-behavior-y:none}
+button,a,input,select,textarea{touch-action:manipulation}
+button,a,[role="button"],input,select{min-height:var(--tap-size)}
+input,textarea,select{font-size:16px}
+img,svg,video,canvas{max-width:100%;height:auto}
+@supports(padding:max(0px)){
+  body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+}
+@media (max-width:768px){
+  html,body,#root{width:100%;max-width:100%;overflow-x:hidden}
+  body{margin:0}
+  main{min-width:0}
+  header,.topbar,.app-header,.site-header{
+    padding-left:max(var(--mobile-gutter),env(safe-area-inset-left))!important;
+    padding-right:max(var(--mobile-gutter),env(safe-area-inset-right))!important
+  }
+  .container,.shell,.page,.page-shell,.content,.content-shell,.hero,.hero-inner,.section,.section-inner{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    padding-left:var(--mobile-gutter);padding-right:var(--mobile-gutter);
+    box-sizing:border-box
+  }
+  .hero,.hero-inner,[class*="hero"]{grid-template-columns:1fr!important}
+  h1{font-size:clamp(34px,10vw,52px)!important;line-height:1.04!important;letter-spacing:-.045em!important}
+  h2{font-size:clamp(24px,7vw,34px)!important}
+  p{overflow-wrap:anywhere}
+  .grid,.cards,.card-grid,.service-grid,.dashboard-grid,.summary-grid,[class*="grid"]{
+    grid-template-columns:1fr!important
+  }
+  .card,[class*="card"]{max-width:100%;box-sizing:border-box}
+  .nav,.navigation,.desktop-nav,[class*="desktop"]{max-width:100%}
+  .toolbar,.actions,.button-row,.filters,[class*="actions"]{flex-wrap:wrap}
+  .toolbar>*,.actions>*,.button-row>*{min-width:0}
+  table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  dialog,.modal,.sheet,[class*="modal"]{
+    max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - 24px)!important
+  }
+  .sticky,.sticky-bar,[class*="sticky"]{bottom:max(12px,env(safe-area-inset-bottom))}
+}
+@media (max-width:520px){
+  :root{--mobile-gutter:16px}
+  button,.button,.btn,[role="button"]{min-height:46px}
+  .hide-mobile{display:none!important}
+}
+@media (hover:none) and (pointer:coarse){
+  a:hover,button:hover{transform:none!important}
+  button,a,[role="button"]{-webkit-tap-highlight-color:rgba(180,129,55,.12)}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+/* iOS keyboard/viewport stability */
+body.korual-keyboard-open .sticky,
+body.korual-keyboard-open [class*="bottom-nav"]{position:static!important}
