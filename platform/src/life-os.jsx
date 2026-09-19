@@ -35,7 +35,7 @@ import {
   services
 } from './app.js';
 
-const BUILD_ID='2026.09.19-R4';
+const BUILD_ID='2026.09.19-R4.1';
 
 function App(){
   const [query,setQuery]=useState('');
@@ -85,7 +85,9 @@ function App(){
     const root=document.documentElement;
     root.dataset.theme=theme;
     root.style.colorScheme=theme;
-    localStorage.setItem('korual-theme',theme);
+    try{
+      window.localStorage?.setItem('korual-theme',theme);
+    }catch{}
 
     const themeMeta=document.querySelector('meta[name="theme-color"]');
     if(themeMeta){
@@ -96,7 +98,9 @@ function App(){
   useEffect(()=>{
     const media=window.matchMedia('(prefers-color-scheme: dark)');
     const syncSystemTheme=event=>{
-      if(!localStorage.getItem('korual-theme')){
+      let saved=null;
+      try{ saved=window.localStorage?.getItem('korual-theme') || null; }catch{}
+      if(!saved){
         setTheme(event.matches ? 'dark' : 'light');
       }
     };
