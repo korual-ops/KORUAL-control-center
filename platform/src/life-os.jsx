@@ -13,12 +13,32 @@ const services = [
   ['수리·시공','설비·에어컨·커튼 등','상담 필요'],
 ];
 
-const quotes = [
+const demoQuotes = [
   {name:'A 업체', score:94, price:'21만원', delta:'적정', extra:'낮음'},
   {name:'B 업체', score:88, price:'24만원', delta:'+9%', extra:'보통'},
   {name:'C 업체', score:72, price:'31만원', delta:'+41%', extra:'높음'},
 ];
 const quickPrompts = ['청라 신축 입주 준비', '이사 + 입주청소 비교', '인터넷·정수기 한번에', '30평 인테리어 견적'];
+
+function sessionId(){
+  const key='korual-session-id';
+  let value=localStorage.getItem(key);
+  if(!value){ value=crypto.randomUUID(); localStorage.setItem(key,value); }
+  return value;
+}
+function acquisitionMeta(){
+  const params=new URLSearchParams(window.location.search);
+  let referrerHost=null;
+  try{ referrerHost=document.referrer ? new URL(document.referrer).hostname : null; }catch{}
+  return {
+    session_id:sessionId(),
+    utm_source:params.get('utm_source'),
+    utm_medium:params.get('utm_medium'),
+    utm_campaign:params.get('utm_campaign'),
+    referrer_host:referrerHost,
+    landing_path:window.location.pathname
+  };
+}
 
 function App(){
   const [query,setQuery]=useState('');
@@ -27,8 +47,9 @@ function App(){
   const [detail,setDetail]=useState(null);
   const [requestOpen,setRequestOpen]=useState(false);
   const [request,setRequest]=useState({name:'',region:'',date:'',phone:''});
-  const [saved,setSaved]=useState(false);
+  const [saved,setSaved]=useState(null);
   const [saving,setSaving]=useState(false);
+  const [marketSummary,setMarketSummary]=useState({network:{verified_providers:0,price_benchmarks:0},providers:[],benchmark:null});
   const [requestError,setRequestError]=useState('');
   const [online,setOnline]=useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const recommended=useMemo(()=>services.filter(([name])=>selected.includes(name)),[selected]);
@@ -38,6 +59,13 @@ function App(){
     window.addEventListener('online',on); window.addEventListener('offline',off);
     return()=>{window.removeEventListener('online',on);window.removeEventListener('offline',off)};
   },[]);
+  useEffect(()=>{
+    if(!online) return;
+    fetch(`${API_BASE}/marketplace/summary`,{headers:{accept:'application/json'}})
+      .then(response=>response.ok?response.json():Promise.reject(new Error('SUMMARY_FAILED')))
+      .then(payload=>payload?.ok&&setMarketSummary(payload))
+      .catch(()=>{});
+  },[online]);
 
   function analyze(nextQuery){
     const q=(typeof nextQuery==='string' ? nextQuery : query).trim() || '이사 준비';
@@ -47,7 +75,7 @@ function App(){
   }
   function toggle(name){setSelected(v=>v.includes(name)?v.filter(x=>x!==name):[...v,name]);}
   function openRequest(){
-    setSaved(false);
+    setSaved(null);
     setSaving(false);
     setRequestError('');
     setRequestOpen(true);
@@ -62,12 +90,13 @@ function App(){
         method:'POST',
         headers:{'Content-Type':'application/json'},
         credentials:'include',
-        body:JSON.stringify({services:selected,...request})
+        body:JSON.stringify({services:selected,...request,...acquisitionMeta()})
       });
       const payload=await response.json().catch(()=>({}));
       if(!response.ok) throw new Error(payload.error || 'SERVICE_REQUEST_FAILED');
-      setSaved(true);
+      setSaved(payload.request || {status:'NEW'});
       setRequest({name:'',region:'',date:'',phone:''});
+      setMarketSummary(current=>({...current, last_request_code:payload.request?.request_code || null}));
     }catch(error){
       const message=error.message==='OFFLINE'?'인터넷 연결이 없어 접수할 수 없습니다.':error.message==='RATE_LIMITED'?'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.':'견적 요청 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
       setRequestError(message);
@@ -105,13 +134,13 @@ function App(){
         <article><span><Sparkles size={16}/>Decision AI</span><strong>문제 → 해결</strong><small>검색보다 먼저 판단</small></article>
         <article><span><ShieldCheck size={16}/>Price Guard</span><strong>적정가 검증</strong><small>시장가격 기준 비교</small></article>
         <article><span><Star size={16}/>KORUAL Score</span><strong>100점 기준</strong><small>가격·품질·위험 통합</small></article>
-        <article><span><Wifi size={16}/>Live Platform</span><strong>{online?'Connected':'Offline'}</strong><small>실시간 연결 상태</small></article>
+        <article><span><Wifi size={16}/>Data Network</span><strong>{online?'Connected':'Offline'}</strong><small>{marketSummary.network?.verified_providers || 0} 검증업체 · {marketSummary.network?.price_benchmarks || 0} 가격데이터</small></article>
       </section>
 
       {result && <section className="analysis card"><div><span className="label">KORUAL AI 분석 완료</span><h2>“{result.title}”</h2><p>{result.note}</p></div><button aria-label="분석 닫기" className="close" onClick={()=>setResult(null)}><X size={17}/></button><div className="chips">{services.map(([name])=><button key={name} className={selected.includes(name)?'chip active':'chip'} onClick={()=>toggle(name)}>{name}{selected.includes(name)&&' ✓'}</button>)}</div></section>}
 
-      <section id="compare" className="section"><div className="section-head"><div><span className="label">PRICE INTELLIGENCE</span><h2>가격을 먼저 판단합니다.</h2><p>싼 업체를 고르는 것이 아니라, <strong>적정가격인지</strong>부터 확인합니다.</p></div><span className="live"><i/> LIVE BETA</span></div>
-        <div className="price-card card"><div className="price-main"><span>입주청소 · 30평 기준</span><strong>21만원</strong><small>시장가격 18–25만원 · KORUAL 적정가</small></div><div className="price-meter"><div><span>적정</span><b>21만원</b></div><div className="track"><i/></div><div className="range"><span>18만</span><span>25만</span></div></div><div className="quotes">{quotes.map(q=><article key={q.name}><div className="qtop"><strong>{q.name}</strong><span>★ {q.score}</span></div><b>{q.price}</b><small>{q.delta} · 추가금 위험 {q.extra}</small><button onClick={()=>setDetail(q)}>상세 보기 <ChevronRight size={15}/></button></article>)}</div></div>
+      <section id="compare" className="section"><div className="section-head"><div><span className="label">PRICE INTELLIGENCE</span><h2>가격을 먼저 판단합니다.</h2><p>싼 업체를 고르는 것이 아니라, <strong>적정가격인지</strong>부터 확인합니다.</p></div><span className="live"><i/> DEMO PRICE · LIVE DB READY</span></div>
+        <div className="price-card card"><div className="price-main"><span>입주청소 · 30평 기준</span><strong>21만원</strong><small>시장가격 18–25만원 · KORUAL 적정가</small></div><div className="price-meter"><div><span>적정</span><b>21만원</b></div><div className="track"><i/></div><div className="range"><span>18만</span><span>25만</span></div></div><div className="quotes">{demoQuotes.map(q=><article key={q.name}><div className="qtop"><strong>{q.name}</strong><span>★ {q.score}</span></div><b>{q.price}</b><small>{q.delta} · 추가금 위험 {q.extra}</small><button onClick={()=>setDetail(q)}>상세 보기 <ChevronRight size={15}/></button></article>)}</div></div>
       </section>
 
       <section id="services" className="section"><div className="section-head"><div><span className="label">LIFE SERVICES</span><h2>생활의 다음 단계까지 연결합니다.</h2></div></div><div className="service-grid">{services.map(([name,desc,price])=><button className={selected.includes(name)?'service selected':'service'} key={name} onClick={()=>toggle(name)}><span className="service-icon"><Home size={18}/></span><div><strong>{name}</strong><p>{desc}</p><small>{price}</small></div><ChevronRight size={17}/></button>)}</div></section>
@@ -127,7 +156,7 @@ function App(){
 
     {detail && <div className="modal-backdrop" onClick={()=>setDetail(null)}><div className="modal card" onClick={e=>e.stopPropagation()}><button aria-label="상세 닫기" className="close" onClick={()=>setDetail(null)}><X size={18}/></button><span className="label">KORUAL SCORE</span><h2>{detail.name}</h2><div className="modal-score"><strong>{detail.score}</strong><span>/ 100</span></div><p>가격 · 품질 · 응답속도 · 추가금 위험 · 취소율을 종합해 산출한 데모 점수입니다.</p><button className="primary" onClick={()=>{setDetail(null);openRequest()}}>비교 목록에 담기 <ArrowRight size={17}/></button></div></div>}
 
-    {requestOpen && <div className="modal-backdrop" onClick={()=>setRequestOpen(false)}><form className="modal card" onSubmit={submitRequest} onClick={e=>e.stopPropagation()}><button type="button" aria-label="견적 요청 닫기" className="close" onClick={()=>setRequestOpen(false)}><X size={18}/></button><span className="label">QUOTE REQUEST</span><h2>업체 견적 요청</h2>{saved ? <><div className="modal-score"><CheckCircle2 size={30}/><strong>접수 완료</strong></div><p>견적 요청이 KORUAL 서버에 접수되었습니다. 이제 제휴업체 배정과 견적 수집 단계로 연결할 수 있습니다.</p><button type="button" className="primary" onClick={()=>setRequestOpen(false)}>확인</button></> : <><p>{recommended.map(([n])=>n).join(' · ') || '선택 서비스 없음'}</p><label><MapPin size={15}/> 지역<input required value={request.region} onChange={e=>setRequest({...request,region:e.target.value})} placeholder="예: 인천 청라"/></label><label><CalendarDays size={15}/> 희망일<input required type="date" value={request.date} onChange={e=>setRequest({...request,date:e.target.value})}/></label><label>이름<input required value={request.name} onChange={e=>setRequest({...request,name:e.target.value})} placeholder="성함"/></label><label>연락처<input required inputMode="tel" value={request.phone} onChange={e=>setRequest({...request,phone:e.target.value})} placeholder="연락 가능한 번호"/></label>{requestError&&<p role="alert" className="request-error">{requestError}</p>}<button className="primary" type="submit" disabled={saving}>{saving?'접수 중…':'견적 요청 접수'} {!saving&&<ArrowRight size={17}/>}</button></>}</form></div>}
+    {requestOpen && <div className="modal-backdrop" onClick={()=>setRequestOpen(false)}><form className="modal card" onSubmit={submitRequest} onClick={e=>e.stopPropagation()}><button type="button" aria-label="견적 요청 닫기" className="close" onClick={()=>setRequestOpen(false)}><X size={18}/></button><span className="label">QUOTE REQUEST</span><h2>업체 견적 요청</h2>{saved ? <><div className="modal-score"><CheckCircle2 size={30}/><strong>접수 완료</strong></div><p>견적 요청이 KORUAL 서버에 접수되었습니다. 이제 제휴업체 배정과 견적 수집 단계로 연결됩니다.</p>{saved.request_code&&<div className="request-code"><span>접수번호</span><strong>{saved.request_code}</strong></div>}<button type="button" className="primary" onClick={()=>setRequestOpen(false)}>확인</button></> : <><p>{recommended.map(([n])=>n).join(' · ') || '선택 서비스 없음'}</p><label><MapPin size={15}/> 지역<input required value={request.region} onChange={e=>setRequest({...request,region:e.target.value})} placeholder="예: 인천 청라"/></label><label><CalendarDays size={15}/> 희망일<input required type="date" value={request.date} onChange={e=>setRequest({...request,date:e.target.value})}/></label><label>이름<input required value={request.name} onChange={e=>setRequest({...request,name:e.target.value})} placeholder="성함"/></label><label>연락처<input required inputMode="tel" value={request.phone} onChange={e=>setRequest({...request,phone:e.target.value})} placeholder="연락 가능한 번호"/></label>{requestError&&<p role="alert" className="request-error">{requestError}</p>}<button className="primary" type="submit" disabled={saving}>{saving?'접수 중…':'견적 요청 접수'} {!saving&&<ArrowRight size={17}/>}</button></>}</form></div>}
   </div>
 }
 
