@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { ArrowRight, CheckCircle2, ChevronRight, Home, Search, ShieldCheck, Sparkles, Star, X, Wifi, CalendarDays, MapPin } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronRight, Home, Search, ShieldCheck, Sparkles, Star, X, Wifi, CalendarDays, MapPin, BadgeCheck, BrainCircuit, Gauge, WandSparkles } from 'lucide-react';
 import { createRoot } from 'react-dom/client';
 import './life-os.css';
 
@@ -18,6 +18,7 @@ const quotes = [
   {name:'B 업체', score:88, price:'24만원', delta:'+9%', extra:'보통'},
   {name:'C 업체', score:72, price:'31만원', delta:'+41%', extra:'높음'},
 ];
+const quickPrompts = ['청라 신축 입주 준비', '이사 + 입주청소 비교', '인터넷·정수기 한번에', '30평 인테리어 견적'];
 
 function App(){
   const [query,setQuery]=useState('');
@@ -38,8 +39,9 @@ function App(){
     return()=>{window.removeEventListener('online',on);window.removeEventListener('offline',off)};
   },[]);
 
-  function analyze(){
-    const q=query.trim() || '이사 준비';
+  function analyze(nextQuery){
+    const q=(typeof nextQuery==='string' ? nextQuery : query).trim() || '이사 준비';
+    setQuery(q);
     setResult({title:q, items:['입주청소','인터넷','이사'], note:'현재 입력 기준으로 우선 비교할 서비스를 선별했습니다.'});
     setSelected(['입주청소','인터넷','이사']);
   }
@@ -73,15 +75,30 @@ function App(){
   }
 
   return <div className="app">
-    <header className="nav"><div className="logo"><span>✦</span><div><b>KORUAL</b><small>AI LIFE OS</small></div></div><nav><a href="#overview">Overview</a><a href="#compare">가격 비교</a><a href="#services">생활서비스</a><a href="#how">작동 방식</a></nav><div className="nav-actions"><span className={online?'nav-status online':'nav-status offline'}><i/>{online?'ONLINE':'OFFLINE'}</span><button className="ghost" onClick={()=>setDetail({name:'KORUAL Account',score:100})}>계정</button></div></header>
+    <header className="nav"><div className="logo"><span>✦</span><div><b>KORUAL</b><small>AI LIFE OS</small></div></div><span className="version-badge">2026 BETA</span><nav><a href="#overview">Overview</a><a href="#compare">가격 비교</a><a href="#services">생활서비스</a><a href="#how">작동 방식</a></nav><div className="nav-actions"><span className={online?'nav-status online':'nav-status offline'}><i/>{online?'ONLINE':'OFFLINE'}</span><button className="ghost" onClick={()=>setDetail({name:'KORUAL Account',score:100})}>계정</button></div></header>
     <main>
       <section id="overview" className="hero">
         <div className="hero-glow" aria-hidden="true"/>
-        <div className="eyebrow"><Sparkles size={15}/> KORUAL · AI LIFE DECISION OS</div>
-        <h1>생활의 다음 행동을<br/><em>더 빠르게 결정합니다.</em></h1>
-        <p>한 문장만 입력하면 필요한 서비스, 적정가격, 비교할 업체와 다음 행동을 한 화면에서 정리합니다.</p>
-        <div className="search"><Search size={20}/><input aria-label="생활 문제 검색" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&analyze()} placeholder="예: 청라 신축 아파트 입주 준비해줘"/><button onClick={analyze}>AI 분석 <ArrowRight size={17}/></button></div>
-        <div className="trust"><span><ShieldCheck size={15}/> 불필요한 서비스 제외</span><span><CheckCircle2 size={15}/> 적정가격 우선 판단</span><span><Star size={15}/> KORUAL Score</span></div>
+        <div className="hero-grid">
+          <div className="hero-copy">
+            <div className="eyebrow"><Sparkles size={15}/> KORUAL · AI LIFE DECISION OS</div>
+            <h1>검색보다 먼저,<br/><em>결정부터.</em></h1>
+            <p>생활 문제를 한 문장으로 입력하면 필요한 서비스, 적정가격, 비교할 업체와 다음 행동을 KORUAL이 한 번에 정리합니다.</p>
+            <div className="search"><Search size={20}/><input aria-label="생활 문제 검색" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&analyze()} placeholder="예: 청라 신축 아파트 입주 준비해줘"/><button onClick={()=>analyze()}>AI 분석 <ArrowRight size={17}/></button></div>
+            <div className="quick-prompts" aria-label="빠른 시나리오">{quickPrompts.map(prompt=><button key={prompt} onClick={()=>analyze(prompt)}><WandSparkles size={13}/>{prompt}</button>)}</div>
+            <div className="trust"><span><ShieldCheck size={15}/> 불필요한 서비스 제외</span><span><CheckCircle2 size={15}/> 적정가격 우선 판단</span><span><Star size={15}/> KORUAL Score</span></div>
+          </div>
+          <aside className="decision-preview" aria-label="KORUAL 결정 예시">
+            <div className="preview-head"><div><span className="preview-kicker">LIVE DECISION</span><strong>KORUAL AI 판단</strong></div><span className="preview-live"><i/> LIVE</span></div>
+            <div className="preview-situation"><span>현재 상황</span><strong>{query || '청라 신축 아파트 입주 준비'}</strong><small>입력 내용을 기반으로 필요한 행동을 정리합니다.</small></div>
+            <div className="preview-grid">
+              <article><BrainCircuit size={18}/><span>추천 서비스</span><strong>3개</strong><small>청소 · 인터넷 · 이사</small></article>
+              <article><Gauge size={18}/><span>적정가격</span><strong>18–25만</strong><small>입주청소 30평 기준</small></article>
+            </div>
+            <div className="preview-provider"><span><BadgeCheck size={17}/> 추천 업체</span><strong>A 업체 <em>94점</em></strong><small>가격 적정 · 추가금 위험 낮음</small></div>
+            <button className="preview-cta" onClick={()=>analyze(query || '청라 신축 아파트 입주 준비')}>이 조건으로 분석 <ArrowRight size={16}/></button>
+          </aside>
+        </div>
       </section>
 
       <section className="command-strip" aria-label="KORUAL 핵심 상태">
