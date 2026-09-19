@@ -7,10 +7,16 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  BellRing,
+  Building2,
   CircleDollarSign,
+  Database,
   Gauge,
   Home,
+  LayoutDashboard,
   Layers3,
+  Map,
+  Plane,
   Radar,
   Route,
   MapPin,
@@ -35,7 +41,18 @@ import {
   services
 } from './app.js';
 
-const BUILD_ID='2026.09.19-R4.1';
+const BUILD_ID='2026.09.19-R5';
+
+const platformModules=[
+  {id:'life',title:'생활서비스',desc:'청소·이사·인터넷·정수기·인테리어',status:'LIVE',icon:Home,target:'#services'},
+  {id:'price',title:'가격비교',desc:'시장 기준가·견적·추가비용 위험',status:'LIVE',icon:CircleDollarSign,target:'#compare'},
+  {id:'travel',title:'여행·항공',desc:'항공편·여정·여행 플래너',status:'BETA',icon:Plane},
+  {id:'map',title:'지도 허브',desc:'지역·공항·서비스 거점 탐색',status:'BETA',icon:Map},
+  {id:'notice',title:'공지·운영',desc:'공지·점검·긴급 알림 센터',status:'READY',icon:BellRing},
+  {id:'partner',title:'파트너',desc:'업체·공급사·제휴 연결 관리',status:'BETA',icon:Building2},
+  {id:'data',title:'데이터',desc:'요청·예약·가격·연동 현황',status:'LIVE',icon:Database,target:'#data-overview'},
+  {id:'control',title:'Control Center',desc:'운영·보안·자동화 통합 관제',status:'BETA',icon:LayoutDashboard}
+];
 
 function App(){
   const [query,setQuery]=useState('');
@@ -47,13 +64,21 @@ function App(){
   const [saved,setSaved]=useState(null);
   const [saving,setSaving]=useState(false);
   const [marketSummary,setMarketSummary]=useState({
-    network:{verified_providers:0,price_benchmarks:0},
+    network:{
+      verified_providers:0,
+      price_benchmarks:0,
+      integrations_total:0,
+      integrations_connected:0,
+      service_requests:0,
+      bookings:0
+    },
     providers:[],
     benchmark:null
   });
   const [marketLoading,setMarketLoading]=useState(true);
   const [marketError,setMarketError]=useState(false);
   const [requestError,setRequestError]=useState('');
+  const [moduleDetail,setModuleDetail]=useState(null);
   const [online,setOnline]=useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [theme,setTheme]=useState(
     typeof document === 'undefined'
@@ -354,6 +379,75 @@ function App(){
         </article>
       </section>
 
+      <section className="platform-hub section" id="platform-hub">
+        <div className="section-head hub-head">
+          <div>
+            <span className="label">KORUAL PLATFORM</span>
+            <h2>기능은 줄이지 않고, 필요한 순간에 꺼내 씁니다.</h2>
+            <p>홈은 간결하게 유지하고 생활·여행·지도·공지·파트너·데이터·운영 기능은 하나의 플랫폼 안에서 연결합니다.</p>
+          </div>
+          <span className="hub-network"><i/>{marketSummary.network?.integrations_connected || 0}/{marketSummary.network?.integrations_total || 0} 연동</span>
+        </div>
+
+        <div className="platform-module-grid">
+          {platformModules.map(module=>{
+            const Icon=module.icon;
+            const liveStatus=module.id==='control'
+              ? `${marketSummary.network?.integrations_connected || 0}/${marketSummary.network?.integrations_total || 0}`
+              : module.status;
+            const openModule=()=>{
+              if(module.target){
+                document.querySelector(module.target)?.scrollIntoView({behavior:'smooth',block:'start'});
+              }else{
+                setModuleDetail({...module,status:liveStatus});
+              }
+            };
+            return <button className="platform-module" key={module.id} onClick={openModule}>
+              <span className="module-icon"><Icon size={20}/></span>
+              <div>
+                <span className="module-status">{liveStatus}</span>
+                <strong>{module.title}</strong>
+                <small>{module.desc}</small>
+              </div>
+              <ChevronRight size={17}/>
+            </button>;
+          })}
+        </div>
+      </section>
+
+      <section className="data-overview section" id="data-overview">
+        <div className="section-head">
+          <div>
+            <span className="label">LIVE DATA OVERVIEW</span>
+            <h2>실제 연결된 데이터 상태를 숨기지 않습니다.</h2>
+            <p>현재 Beta 데이터베이스와 외부 연동 상태를 그대로 보여줍니다. 데이터가 없는 항목은 0으로 표시합니다.</p>
+          </div>
+          <span className={marketError?'live':'live live-data'}><i/>{marketError?'연결 확인':'DB CONNECTED'}</span>
+        </div>
+        <div className="data-metric-grid">
+          <article>
+            <span>시스템 연동</span>
+            <strong>{marketSummary.network?.integrations_connected || 0}<em>/ {marketSummary.network?.integrations_total || 0}</em></strong>
+            <small>connected / total</small>
+          </article>
+          <article>
+            <span>검증 업체</span>
+            <strong>{marketSummary.network?.verified_providers || 0}</strong>
+            <small>실제 verified provider</small>
+          </article>
+          <article>
+            <span>견적 요청</span>
+            <strong>{marketSummary.network?.service_requests || 0}</strong>
+            <small>service request 누적</small>
+          </article>
+          <article>
+            <span>예약</span>
+            <strong>{marketSummary.network?.bookings || 0}</strong>
+            <small>booking 누적</small>
+          </article>
+        </div>
+      </section>
+
       <section className="visual-story" aria-label="KORUAL 시각적 서비스 흐름">
         <article className="visual-card visual-home">
           <div className="visual-card-art">
@@ -552,6 +646,23 @@ function App(){
       <a href="#services">서비스</a>
       <a href="#how">방식</a>
     </nav>
+
+    {moduleDetail && <div className="modal-backdrop" onClick={()=>setModuleDetail(null)}>
+      <div className="modal card module-modal" onClick={event=>event.stopPropagation()}>
+        <button aria-label="기능 상세 닫기" className="close" onClick={()=>setModuleDetail(null)}><X size={18}/></button>
+        <span className="label">PLATFORM MODULE · {moduleDetail.status}</span>
+        <h2>{moduleDetail.title}</h2>
+        <p>{moduleDetail.desc}</p>
+        <div className="module-modal-info">
+          <span>현재 상태</span>
+          <strong>{moduleDetail.status}</strong>
+          <small>{moduleDetail.status==='BETA' || moduleDetail.status==='READY'
+            ? '기능 구조는 플랫폼에 포함하고 실제 운영 데이터·권한 연결을 순차 적용합니다.'
+            : '현재 Beta 운영 데이터와 연결된 기능입니다.'}</small>
+        </div>
+        <button className="primary" onClick={()=>setModuleDetail(null)}>확인</button>
+      </div>
+    </div>}
 
     {detail && <div className="modal-backdrop" onClick={()=>setDetail(null)}>
       <div className="modal card" onClick={e=>e.stopPropagation()}>
