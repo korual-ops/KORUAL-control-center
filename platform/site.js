@@ -698,7 +698,7 @@
         stage.style.setProperty('--rx',(-y*6).toFixed(2)+'deg');
         const core=$('.meta-core',stage);
         if(core)core.style.transform='translateZ(48px) rotateX('+(-y*6).toFixed(2)+'deg) rotateY('+(x*7).toFixed(2)+'deg)';
-        const nodes=$('.meta-node',stage);
+        const nodes=$$('.meta-node',stage);
         nodes.forEach((node,index)=>{
           const depth=10+(index%3)*4;
           node.style.translate=(x*depth).toFixed(1)+'px '+(y*depth).toFixed(1)+'px';
@@ -708,7 +708,7 @@
     stage.addEventListener('pointerleave',()=>{
       const core=$('.meta-core',stage);
       if(core)core.style.transform='';
-      $('.meta-node',stage).forEach(node=>node.style.translate='');
+      $$('.meta-node',stage).forEach(node=>node.style.translate='');
     });
   }
   initMeta3D();
