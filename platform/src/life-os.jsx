@@ -7,99 +7,28 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
-  Droplets,
   Gauge,
   Home,
   Layers3,
   MapPin,
-  Paintbrush,
   Search,
   ShieldCheck,
   Sparkles,
   Star,
-  Truck,
   WandSparkles,
   Wifi,
-  Wrench,
   X
 } from 'lucide-react';
-import { createRoot } from 'react-dom/client';
-import './life-os.css';
-
-const API_BASE = import.meta.env.VITE_KORUAL_API_BASE_URL || 'https://dtmmjkikyfgkeimhevso.supabase.co/functions/v1/korual-marketplace';
-
-const services = [
-  ['입주청소','새 집 입주 전 필수 서비스','18–25만원'],
-  ['이사','지역·거리·짐 기준 비교','35–80만원'],
-  ['인터넷','통신사별 월요금·혜택 비교','월 2–4만원'],
-  ['정수기','렌탈료·약정·혜택 비교','월 2–5만원'],
-  ['인테리어','공사 범위별 견적 비교','상담 필요'],
-  ['수리·시공','설비·에어컨·커튼 등','상담 필요'],
-];
-
-const serviceIcons = {
-  '입주청소': Sparkles,
-  '이사': Truck,
-  '인터넷': Wifi,
-  '정수기': Droplets,
-  '인테리어': Paintbrush,
-  '수리·시공': Wrench,
-};
-
-const demoQuotes = [
-  {name:'A 업체', score:94, price:'21만원', delta:'적정', extra:'낮음'},
-  {name:'B 업체', score:88, price:'24만원', delta:'+9%', extra:'보통'},
-  {name:'C 업체', score:72, price:'31만원', delta:'+41%', extra:'높음'},
-];
-
-const quickPrompts = [
-  '청라 신축 입주 준비',
-  '이사 + 입주청소 비교',
-  '인터넷·정수기 한번에',
-  '30평 인테리어 견적'
-];
-
-const money = value => typeof value === 'number'
-  ? new Intl.NumberFormat('ko-KR').format(value) + '원'
-  : value;
-
-function sessionId(){
-  const key='korual-session-id';
-  let value=localStorage.getItem(key);
-  if(!value){
-    value=crypto.randomUUID();
-    localStorage.setItem(key,value);
-  }
-  return value;
-}
-
-function acquisitionMeta(){
-  const params=new URLSearchParams(window.location.search);
-  let referrerHost=null;
-  try{
-    referrerHost=document.referrer ? new URL(document.referrer).hostname : null;
-  }catch{}
-  return {
-    session_id:sessionId(),
-    utm_source:params.get('utm_source'),
-    utm_medium:params.get('utm_medium'),
-    utm_campaign:params.get('utm_campaign'),
-    referrer_host:referrerHost,
-    landing_path:window.location.pathname
-  };
-}
-
-function inferServices(text){
-  const q=String(text || '');
-  const picked=[];
-  if(/입주|청소|신축/.test(q)) picked.push('입주청소');
-  if(/이사|이동|짐/.test(q)) picked.push('이사');
-  if(/인터넷|와이파이|wifi/i.test(q)) picked.push('인터넷');
-  if(/정수기|물/.test(q)) picked.push('정수기');
-  if(/인테리어|리모델링|30평|평/.test(q)) picked.push('인테리어');
-  if(/수리|시공|에어컨|커튼|설비/.test(q)) picked.push('수리·시공');
-  return picked.length ? [...new Set(picked)] : ['입주청소','인터넷','이사'];
-}
+import {
+  createServiceRequest,
+  demoQuotes,
+  fetchMarketplaceSummary,
+  inferServices,
+  money,
+  quickPrompts,
+  serviceIcons,
+  services
+} from './app.js';
 
 function App(){
   const [query,setQuery]=useState('');
@@ -159,19 +88,14 @@ function App(){
     const controller=new AbortController();
     setMarketLoading(true);
     setMarketError(false);
-    fetch(API_BASE + '/marketplace/summary',{
-      headers:{accept:'application/json'},
-      signal:controller.signal
-    })
-      .then(response=>response.ok ? response.json() : Promise.reject(new Error('SUMMARY_FAILED')))
-      .then(payload=>{
-        if(!payload?.ok) throw new Error('SUMMARY_FAILED');
-        setMarketSummary(payload);
-      })
+
+    fetchMarketplaceSummary(controller.signal)
+      .then(setMarketSummary)
       .catch(error=>{
         if(error.name!=='AbortError') setMarketError(true);
       })
       .finally(()=>setMarketLoading(false));
+
     return()=>controller.abort();
   },[online]);
 
@@ -209,18 +133,10 @@ function App(){
     setRequestError('');
     try{
       if(!online) throw new Error('OFFLINE');
-      const response=await fetch(API_BASE + '/service-requests',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        credentials:'omit',
-        body:JSON.stringify({
-          services:selected,
-          ...request,
-          ...acquisitionMeta()
-        })
+      const payload=await createServiceRequest({
+        services:selected,
+        ...request
       });
-      const payload=await response.json().catch(()=>({}));
-      if(!response.ok) throw new Error(payload.error || 'SERVICE_REQUEST_FAILED');
       setSaved(payload.request || {status:'NEW'});
       setRequest({name:'',region:'',date:'',phone:''});
     }catch(error){
@@ -584,4 +500,4 @@ function App(){
   </div>;
 }
 
-createRoot(document.getElementById('root')).render(<App/>);
+export default App;
