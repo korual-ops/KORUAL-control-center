@@ -48,6 +48,18 @@ const handler = async (req, res) => {
       return res.end(JSON.stringify({ok:true,app:'korual-beta',runtime:'railway'}));
     }
 
+    if (url.pathname === '/__boot') {
+      const stage = String(url.searchParams.get('stage') || 'unknown')
+        .replace(/[^a-z0-9_-]/gi, '')
+        .slice(0, 40);
+      const build = String(url.searchParams.get('build') || '')
+        .replace(/[^a-z0-9._-]/gi, '')
+        .slice(0, 40);
+      console.log(`KORUAL_BOOT stage=${stage || 'unknown'} build=${build || 'unknown'}`);
+      res.writeHead(204, {'Cache-Control':'no-store'});
+      return res.end();
+    }
+
     let path = securePath(url.pathname === '/' ? '/index.html' : url.pathname);
     try {
       const info = await stat(path);
