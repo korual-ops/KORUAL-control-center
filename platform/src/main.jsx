@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Activity, BellRing, Boxes, Calculator, CalendarClock, Check, ChevronRight, CircleAlert, Cloud, Code2, ExternalLink, FileChartColumn, Home, Link2, PackageCheck, PanelLeftClose, PanelLeftOpen, Pencil, Plus, RefreshCw, Search, Settings, Sheet, ShieldCheck, Sparkles, Trash2, TrendingUp, Truck, Workflow, X } from 'lucide-react';
+import { Activity, BellRing, Boxes, Calculator, CalendarClock, Check, ChevronRight, CircleAlert, Cloud, Code2, Command, Database, ExternalLink, FileChartColumn, Home, Link2, PackageCheck, PanelLeftClose, PanelLeftOpen, Pencil, Plus, RefreshCw, Rocket, Search, Settings, Sheet, ShieldCheck, Sparkles, Trash2, TrendingUp, Truck, Workflow, X, Zap } from 'lucide-react';
 import { getPlatformHealth, runKorualAction } from './lib/korualApi.js';
 import './styles.css';
 import './crud.css';
@@ -21,9 +21,12 @@ const integrations = [
   { name: 'Google Drive', group: '데이터', state: 'connected', icon: Cloud, url: links.drive },
   { name: 'Google Sheets', group: '운영 DB', state: 'connected', icon: Sheet, url: links.sheets },
   { name: 'GitHub', group: '소스', state: 'connected', icon: Workflow, url: links.github },
-  { name: 'Vercel', group: '배포', state: 'connected', icon: Sparkles, url: links.vercel },
+  { name: 'Vercel', group: '배포', state: 'degraded', icon: Sparkles, url: links.vercel },
   { name: 'Apps Script', group: '자동화', state: 'connected', icon: Code2, url: links.script },
+  { name: 'Supabase', group: '데이터베이스', state: 'connected', icon: Database },
+  { name: 'HubSpot', group: 'CRM', state: 'connected', icon: Activity },
   { name: 'Cafe24', group: '커머스', state: 'planned', icon: Boxes },
+  { name: 'OpenAI', group: 'AI', state: 'planned', icon: Sparkles },
   { name: 'Kakao 알림', group: '메시지', state: 'planned', icon: Activity },
   { name: '여행 API', group: '파트너', state: 'planned', icon: Link2 },
 ];
@@ -88,11 +91,21 @@ function App() {
   const [running, setRunning] = useState(null);
   const [events, setEvents] = useState([]);
   const [activeNav, setActiveNav] = useState('overview');
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('korual-sidebar-collapsed') === 'true');
   async function refreshHealth() { setHealth({ state: 'loading' }); try { setHealth({ state: 'ready', ...await getPlatformHealth() }); } catch (error) { setHealth({ state: 'error', message: error.message }); } }
   useEffect(() => { refreshHealth(); }, []);
   useEffect(() => { document.documentElement.lang = language; localStorage.setItem('korual-language', language); }, [language]);
   useEffect(() => { localStorage.setItem('korual-sidebar-collapsed', String(sidebarCollapsed)); }, [sidebarCollapsed]);
+  useEffect(() => {
+    function onKeyDown(event) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setCommandOpen((value) => !value); }
+      if (event.key === 'Escape') setCommandOpen(false);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
   async function execute(action) {
     setRunning(action.id);
     try { const result = await runKorualAction(action.id); setEvents((items) => [{ id: crypto.randomUUID(), title: action.title, ok: result.ok !== false, detail: '자동화가 정상 완료됐습니다.', at: new Date() }, ...items].slice(0, 8)); }
@@ -101,23 +114,43 @@ function App() {
   }
   function addEvent(title, ok, detail) { setEvents((items) => [{ id: crypto.randomUUID(), title, ok, detail, at: new Date() }, ...items].slice(0, 8)); }
   const system = useMemo(() => health.state === 'loading' ? { label: '확인 중', tone: 'pending' } : health.state === 'ready' && health.ok ? { label: '시스템 정상', tone: 'good' } : { label: '연결 점검 필요', tone: 'bad' }, [health]);
+  const connectedCount = integrations.filter((item) => item.state === 'connected').length;
+  const degradedCount = integrations.filter((item) => item.state === 'degraded').length;
+  const plannedCount = integrations.filter((item) => item.state === 'planned').length;
+  const commandItems = useMemo(() => {
+    const items = [
+      ...navItems.map(({ id, label, icon }) => ({ id: `nav-${id}`, label, description: '화면 이동', icon, kind: 'nav', target: id })),
+      ...actions.map((action) => ({ id: `action-${action.id}`, label: action.title, description: action.description, icon: action.icon, kind: 'action', action })),
+      ...integrations.filter((item) => item.url).map((item) => ({ id: `integration-${item.name}`, label: item.name, description: `${item.group} · ${item.state === 'connected' ? '연결됨' : item.state === 'degraded' ? '점검 필요' : '준비'}`, icon: item.icon, kind: 'link', url: item.url })),
+    ];
+    const query = commandQuery.trim().toLowerCase();
+    return (query ? items.filter((item) => `${item.label} ${item.description}`.toLowerCase().includes(query)) : items).slice(0, 10);
+  }, [commandQuery]);
   function navigate(id) { setActiveNav(id); document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  function runCommand(item) {
+    setCommandOpen(false); setCommandQuery('');
+    if (item.kind === 'nav') navigate(item.target);
+    if (item.kind === 'action') execute(item.action);
+    if (item.kind === 'link') window.open(item.url, '_blank', 'noopener,noreferrer');
+  }
   return <div className={`shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
     <a className="skip-link" href="#overview">본문으로 건너뛰기</a>
     <aside className="sidebar" aria-label="주요 메뉴"><div className="brand"><span className="brand-lockup"><span className="brand-mark">K</span><span className="brand-name">KORUAL</span></span><button className="sidebar-toggle" type="button" aria-label={sidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'} aria-pressed={sidebarCollapsed} onClick={() => setSidebarCollapsed((value) => !value)}>{sidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}</button></div><nav className="side-nav">{navItems.map(({ id, label, icon: Icon }) => <button key={id} title={sidebarCollapsed ? label : undefined} aria-current={activeNav === id ? 'page' : undefined} className={activeNav === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={19} /><span>{label}</span></button>)}</nav><div className="sidebar-bottom"><a className="sheet-link" href={sheetsUrl} target="_blank" rel="noreferrer" title="운영 시트 열기"><Sheet size={18} /><span>운영 시트 열기</span><ExternalLink size={14} /></a><div className="sidebar-status"><span><StatusDot tone={system.tone} />{system.label}</span><small>보안 연결 활성화</small></div></div></aside>
     <main className="workspace">
-      <header id="overview" className="page-header"><div><span className="page-kicker">KORUAL CONTROL CENTER</span><h1>{t.title}</h1><p>{t.subtitle}</p></div><div className="header-actions"><select className="language-select" value={language} onChange={(e) => setLanguage(e.target.value)} aria-label="Language"><option value="ko">한국어</option><option value="en">English</option><option value="zh">中文</option><option value="ja">日本語</option><option value="vi">Tiếng Việt</option></select><div className="global-status"><StatusDot tone={system.tone} />{system.label}</div><button className="outline-button" onClick={refreshHealth} disabled={health.state === 'loading'}><RefreshCw size={17} className={health.state === 'loading' ? 'spin' : ''} /><span>{t.refresh}</span></button></div></header>
-      <section className="overview-strip" aria-label="운영 요약"><article><span><Activity size={16} />Platform</span><strong>{system.label}</strong><small>실시간 상태 확인</small></article><article><span><Link2 size={16} />Integrations</span><strong>{integrations.filter((item) => item.state === 'connected').length}</strong><small>활성 연결</small></article><article><span><Workflow size={16} />Automations</span><strong>{actions.length}</strong><small>핵심 실행 작업</small></article><article><span><Sheet size={16} />Operations DB</span><strong>{health.spreadsheetId ? 'Connected' : 'Check'}</strong><small>Google Sheets</small></article></section>
+      <header id="overview" className="page-header"><div><span className="page-kicker">KORUAL CONTROL CENTER</span><h1>{t.title}</h1><p>{t.subtitle}</p></div><div className="header-actions"><button className="command-trigger" type="button" onClick={() => setCommandOpen(true)} aria-label="빠른 실행 열기"><Command size={16}/><span>빠른 실행</span><kbd>⌘/Ctrl K</kbd></button><select className="language-select" value={language} onChange={(e) => setLanguage(e.target.value)} aria-label="Language"><option value="ko">한국어</option><option value="en">English</option><option value="zh">中文</option><option value="ja">日本語</option><option value="vi">Tiếng Việt</option></select><div className="global-status"><StatusDot tone={system.tone} />{system.label}</div><button className="outline-button" onClick={refreshHealth} disabled={health.state === 'loading'}><RefreshCw size={17} className={health.state === 'loading' ? 'spin' : ''} /><span>{t.refresh}</span></button></div></header>
+      {(degradedCount > 0 || system.tone === 'bad') && <section className="attention-banner" role="status"><div className="attention-icon"><Rocket size={18}/></div><div className="attention-copy"><span>ATTENTION CENTER</span><strong>배포 연결 점검이 필요합니다.</strong><p>핵심 운영은 유지하면서 Vercel 팀 권한과 최신 배포 상태를 우선 확인하세요.</p></div><button type="button" onClick={() => navigate('integrations')}>연동 허브 <ChevronRight size={16}/></button></section>}
+      <section className="overview-strip" aria-label="운영 요약"><article><span><Activity size={16} />Platform</span><strong>{system.label}</strong><small>실시간 상태 확인</small></article><article><span><Link2 size={16} />Integrations</span><strong>{connectedCount}/{integrations.length}</strong><small>{degradedCount} 점검 · {plannedCount} 준비</small></article><article><span><Zap size={16} />Automations</span><strong>{actions.length}</strong><small>핵심 실행 작업</small></article><article><span><Sheet size={16} />Operations DB</span><strong>{health.spreadsheetId ? 'Connected' : 'Check'}</strong><small>Google Sheets</small></article></section>
       <div className="primary-grid"><section id="automation" className="panel automation-panel"><div className="panel-heading"><div><h2>운영 자동화 개요</h2><p>중요 작업만 직접 실행하고 결과를 확인합니다.</p></div><ShieldCheck size={20} /></div><div className="automation-list">{actions.map((action) => { const Icon = action.icon; const active = running === action.id; return <article className="automation-row" key={action.id}><div className="square-icon"><Icon size={22} /></div><div className="automation-copy"><h3>{action.title}</h3><p>{action.description}</p></div><div className="cadence"><CalendarClock size={15} />{action.cadence}</div><div className="row-state"><StatusDot tone={active ? 'pending' : 'good'} />{active ? '실행 중' : '대기'}</div><button className="run-button" disabled={Boolean(running)} onClick={() => execute(action)}>{active && <RefreshCw size={16} className="spin" />}<span>{active ? '실행 중' : '지금 실행'}</span>{!active && <ChevronRight size={16} />}</button></article>; })}</div></section>
-        <aside className="right-rail"><section className="panel health-panel"><div className="panel-heading compact"><h2>시스템 상태</h2></div><dl><div><dt>자동화 API</dt><dd><StatusDot tone={health.upstream === 'configured' ? 'good' : 'bad'} />{health.upstream === 'configured' ? '정상' : '확인'}</dd></div><div><dt>운영 데이터</dt><dd><StatusDot tone={health.spreadsheetId ? 'good' : 'pending'} />{health.spreadsheetId ? '정상' : '확인'}</dd></div><div><dt>GitHub 배포</dt><dd><StatusDot />정상</dd></div><div><dt>보안 경계</dt><dd><StatusDot />Server only</dd></div></dl></section><section className="panel sheet-panel"><div><h2>운영 시트</h2><p>Google Sheets 데이터베이스에서 세부 내용을 관리합니다.</p></div><a href={sheetsUrl} target="_blank" rel="noreferrer"><Sheet size={17} />운영 시트 열기<ExternalLink size={14} /></a></section></aside></div>
+        <aside className="right-rail"><section className="panel health-panel"><div className="panel-heading compact"><h2>시스템 상태</h2></div><dl><div><dt>자동화 API</dt><dd><StatusDot tone={health.upstream === 'configured' ? 'good' : 'bad'} />{health.upstream === 'configured' ? '정상' : '확인'}</dd></div><div><dt>운영 데이터</dt><dd><StatusDot tone={health.spreadsheetId ? 'good' : 'pending'} />{health.spreadsheetId ? '정상' : '확인'}</dd></div><div><dt>GitHub 소스</dt><dd><StatusDot />정상</dd></div><div><dt>Vercel 배포</dt><dd><StatusDot tone="bad" />점검</dd></div><div><dt>보안 경계</dt><dd><StatusDot />Server only</dd></div></dl></section><section className="panel sheet-panel"><div><h2>운영 시트</h2><p>Google Sheets 데이터베이스에서 세부 내용을 관리합니다.</p></div><a href={sheetsUrl} target="_blank" rel="noreferrer"><Sheet size={17} />운영 시트 열기<ExternalLink size={14} /></a></section></aside></div>
       <DataManager addEvent={addEvent} t={t} />
-      <div className="secondary-grid"><section id="integrations" className="panel integrations-panel"><div className="panel-heading"><div><h2>연동 허브</h2><p>권한과 역할이 명확한 핵심 연결만 관리합니다.</p></div><span className="count-label">{integrations.filter((item) => item.state === 'connected').length} 연결</span></div><div className="integration-grid">{integrations.map(({ name, group, state, icon: Icon, url }) => { const body = <><div className="integration-icon"><Icon size={21} /></div><div><strong>{name}</strong><small>{group}</small></div><span className={`connection ${state}`}><StatusDot tone={state === 'connected' ? 'good' : 'pending'} />{state === 'connected' ? '연결됨' : '준비'}</span>{url && <ExternalLink className="external" size={14} />}</>; return url ? <a key={name} className="integration-item" href={url} target="_blank" rel="noreferrer">{body}</a> : <div key={name} className="integration-item planned" aria-label={`${name} 연동 준비 중`}>{body}</div>; })}</div></section>
+      <div className="secondary-grid"><section id="integrations" className="panel integrations-panel"><div className="panel-heading"><div><h2>연동 허브</h2><p>권한과 역할이 명확한 핵심 연결만 관리합니다.</p></div><span className="count-label">{connectedCount} 정상 · {degradedCount} 점검</span></div><div className="integration-grid">{integrations.map(({ name, group, state, icon: Icon, url }) => { const tone = state === 'connected' ? 'good' : state === 'degraded' ? 'bad' : 'pending'; const stateLabel = state === 'connected' ? '연결됨' : state === 'degraded' ? '점검' : '준비'; const body = <><div className="integration-icon"><Icon size={21} /></div><div><strong>{name}</strong><small>{group}</small></div><span className={`connection ${state}`}><StatusDot tone={tone} />{stateLabel}</span>{url && <ExternalLink className="external" size={14} />}</>; return url ? <a key={name} className={`integration-item ${state}`} href={url} target="_blank" rel="noreferrer">{body}</a> : <div key={name} className={`integration-item ${state}`} aria-label={`${name} ${stateLabel}`}>{body}</div>; })}</div></section>
         <section id="activity" className="panel activity-panel"><div className="panel-heading"><div><h2>최근 활동</h2><p>자동화 실행 결과가 현재 브라우저에 표시됩니다.</p></div><Activity size={20} /></div>{events.length === 0 ? <div className="empty-state"><div className="empty-icon"><Workflow size={24} /></div><strong>실행 기록이 없습니다</strong><p>자동화를 실행하면 결과와 시간이 여기에 기록됩니다.</p></div> : <ul className="event-list">{events.map((event) => <li key={event.id}><span className={`event-icon ${event.ok ? 'success' : 'failure'}`}>{event.ok ? <Check size={16} /> : <CircleAlert size={16} />}</span><div><strong>{event.title}</strong><p>{event.detail}</p></div><time>{event.at.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</time></li>)}</ul>}</section></div>
       <DecisionCenter />
       <Roadmap />
       <section id="settings" className="guardrail"><ShieldCheck size={20} /><div><strong>승인 기반 운영</strong><p>데이터 조회와 동기화는 자동화하고, 발주·결제·환불·고객 메시지는 운영자 승인 후 실행합니다.</p></div></section>
     </main>
     <nav className="mobile-nav" aria-label="모바일 주요 메뉴">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={activeNav === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={19} /><span>{label.replace('KORUAL ', '')}</span></button>)}</nav>
+    {commandOpen && <div className="command-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setCommandOpen(false)}><section className="command-palette" role="dialog" aria-modal="true" aria-label="KORUAL 빠른 실행"><div className="command-search"><Search size={19}/><input autoFocus value={commandQuery} onChange={(event) => setCommandQuery(event.target.value)} placeholder="메뉴, 자동화, 연결 검색..."/><kbd>ESC</kbd></div><div className="command-results">{commandItems.length ? commandItems.map((item) => { const Icon = item.icon; return <button key={item.id} type="button" onClick={() => runCommand(item)}><span className="command-item-icon"><Icon size={17}/></span><span><strong>{item.label}</strong><small>{item.description}</small></span><ChevronRight size={15}/></button>; }) : <div className="command-empty"><Search size={20}/><span>일치하는 명령이 없습니다.</span></div>}</div><div className="command-footer"><span><Command size={13}/> KORUAL Command</span><span>Enter 실행 · Esc 닫기</span></div></section></div>}
   </div>;
 }
 createRoot(document.getElementById('root')).render(<App />);
