@@ -167,7 +167,92 @@ function validateQuoteRequest(body) {
 }
 
 app.get('/', (_req, res) => {
-  res.send(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KORUAL Platform</title><style>body{margin:0;background:#080a0d;color:#f6f4ee;font-family:Inter,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif}main{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(900px,100%);padding:48px;border:1px solid #2b3138;border-radius:24px;background:linear-gradient(145deg,#12171c,#090b0e);box-shadow:0 30px 80px #0008}h1{font-family:Georgia,serif;font-size:clamp(42px,7vw,72px);margin:0 0 12px;color:#f0d58d}p{color:#b8c0c8;line-height:1.7}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:28px}.item{padding:18px;border:1px solid #2b3138;border-radius:14px}.item b{display:block;margin-bottom:7px}.item span{color:#8f98a2;font-size:13px}a{display:inline-block;margin-top:28px;padding:13px 18px;border-radius:12px;background:#f0d58d;color:#101112;text-decoration:none;font-weight:800}@media(max-width:700px){.card{padding:28px}.grid{grid-template-columns:1fr}}</style></head><body><main><section class="card"><h1>KORUAL</h1><p>Life Service Marketplace · Super Platform</p><p>입주청소 · 이사 · 렌탈 · 에어컨 청소 · 인터넷/TV · AI 견적비교</p><div class="grid"><div class="item"><b>Cashflow</b><span>현금흐름 중심 운영</span></div><div class="item"><b>Automation</b><span>시스템 자동화</span></div><div class="item"><b>Network</b><span>업체 경쟁견적 네트워크</span></div></div><a href="/platform/summary">Platform API 확인</a></section></main></body></html>`);
+  res.send(`<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090a0c">
+  <title>KORUAL Control Center</title>
+  <style>
+    :root{color-scheme:dark;--bg:#08090b;--surface:#0e1113;--surface2:#13171a;--line:#262b2f;--text:#f5f3ed;--muted:#92999f;--gold:#c9a45e;--gold2:#e5c784;--green:#49c876;--amber:#dea943;--red:#ef6d6d;--radius:18px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-width:320px;min-height:100vh;font-family:Inter,Pretendard,"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:radial-gradient(circle at 80% -5%,rgba(201,164,94,.10),transparent 28%),radial-gradient(circle at 12% 26%,rgba(255,255,255,.025),transparent 24%),var(--bg)}
+    a{color:inherit;text-decoration:none}button{font:inherit}.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}.rail{position:sticky;top:0;height:100vh;padding:24px 14px;border-right:1px solid var(--line);background:rgba(8,10,12,.94);backdrop-filter:blur(18px);display:flex;flex-direction:column;gap:24px}.brand{display:flex;align-items:center;gap:11px;padding:0 10px}.mark{display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(201,164,94,.4);border-radius:12px;color:var(--gold2);font-weight:900;background:rgba(201,164,94,.08)}.brand b{font-size:15px;letter-spacing:.08em}.brand small{display:block;margin-top:2px;color:var(--muted);font-size:10px;letter-spacing:.06em}.nav{display:grid;gap:6px}.nav a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:10px;color:#a7adb0;font-size:13px}.nav a:hover,.nav a.active{color:var(--gold2);background:rgba(201,164,94,.10)}.rail-foot{margin-top:auto;padding:14px 10px 0;border-top:1px solid var(--line)}.live{display:flex;align-items:center;gap:8px;font-size:12px}.dot{width:8px;height:8px;border-radius:99px;background:var(--amber);box-shadow:0 0 0 4px rgba(222,169,67,.08)}.dot.good{background:var(--green);box-shadow:0 0 0 4px rgba(73,200,118,.08)}.dot.bad{background:var(--red)}.rail-foot small{display:block;margin-top:7px;color:var(--muted);font-size:10px}.workspace{padding:0 clamp(20px,3vw,46px) 48px;max-width:1580px}.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:78px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(8,9,11,.88);backdrop-filter:blur(18px)}.eyebrow{color:var(--gold2);font-size:10px;font-weight:800;letter-spacing:.18em}.topbar h1{margin:5px 0 0;font-size:23px;letter-spacing:-.03em}.status-pill{display:flex;align-items:center;gap:8px;min-height:38px;padding:0 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:12px}.hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:14px;margin-top:20px}.hero-main,.health-card,.module,.model{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,rgba(16,19,21,.96),rgba(10,12,14,.98));box-shadow:0 22px 60px rgba(0,0,0,.14)}.hero-main{padding:28px;min-height:270px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;position:relative}.hero-main:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-80px;top:-90px;background:radial-gradient(circle,rgba(201,164,94,.13),transparent 68%);pointer-events:none}.hero-main h2{position:relative;z-index:1;margin:13px 0 10px;max-width:780px;font-size:clamp(30px,5vw,58px);line-height:1.02;letter-spacing:-.055em}.hero-main p{position:relative;z-index:1;margin:0;max-width:720px;color:var(--muted);font-size:14px;line-height:1.7}.actions{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:9px;margin-top:24px}.action{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 15px;border:1px solid var(--line);border-radius:10px;font-size:12px}.action.primary{border-color:rgba(201,164,94,.65);background:var(--gold);color:#111;font-weight:800}.action:hover{transform:translateY(-1px)}.health-card{padding:20px}.health-card h3{margin:0 0 16px;font-size:14px}.health-grid{display:grid;gap:2px}.health-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}.health-row:last-child{border-bottom:0}.health-row span:first-child{color:var(--muted)}.health-row strong{font-weight:700}.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 0 12px}.section-head h3{margin:0;font-size:16px}.section-head p{margin:4px 0 0;color:var(--muted);font-size:11px}.section-head span{color:var(--gold2);font-size:11px}.modules{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.module{padding:18px;min-height:150px;transition:.16s ease}.module:hover{transform:translateY(-2px);border-color:rgba(201,164,94,.34);background:var(--surface2)}.module .icon{display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(201,164,94,.32);border-radius:10px;color:var(--gold2);background:rgba(201,164,94,.06);font-size:13px;font-weight:800}.module h4{margin:18px 0 6px;font-size:13px}.module p{margin:0;color:var(--muted);font-size:11px;line-height:1.55}.module small{display:block;margin-top:15px;color:#737b80;font-size:9px;text-transform:uppercase;letter-spacing:.1em}.model{margin-top:12px;padding:20px}.flow{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:7px;margin-top:13px}.flow span{display:grid;place-items:center;min-height:58px;padding:8px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(255,255,255,.018);color:#bbc0c2;font-size:10px;text-align:center}.flow span:not(:last-child):after{content:"→";position:absolute}.mobile-dock{display:none}
+    @media(max-width:1100px){.modules{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    @media(max-width:760px){.app{display:block}.rail{display:none}.workspace{padding:0 14px 88px}.topbar{min-height:72px}.topbar h1{font-size:19px}.status-pill{min-height:34px;padding:0 10px}.hero{grid-template-columns:1fr}.hero-main{min-height:240px;padding:22px}.health-card{padding:17px}.modules{grid-template-columns:1fr 1fr;gap:8px}.module{min-height:138px;padding:15px}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.mobile-dock{position:fixed;inset:auto 0 0;z-index:50;display:grid;grid-template-columns:repeat(4,1fr);padding:7px 8px calc(7px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:rgba(8,10,12,.96);backdrop-filter:blur(18px)}.mobile-dock a{display:grid;place-items:center;min-height:46px;border-radius:9px;color:#90979a;font-size:10px}.mobile-dock a.active{color:var(--gold2);background:rgba(201,164,94,.08)}}
+    @media(max-width:420px){.modules{grid-template-columns:1fr}.hero-main h2{font-size:34px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="rail">
+      <div class="brand"><span class="mark">K</span><div><b>KORUAL</b><small>CONTROL CENTER</small></div></div>
+      <nav class="nav" aria-label="주요 메뉴">
+        <a class="active" href="#overview">Overview</a>
+        <a href="#modules">Modules</a>
+        <a href="/platform/summary">Platform API</a>
+        <a href="/travel">Travel</a>
+      </nav>
+      <div class="rail-foot"><div class="live"><span id="rail-dot" class="dot"></span><span id="rail-status">상태 확인 중</span></div><small>Live platform health</small></div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar">
+        <div><span class="eyebrow">KORUAL · OPERATIONS OS</span><h1>Control Center</h1></div>
+        <div class="status-pill"><span id="top-dot" class="dot"></span><span id="top-status">Checking</span></div>
+      </header>
+      <section id="overview" class="hero">
+        <article class="hero-main">
+          <div><span class="eyebrow">SUPER PLATFORM · 2026</span><h2>거래·데이터·자동화를 하나의 운영 자산으로.</h2><p>KORUAL의 커머스, 여행, AI, 운영 데이터와 자동화를 한 화면에서 연결하는 운영 허브입니다. 각 모듈은 현금흐름과 운영 효율을 중심으로 확장됩니다.</p></div>
+          <div class="actions"><a class="action primary" href="/platform/summary">Platform Summary</a><a class="action" href="/health">System Health</a><a class="action" href="/travel">Travel Module</a></div>
+        </article>
+        <aside class="health-card" aria-label="시스템 상태">
+          <h3>Live system</h3>
+          <div class="health-grid">
+            <div class="health-row"><span>Runtime</span><strong id="runtime-state">확인 중</strong></div>
+            <div class="health-row"><span>Database</span><strong id="database-state">확인 중</strong></div>
+            <div class="health-row"><span>Platform</span><strong id="platform-version">확인 중</strong></div>
+            <div class="health-row"><span>Modules</span><strong id="module-count">확인 중</strong></div>
+          </div>
+        </aside>
+      </section>
+      <div id="modules" class="section-head"><div><h3>Core modules</h3><p>운영 우선순위에 맞춘 핵심 플랫폼 영역</p></div><span>Connected architecture</span></div>
+      <section class="modules">
+        <article class="module"><span class="icon">01</span><h4>Commerce</h4><p>상품·주문·공급처·마진 의사결정과 판매 자동화.</p><small>Cashflow</small></article>
+        <article class="module"><span class="icon">02</span><h4>Travel</h4><p>AI 일정, 항공·호텔·동선·파트너 예약 연결.</p><small>Network</small></article>
+        <article class="module"><span class="icon">03</span><h4>AI Agent</h4><p>운영 리포트, 데이터 분석, 반복 작업 자동 실행.</p><small>Automation</small></article>
+        <article class="module"><span class="icon">04</span><h4>Business</h4><p>파트너·서비스·견적·운영 프로세스 통합.</p><small>System</small></article>
+        <article class="module"><span class="icon">05</span><h4>Finance</h4><p>매출·비용·현금흐름·수익성 모니터링 구조.</p><small>Control</small></article>
+        <article class="module"><span class="icon">06</span><h4>Developer API</h4><p>외부 서비스와 KORUAL 기능을 연결하는 API 레이어.</p><small>Leverage</small></article>
+        <article class="module"><span class="icon">07</span><h4>Life Services</h4><p>입주청소·이사·렌탈·수리 등 비교 견적 네트워크.</p><small>Marketplace</small></article>
+        <article class="module"><span class="icon">08</span><h4>Data Layer</h4><p>운영 로그와 고객·상품·거래 데이터를 장기 자산화.</p><small>Asset</small></article>
+      </section>
+      <section class="model">
+        <div class="section-head" style="margin:0"><div><h3>Operating model</h3><p>KORUAL 성장 프레임</p></div></div>
+        <div class="flow"><span>현금흐름</span><span>레버리지</span><span>시스템화</span><span>자동화</span><span>자산화</span><span>네트워크 효과</span><span>장기 복리</span><span>리스크 차단</span></div>
+      </section>
+    </main>
+  </div>
+  <nav class="mobile-dock" aria-label="모바일 메뉴"><a class="active" href="#overview">홈</a><a href="#modules">모듈</a><a href="/platform/summary">API</a><a href="/travel">여행</a></nav>
+  <script>
+    (function(){
+      var dots=[document.getElementById('rail-dot'),document.getElementById('top-dot')];
+      var statuses=[document.getElementById('rail-status'),document.getElementById('top-status')];
+      function setState(ok,label){dots.forEach(function(el){if(!el)return;el.className='dot '+(ok?'good':'bad')});statuses.forEach(function(el){if(el)el.textContent=label})}
+      Promise.all([
+        fetch('/health',{headers:{accept:'application/json'}}).then(function(r){return r.json().then(function(j){return {ok:r.ok,data:j}})}),
+        fetch('/platform/summary',{headers:{accept:'application/json'}}).then(function(r){return r.json()})
+      ]).then(function(result){
+        var health=result[0],summary=result[1]||{};
+        setState(Boolean(health.ok && health.data && health.data.ok),health.ok?'System online':'Config check');
+        document.getElementById('runtime-state').textContent=health.ok?'Online':'Check';
+        document.getElementById('database-state').textContent=(health.data&&health.data.database)||'Unknown';
+        document.getElementById('platform-version').textContent=summary.version?'v'+summary.version:'Unknown';
+        document.getElementById('module-count').textContent=Array.isArray(summary.modules)?String(summary.modules.length):'Unknown';
+      }).catch(function(){setState(false,'Connection check');document.getElementById('runtime-state').textContent='Unavailable'});
+    })();
+  </script>
+</body>
+</html>`);
 });
 
 app.get('/health', (_req, res) => {
