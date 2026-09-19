@@ -104,7 +104,8 @@ function App(){
   }
 
   return <div className="app">
-    <header className="nav"><div className="logo"><span>✦</span><div><b>KORUAL</b><small>AI LIFE OS</small></div></div><span className="version-badge">2026 BETA</span><nav><a href="#overview">Overview</a><a href="#compare">가격 비교</a><a href="#services">생활서비스</a><a href="#how">작동 방식</a></nav><div className="nav-actions"><span className={online?'nav-status online':'nav-status offline'}><i/>{online?'ONLINE':'OFFLINE'}</span><button className="ghost" onClick={()=>setDetail({name:'KORUAL Account',score:100})}>계정</button></div></header>
+    <header className="nav"><div className="logo"><span>✦</span><div><b>KORUAL</b><small>AI LIFE OS</small></div></div><span className="version-badge">BETA · RAILWAY</span><nav><a href="#overview">Overview</a><a href="#compare">가격 비교</a><a href="#services">생활서비스</a><a href="#how">작동 방식</a></nav><div className="nav-actions"><span className={online?'nav-status online':'nav-status offline'}><i/>{online?'ONLINE':'OFFLINE'}</span><button className="ghost" onClick={()=>setDetail({name:'KORUAL Beta Account',score:100})}>계정</button></div></header>
+    <div className="beta-safety" role="status"><span><ShieldCheck size={14}/> BETA NETWORK MODE</span><strong>공유·동적 IP 대응</strong><small>고정 IP 허용목록 없이 HTTPS · 서버 Rate Limit · 분리형 API 구조로 운영</small><div className="beta-stack"><b>Railway UI</b><i/> <b>Supabase Edge</b><i/> <b>Postgres</b></div></div>
     <main>
       <section id="overview" className="hero">
         <div className="hero-glow" aria-hidden="true"/>
@@ -134,12 +135,12 @@ function App(){
         <article><span><Sparkles size={16}/>Decision AI</span><strong>문제 → 해결</strong><small>검색보다 먼저 판단</small></article>
         <article><span><ShieldCheck size={16}/>Price Guard</span><strong>적정가 검증</strong><small>시장가격 기준 비교</small></article>
         <article><span><Star size={16}/>KORUAL Score</span><strong>100점 기준</strong><small>가격·품질·위험 통합</small></article>
-        <article><span><Wifi size={16}/>Data Network</span><strong>{online?'Connected':'Offline'}</strong><small>{marketSummary.network?.verified_providers || 0} 검증업체 · {marketSummary.network?.price_benchmarks || 0} 가격데이터</small></article>
+        <article><span><Wifi size={16}/>Beta Runtime</span><strong>{online?'Railway Ready':'Offline'}</strong><small>공유 IP 대응 · Edge API 분리</small></article>
       </section>
 
       {result && <section className="analysis card"><div><span className="label">KORUAL AI 분석 완료</span><h2>“{result.title}”</h2><p>{result.note}</p></div><button aria-label="분석 닫기" className="close" onClick={()=>setResult(null)}><X size={17}/></button><div className="chips">{services.map(([name])=><button key={name} className={selected.includes(name)?'chip active':'chip'} onClick={()=>toggle(name)}>{name}{selected.includes(name)&&' ✓'}</button>)}</div></section>}
 
-      <section id="compare" className="section"><div className="section-head"><div><span className="label">PRICE INTELLIGENCE</span><h2>가격을 먼저 판단합니다.</h2><p>싼 업체를 고르는 것이 아니라, <strong>적정가격인지</strong>부터 확인합니다.</p></div><span className="live"><i/> DEMO PRICE · LIVE DB READY</span></div>
+      <section id="compare" className="section"><div className="section-head"><div><span className="label">PRICE INTELLIGENCE</span><h2>가격을 먼저 판단합니다.</h2><p>싼 업체를 고르는 것이 아니라, <strong>적정가격인지</strong>부터 확인합니다.</p></div><span className="live"><i/> BETA DATA · LIVE DB READY</span></div>
         <div className="price-card card"><div className="price-main"><span>입주청소 · 30평 기준</span><strong>21만원</strong><small>시장가격 18–25만원 · KORUAL 적정가</small></div><div className="price-meter"><div><span>적정</span><b>21만원</b></div><div className="track"><i/></div><div className="range"><span>18만</span><span>25만</span></div></div><div className="quotes">{demoQuotes.map(q=><article key={q.name}><div className="qtop"><strong>{q.name}</strong><span>★ {q.score}</span></div><b>{q.price}</b><small>{q.delta} · 추가금 위험 {q.extra}</small><button onClick={()=>setDetail(q)}>상세 보기 <ChevronRight size={15}/></button></article>)}</div></div>
       </section>
 
