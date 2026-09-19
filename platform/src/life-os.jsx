@@ -7,9 +7,12 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  CircleDollarSign,
   Gauge,
   Home,
   Layers3,
+  Radar,
+  Route,
   MapPin,
   Search,
   ShieldCheck,
@@ -221,6 +224,15 @@ function App(){
           </div>
 
           <aside className="decision-preview" aria-label="KORUAL 결정 예시">
+            <div className="visual-orbit" aria-hidden="true">
+              <div className="orbit-ring ring-one"/>
+              <div className="orbit-ring ring-two"/>
+              <div className="orbit-core"><Sparkles size={22}/><span>K</span></div>
+              <span className="orbit-node node-a"><Home size={14}/></span>
+              <span className="orbit-node node-b"><Wifi size={14}/></span>
+              <span className="orbit-node node-c"><CircleDollarSign size={14}/></span>
+              <div className="orbit-scan"/>
+            </div>
             <div className="preview-head">
               <div>
                 <span className="preview-kicker">DECISION CONSOLE</span>
@@ -286,6 +298,48 @@ function App(){
           <span><Activity size={16}/>Beta Runtime</span>
           <strong>{online?'Railway Ready':'Offline'}</strong>
           <small>공유 IP 대응 · Edge API 분리</small>
+        </article>
+      </section>
+
+      <section className="visual-story" aria-label="KORUAL 시각적 서비스 흐름">
+        <article className="visual-card visual-home">
+          <div className="visual-card-art">
+            <span className="visual-building"><i/><i/><i/><i/><i/><i/></span>
+            <span className="visual-sun"/>
+            <span className="visual-road"/>
+          </div>
+          <div className="visual-card-copy">
+            <span>01 · LIFE SCENE</span>
+            <strong>입주 준비를 한 화면으로</strong>
+            <small>청소 · 이사 · 인터넷을 하나의 실행 흐름으로 묶습니다.</small>
+          </div>
+        </article>
+
+        <article className="visual-card visual-route">
+          <div className="visual-card-art route-art">
+            <Route size={58}/>
+            <span className="route-dot dot-one"/>
+            <span className="route-dot dot-two"/>
+            <span className="route-dot dot-three"/>
+          </div>
+          <div className="visual-card-copy">
+            <span>02 · DECISION FLOW</span>
+            <strong>복잡한 선택을 경로로</strong>
+            <small>입력한 상황을 서비스·가격·업체 순서로 구조화합니다.</small>
+          </div>
+        </article>
+
+        <article className="visual-card visual-data">
+          <div className="visual-card-art data-art">
+            <Radar size={62}/>
+            <div className="mini-bars"><i/><i/><i/><i/><i/></div>
+            <span className="data-pulse"/>
+          </div>
+          <div className="visual-card-copy">
+            <span>03 · LIVE SIGNAL</span>
+            <strong>데이터가 쌓일수록 정교하게</strong>
+            <small>가격 벤치마크와 검증업체 데이터가 실시간 의사결정에 반영됩니다.</small>
+          </div>
         </article>
       </section>
 
