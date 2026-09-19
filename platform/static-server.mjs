@@ -29,10 +29,12 @@ async function sendFile(res, path, cache = false) {
   const data = await readFile(path);
   res.writeHead(200, {
     'Content-Type': types[extname(path)] || 'application/octet-stream',
-    'Cache-Control': cache ? 'public, max-age=31536000, immutable' : 'no-cache',
+    'Cache-Control': cache ? 'public, max-age=31536000, immutable' : 'no-store, max-age=0',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Pragma': cache ? undefined : 'no-cache',
+    'Expires': cache ? undefined : '0'
   });
   res.end(data);
 }
