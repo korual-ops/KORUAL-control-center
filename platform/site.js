@@ -24,9 +24,9 @@
   };
 
   let quoteCatalog={
-    best:{id:'best',name:'KORUAL Demo Recommended',price:142000,trust:96,label:'AI 추천',provider_key:'demo_best'},
-    value:{id:'value',name:'KORUAL Demo Value',price:128000,trust:91,label:'가성비',provider_key:'demo_value'},
-    premium:{id:'premium',name:'KORUAL Demo Premium',price:169000,trust:94,label:'프리미엄',provider_key:'demo_premium'}
+    best:{id:'best',name:'KORUAL Demo Recommended',price:142000,trust:96,label:'AI 추천',provider_key:'demo_best',verified:true,rating:4.9,reviews:264,response:8,jobs:534},
+    value:{id:'value',name:'KORUAL Demo Value',price:128000,trust:91,label:'가성비',provider_key:'demo_value',verified:true,rating:4.8,reviews:128,response:18,jobs:286},
+    premium:{id:'premium',name:'KORUAL Demo Premium',price:169000,trust:94,label:'프리미엄',provider_key:'demo_premium',verified:true,rating:5.0,reviews:96,response:12,jobs:178}
   };
 
   let state={
@@ -34,7 +34,8 @@
     completes:0,
     currentRequest:null,
     selectedQuote:null,
-    booking:null
+    booking:null,
+    preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}
   };
 
   try{
@@ -186,6 +187,13 @@
   const analysisNext=$('#analysisNext');
   const goQuotes=$('#goQuotes');
   const quoteContext=$('#quoteContext');
+  const verifiedOnly=$('#verifiedOnly');
+  const budgetCap=$('#budgetCap');
+  const trustSheet=$('#trustSheet');
+  const closeTrustSheet=$('#closeTrustSheet');
+  const trustCloseAction=$('#trustCloseAction');
+  const aiConcierge=$('#aiConcierge');
+  const openAgentControl=$('#openAgentControl');
 
   function renderAnalysis(request){
     if(!request)return;
@@ -212,7 +220,12 @@
             price:Number(q.amount)||0,
             trust:Number(q.trust)||0,
             label:q.label||'견적',
-            provider_key:q.provider_key
+            provider_key:q.provider_key,
+            verified:Boolean(q.verified),
+            rating:Number(q.rating)||0,
+            reviews:Number(q.review_count)||0,
+            response:q.response_minutes==null?null:Number(q.response_minutes),
+            jobs:Number(q.completed_jobs)||0
           };
           updateQuoteCard(q);
         }
@@ -279,6 +292,98 @@
   const stickyQuotePrice=$('#stickyQuotePrice');
   const bookSelected=$('#bookSelected');
 
+
+  function normalizePreferences(){
+    if(!state.preferences||typeof state.preferences!=='object'){
+      state.preferences={priority:'balanced',verifiedOnly:true,budgetCap:null};
+    }
+    if(!['balanced','price','trust','speed'].includes(state.preferences.priority)) state.preferences.priority='balanced';
+    state.preferences.verifiedOnly=state.preferences.verifiedOnly!==false;
+    const cap=Number(state.preferences.budgetCap);
+    state.preferences.budgetCap=Number.isFinite(cap)&&cap>0?cap:null;
+  }
+
+  function scoreQuote(q){
+    const prices=Object.values(quoteCatalog).map(x=>Number(x.price)||0).filter(Boolean);
+    const min=Math.min(...prices),max=Math.max(...prices);
+    const priceScore=max===min?100:100-((q.price-min)/(max-min))*35;
+    const trustScore=Math.max(0,Math.min(100,Number(q.trust)||0));
+    const speed=Number(q.response);
+    const speedScore=Number.isFinite(speed)?Math.max(45,100-Math.min(speed,60)*.8):70;
+    if(state.preferences.priority==='price') return priceScore*.62+trustScore*.25+speedScore*.13;
+    if(state.preferences.priority==='trust') return trustScore*.65+priceScore*.2+speedScore*.15;
+    if(state.preferences.priority==='speed') return speedScore*.6+trustScore*.25+priceScore*.15;
+    return trustScore*.45+priceScore*.35+speedScore*.2;
+  }
+
+  function preferenceLabel(){
+    const map={balanced:'균형',price:'가격',trust:'신뢰',speed:'속도'};
+    return map[state.preferences.priority]||'균형';
+  }
+
+  function applyDecisionLens(){
+    normalizePreferences();
+    const list=$('#quoteList');
+    if(!list)return;
+    const entries=$('[data-quote-card]',list).map(card=>{
+      const q=quoteCatalog[card.dataset.quoteCard];
+      const overBudget=state.preferences.budgetCap && q && Number(q.price)>state.preferences.budgetCap;
+      const unverified=state.preferences.verifiedOnly && q && !q.verified;
+      card.classList.toggle('is-filtered',Boolean(overBudget||unverified));
+      card.classList.remove('is-top-choice','featured');
+      return {card,q,score:q?scoreQuote(q):-1,hidden:Boolean(overBudget||unverified)};
+    });
+    entries.sort((a,b)=>b.score-a.score);
+    entries.forEach(x=>list.appendChild(x.card));
+    const top=entries.find(x=>!x.hidden);
+    if(top){
+      top.card.classList.add('is-top-choice','featured');
+      const badge=$('.quote-rank,.ai-pick,.value-pick,.premium-pick',top.card);
+      if(badge) badge.textContent='AI PICK';
+    }
+    if(quoteContext&&state.currentRequest){
+      const cap=state.preferences.budgetCap?' · '+Number(state.preferences.budgetCap).toLocaleString('ko-KR')+'원 이하':'';
+      quoteContext.textContent=state.currentRequest.service+' · '+preferenceLabel()+' 우선'+cap;
+    }
+  }
+
+  function syncPreferenceUI(){
+    normalizePreferences();
+    $('[data-priority]').forEach(btn=>btn.classList.toggle('is-active',btn.dataset.priority===state.preferences.priority));
+    if(verifiedOnly) verifiedOnly.checked=state.preferences.verifiedOnly;
+    if(budgetCap) budgetCap.value=state.preferences.budgetCap||'';
+    applyDecisionLens();
+  }
+
+  function recommendationReason(q){
+    if(!q)return '추천 근거를 확인할 수 없습니다.';
+    if(state.preferences.priority==='price') return '현재 설정에서 가격 비중을 가장 높게 반영했습니다. Trust Score와 응답성은 보조 기준으로 사용했습니다.';
+    if(state.preferences.priority==='trust') return '검증 상태와 KORUAL Trust Score를 가장 크게 반영했습니다. 평점·리뷰·완료 이력도 함께 확인합니다.';
+    if(state.preferences.priority==='speed') return '평균 응답 속도를 우선 반영하고, 신뢰와 가격이 지나치게 불리하지 않은 후보를 함께 비교합니다.';
+    return '가격·신뢰·응답성을 함께 본 균형 추천입니다. 한 가지 지표만으로 자동 결정하지 않습니다.';
+  }
+
+  function openTrust(id){
+    const q=quoteCatalog[id];
+    if(!q||!trustSheet)return;
+    $('#trustTitle').textContent=q.name||'파트너 신뢰 정보';
+    $('#trustScoreLarge').textContent=String(Math.round(Number(q.trust)||0));
+    $('#trustReason').textContent=recommendationReason(q);
+    $('#trustVerified').textContent=q.verified?'검증 완료':'미검증';
+    $('#trustRating').textContent=Number(q.rating||0).toFixed(1)+' / 5';
+    $('#trustReviews').textContent=Number(q.reviews||0).toLocaleString('ko-KR')+'건';
+    $('#trustResponse').textContent=q.response==null?'데이터 없음':q.response+'분';
+    $('#trustJobs').textContent=Number(q.jobs||0).toLocaleString('ko-KR')+'건';
+    $('#trustPrice').textContent='₩'+Number(q.price||0).toLocaleString('ko-KR');
+    trustSheet.hidden=false;
+    document.body.style.overflow='hidden';
+  }
+  function closeTrust(){
+    if(!trustSheet)return;
+    trustSheet.hidden=true;
+    document.body.style.overflow='';
+  }
+
   function renderQuotesSelection(){
     $$('[data-quote-card]').forEach(card=>card.classList.toggle('selected',state.selectedQuote?.id===card.dataset.quoteCard));
     if(state.selectedQuote){
@@ -290,6 +395,7 @@
       if(stickyQuotePrice) stickyQuotePrice.textContent='—';
       if(bookSelected) bookSelected.disabled=true;
     }
+    applyDecisionLens();
   }
 
   document.addEventListener('click',e=>{
@@ -306,7 +412,46 @@
     showToast(quote.name+' 견적을 선택했습니다.');
   });
 
-  $$('.filter-strip [data-sort]').forEach(btn=>btn.addEventListener('click',()=>{
+
+  $('[data-priority]').forEach(btn=>btn.addEventListener('click',()=>{
+    normalizePreferences();
+    state.preferences.priority=btn.dataset.priority||'balanced';
+    save();
+    syncPreferenceUI();
+    showToast('추천 기준을 '+preferenceLabel()+' 우선으로 변경했습니다.');
+  }));
+
+  verifiedOnly?.addEventListener('change',()=>{
+    normalizePreferences();
+    state.preferences.verifiedOnly=verifiedOnly.checked;
+    save();
+    syncPreferenceUI();
+  });
+
+  budgetCap?.addEventListener('change',()=>{
+    normalizePreferences();
+    const cap=Number(budgetCap.value);
+    state.preferences.budgetCap=Number.isFinite(cap)&&cap>0?cap:null;
+    save();
+    syncPreferenceUI();
+    if(state.preferences.budgetCap)showToast('예산 상한을 적용했습니다.');
+  });
+
+  document.addEventListener('click',e=>{
+    const trust=e.target.closest?.('[data-trust]');
+    if(trust){openTrust(trust.dataset.trust);return}
+  });
+  closeTrustSheet?.addEventListener('click',closeTrust);
+  trustCloseAction?.addEventListener('click',closeTrust);
+  trustSheet?.addEventListener('click',e=>{if(e.target===trustSheet)closeTrust()});
+
+  aiConcierge?.addEventListener('click',()=>showScreen('match'));
+  openAgentControl?.addEventListener('click',()=>{
+    showScreen('match');
+    setTimeout(()=>$('.agent-control')?.scrollIntoView({behavior:'smooth',block:'center'}),80);
+  });
+
+  $('.filter-strip [data-sort]').forEach(btn=>btn.addEventListener('click',()=>{
     $$('.filter-strip [data-sort]').forEach(x=>x.classList.toggle('is-active',x===btn));
     if(!quoteList)return;
     const cards=$$('[data-quote-card]',quoteList);
@@ -492,6 +637,7 @@
     renderProfile();
   }
   renderState();
+  syncPreferenceUI();
 
   statusButton?.addEventListener('click',async()=>{
     showScreen('profile');
@@ -520,7 +666,7 @@
 
   $('#resetDemo')?.addEventListener('click',()=>{
     if(!confirm('이 기기에 저장된 KORUAL 표시 상태를 초기화할까요? 서버 예약 기록은 삭제되지 않습니다.'))return;
-    state={requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null};
+    state={requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null,preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}};
     try{localStorage.removeItem(STATE_KEY)}catch(_){}
     if(matchInput) matchInput.value='';
     if(analysisTitle) analysisTitle.textContent='요청을 기다리는 중';
