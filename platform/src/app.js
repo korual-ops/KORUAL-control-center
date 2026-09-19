@@ -48,6 +48,11 @@ export function money(value) {
     : value;
 }
 
+export function createClientRequestId() {
+  return globalThis.crypto?.randomUUID?.() ||
+    'kr-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+}
+
 let volatileSessionId = null;
 
 export function getSessionId() {
@@ -121,6 +126,22 @@ export async function fetchMarketplaceSummary(signal) {
 
   if (!response.ok || !payload?.ok) {
     throw new Error('SUMMARY_FAILED');
+  }
+
+  return payload;
+}
+
+export async function fetchPlatformStatus(signal) {
+  const response = await fetch(API_BASE + '/platform/status', {
+    headers: { accept: 'application/json' },
+    signal,
+    credentials: 'omit',
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok || !payload?.ok) {
+    throw new Error('PLATFORM_STATUS_FAILED');
   }
 
   return payload;
