@@ -35,7 +35,7 @@ import {
   services
 } from './app.js';
 
-const BUILD_ID='2026.09.19-R3';
+const BUILD_ID='2026.09.19-R4';
 
 function App(){
   const [query,setQuery]=useState('');
@@ -195,10 +195,10 @@ function App(){
       </div>
       <span className="version-badge">BETA · {BUILD_ID}</span>
       <nav>
-        <a href="#overview">Overview</a>
+        <a href="#overview">홈</a>
+        <a href="#services">서비스</a>
         <a href="#compare">가격 비교</a>
-        <a href="#services">생활서비스</a>
-        <a href="#how">작동 방식</a>
+        <a href="#how">이용 방법</a>
       </nav>
       <div className="nav-actions">
         <span className={online?'nav-status online':'nav-status offline'}>
@@ -223,13 +223,12 @@ function App(){
     </header>
 
     <div className="beta-safety" role="status">
-      <span><ShieldCheck size={14}/> BETA NETWORK MODE</span>
-      <strong>공유·동적 IP 대응</strong>
-      <small>HTTPS · 서버 Rate Limit · 분리형 Edge API 구조로 운영</small>
+      <span><ShieldCheck size={14}/> 안전한 Beta 운영</span>
+      <small>공유·동적 IP 환경 대응 · HTTPS · Edge API</small>
       <div className="beta-stack">
-        <b>Railway UI</b><i/>
-        <b>Supabase Edge</b><i/>
-        <b>Postgres</b>
+        <b>Railway</b><i/>
+        <b>Supabase</b><i/>
+        <b>{online?'정상 연결':'오프라인'}</b>
       </div>
     </div>
 
@@ -238,9 +237,14 @@ function App(){
         <div className="hero-glow" aria-hidden="true"/>
         <div className="hero-grid">
           <div className="hero-copy">
-            <div className="eyebrow"><Sparkles size={15}/> KORUAL · AI LIFE DECISION OS</div>
-            <h1>검색보다 먼저,<br/><em>결정부터.</em></h1>
-            <p>생활 문제를 한 문장으로 입력하면 필요한 서비스, 적정가격, 비교할 업체와 다음 행동을 KORUAL이 한 화면에서 정리합니다.</p>
+            <div className="eyebrow"><Sparkles size={15}/> KORUAL · 생활 의사결정 플랫폼</div>
+            <h1>한 번 묻고,<br/><em>좋은 선택까지.</em></h1>
+            <p>이사, 입주청소, 인터넷, 정수기처럼 복잡한 생활 서비스를 한 문장으로 시작하세요. 필요한 서비스와 가격 기준을 먼저 정리해드립니다.</p>
+            <div className="hero-proof" aria-label="KORUAL 핵심 가치">
+              <span><CheckCircle2 size={14}/> 필요한 것만 추천</span>
+              <span><Gauge size={14}/> 가격 기준 먼저 확인</span>
+              <span><BadgeCheck size={14}/> 검증 데이터 연결</span>
+            </div>
 
             <div className="search">
               <Search size={20}/>
@@ -249,9 +253,9 @@ function App(){
                 value={query}
                 onChange={e=>setQuery(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&analyze()}
-                placeholder="예: 청라 신축 아파트 입주 준비해줘"
+                placeholder="예: 다음 달 청라로 이사하는데 무엇부터 준비해야 해?"
               />
-              <button onClick={()=>analyze()}>AI 분석 <ArrowRight size={17}/></button>
+              <button onClick={()=>analyze()}>무료로 시작 <ArrowRight size={17}/></button>
             </div>
 
             <div className="quick-prompts" aria-label="빠른 시나리오">
@@ -262,10 +266,9 @@ function App(){
               )}
             </div>
 
-            <div className="trust">
-              <span><ShieldCheck size={15}/> 불필요한 서비스 제외</span>
-              <span><CheckCircle2 size={15}/> 적정가격 우선 판단</span>
-              <span><Star size={15}/> KORUAL Score</span>
+            <div className="hero-note">
+              <ShieldCheck size={14}/>
+              <span>가입 없이 Beta 기능을 먼저 둘러볼 수 있습니다.</span>
             </div>
           </div>
 
@@ -281,16 +284,16 @@ function App(){
             </div>
             <div className="preview-head">
               <div>
-                <span className="preview-kicker">DECISION CONSOLE</span>
-                <strong>KORUAL AI 판단</strong>
+                <span className="preview-kicker">KORUAL SUMMARY</span>
+                <strong>지금 필요한 것만 정리</strong>
               </div>
-              <span className="preview-live"><i/> {marketError?'DEGRADED':'LIVE'}</span>
+              <span className="preview-live"><i/> {marketError?'연결 확인':'LIVE'}</span>
             </div>
 
             <div className="preview-situation">
-              <span>현재 상황</span>
+              <span>입력한 상황</span>
               <strong>{query || '청라 신축 아파트 입주 준비'}</strong>
-              <small>상황을 서비스 목록이 아니라 실행 계획으로 변환합니다.</small>
+              <small>필요한 서비스와 우선순위를 한 번에 정리합니다.</small>
             </div>
 
             <div className="preview-grid">
@@ -318,7 +321,7 @@ function App(){
             </div>
 
             <button className="preview-cta" onClick={()=>analyze(query || '청라 신축 아파트 입주 준비')}>
-              이 조건으로 분석 <ArrowRight size={16}/>
+              내 상황으로 정리하기 <ArrowRight size={16}/>
             </button>
           </aside>
         </div>
@@ -326,24 +329,24 @@ function App(){
 
       <section className="command-strip" aria-label="KORUAL 핵심 상태">
         <article>
-          <span><Sparkles size={16}/>Decision AI</span>
-          <strong>문제 → 해결</strong>
-          <small>검색보다 먼저 판단</small>
+          <span><Sparkles size={16}/>추천</span>
+          <strong>필요한 것만</strong>
+          <small>상황에 맞는 서비스 우선순위</small>
         </article>
         <article>
-          <span><ShieldCheck size={16}/>Price Guard</span>
-          <strong>{hasLiveBenchmark?'Live Price':'Beta Price'}</strong>
-          <small>{hasLiveBenchmark?'실제 가격 벤치마크 연결':'데모 가격 · DB 연결 준비'}</small>
+          <span><ShieldCheck size={16}/>가격</span>
+          <strong>{hasLiveBenchmark?'실데이터 기준':'Beta 기준가'}</strong>
+          <small>{hasLiveBenchmark?'시장 가격 벤치마크 연결':'비교 구조 먼저 체험'}</small>
         </article>
         <article>
-          <span><Layers3 size={16}/>Provider Network</span>
-          <strong>{marketLoading?'동기화 중':(marketSummary.network?.verified_providers || 0) + '개 검증'}</strong>
-          <small>{marketError?'Edge API 재연결 대기':(marketSummary.network?.price_benchmarks || 0) + '개 가격 데이터'}</small>
+          <span><Layers3 size={16}/>업체</span>
+          <strong>{marketLoading?'연결 중':(marketSummary.network?.verified_providers || 0) + '개 검증'}</strong>
+          <small>{marketError?'데이터 연결 확인 중':(marketSummary.network?.price_benchmarks || 0) + '개 가격 데이터'}</small>
         </article>
         <article>
-          <span><Activity size={16}/>Beta Runtime</span>
-          <strong>{online?'Railway Ready':'Offline'}</strong>
-          <small>공유 IP 대응 · Edge API 분리</small>
+          <span><Activity size={16}/>플랫폼</span>
+          <strong>{online?'정상 운영':'오프라인'}</strong>
+          <small>Railway · Supabase 연결</small>
         </article>
       </section>
 
@@ -413,9 +416,9 @@ function App(){
       <section id="compare" className="section">
         <div className="section-head">
           <div>
-            <span className="label">PRICE INTELLIGENCE</span>
-            <h2>가격을 먼저 판단합니다.</h2>
-            <p>싼 업체를 고르는 것이 아니라, <strong>적정가격인지</strong>부터 확인합니다.</p>
+            <span className="label">PRICE GUIDE</span>
+            <h2>견적 받기 전에 가격부터 확인하세요.</h2>
+            <p>최저가보다 중요한 건 <strong>적정 범위와 추가 비용 위험</strong>입니다.</p>
           </div>
           <span className={hasLiveBenchmark?'live live-data':'live'}>
             <i/> {hasLiveBenchmark?'LIVE MARKET DATA':'BETA DATA · DB READY'}
@@ -458,9 +461,9 @@ function App(){
       <section id="services" className="section">
         <div className="section-head">
           <div>
-            <span className="label">LIFE SERVICES</span>
-            <h2>생활의 다음 단계까지 연결합니다.</h2>
-            <p>필요한 서비스만 선택하면 하나의 요청으로 묶어 비교합니다.</p>
+            <span className="label">SERVICES</span>
+            <h2>필요한 서비스를 골라 한 번에 비교하세요.</h2>
+            <p>여러 업체를 따로 찾지 않고 필요한 항목만 묶어서 요청할 수 있습니다.</p>
           </div>
         </div>
 
@@ -500,8 +503,8 @@ function App(){
       <section id="how" className="how section">
         <div className="section-head">
           <div>
-            <span className="label">HOW KORUAL WORKS</span>
-            <h2>검색 → 비교가 아니라<br/>문제 → 해결입니다.</h2>
+            <span className="label">HOW IT WORKS</span>
+            <h2>입력부터 견적까지<br/>4단계로 끝냅니다.</h2>
           </div>
         </div>
         <div className="steps">
