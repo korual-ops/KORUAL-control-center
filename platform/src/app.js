@@ -50,11 +50,19 @@ export function money(value) {
 
 export function getSessionId() {
   const key = 'korual-session-id';
-  let value = localStorage.getItem(key);
+  let value = null;
+
+  try {
+    value = window.localStorage?.getItem(key) || null;
+  } catch {}
 
   if (!value) {
-    value = crypto.randomUUID();
-    localStorage.setItem(key, value);
+    value = globalThis.crypto?.randomUUID?.() ||
+      'ks-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+
+    try {
+      window.localStorage?.setItem(key, value);
+    } catch {}
   }
 
   return value;
