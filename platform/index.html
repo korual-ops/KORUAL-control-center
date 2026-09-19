@@ -112,6 +112,68 @@
       </div>
     </section>
 
+
+    <section id="compare" class="section compare-section">
+      <div class="section-head split-head">
+        <div><p class="kicker">COMPARE & TRUST</p><h2>가격만 말고,<br>신뢰까지 비교.</h2></div>
+        <p>AI 추천 이유를 숨기지 않고 가격, 검증 상태, 후기 품질, 응답 속도, 취소 조건을 같이 보여주는 구조입니다. 아래 데이터는 현재 베타 샘플입니다.</p>
+      </div>
+
+      <div class="bundle-strip">
+        <div><small>AI SERVICE BUNDLE</small><strong id="bundleTitle">요청을 입력하면 필요한 서비스 묶음을 구성합니다.</strong></div>
+        <div id="bundleChips" class="bundle-chips"><span>조건 분석</span><span>서비스 묶음</span><span>견적 비교</span></div>
+      </div>
+
+      <div class="quote-toolbar">
+        <div><small>SMART QUOTES</small><strong id="quoteSummary">샘플 견적 3개를 비교해보세요.</strong></div>
+        <span class="sample-label">BETA SAMPLE DATA</span>
+      </div>
+
+      <div id="quoteGrid" class="quote-grid">
+        <article class="quote-card" data-quote-card="value">
+          <div class="quote-badges"><span class="quote-rank">VALUE</span><span class="verified">✓ 검증</span></div>
+          <div class="quote-provider"><div class="provider-avatar">A</div><div><strong>Partner A</strong><small>생활서비스 파트너 · 샘플</small></div></div>
+          <div class="quote-price"><small>예상 견적</small><strong>₩128,000</strong><span>샘플 가격</span></div>
+          <div class="trust-score"><div><span>KORUAL Trust</span><strong>91</strong></div><div class="score-bar"><i style="width:91%"></i></div></div>
+          <dl class="quote-facts"><div><dt>응답</dt><dd>빠름</dd></div><div><dt>후기</dt><dd>4.8</dd></div><div><dt>취소</dt><dd>유연</dd></div></dl>
+          <button type="button" data-quote="value">이 견적 선택 <span>→</span></button>
+        </article>
+        <article class="quote-card recommended" data-quote-card="best">
+          <div class="quote-badges"><span class="quote-rank">AI PICK</span><span class="verified">✓ 검증</span></div>
+          <div class="quote-provider"><div class="provider-avatar">B</div><div><strong>Partner B</strong><small>생활서비스 파트너 · 샘플</small></div></div>
+          <div class="quote-price"><small>예상 견적</small><strong>₩142,000</strong><span>샘플 가격</span></div>
+          <div class="trust-score"><div><span>KORUAL Trust</span><strong>96</strong></div><div class="score-bar"><i style="width:96%"></i></div></div>
+          <dl class="quote-facts"><div><dt>응답</dt><dd>매우 빠름</dd></div><div><dt>후기</dt><dd>4.9</dd></div><div><dt>취소</dt><dd>유연</dd></div></dl>
+          <button type="button" data-quote="best">추천 견적 선택 <span>→</span></button>
+        </article>
+        <article class="quote-card" data-quote-card="premium">
+          <div class="quote-badges"><span class="quote-rank">PREMIUM</span><span class="verified">✓ 검증</span></div>
+          <div class="quote-provider"><div class="provider-avatar">C</div><div><strong>Partner C</strong><small>생활서비스 파트너 · 샘플</small></div></div>
+          <div class="quote-price"><small>예상 견적</small><strong>₩169,000</strong><span>샘플 가격</span></div>
+          <div class="trust-score"><div><span>KORUAL Trust</span><strong>94</strong></div><div class="score-bar"><i style="width:94%"></i></div></div>
+          <dl class="quote-facts"><div><dt>응답</dt><dd>빠름</dd></div><div><dt>후기</dt><dd>5.0</dd></div><div><dt>보증</dt><dd>확장</dd></div></dl>
+          <button type="button" data-quote="premium">이 견적 선택 <span>→</span></button>
+        </article>
+      </div>
+
+      <div id="bookingBar" class="booking-bar">
+        <div><small>SELECTED QUOTE</small><strong id="selectedQuoteText">아직 선택한 견적이 없습니다.</strong></div>
+        <div class="booking-bar-action"><span id="selectedPrice">—</span><button id="bookNow" type="button" disabled>예약 요청</button></div>
+      </div>
+    </section>
+
+    <section id="repeat" class="section repeat-section">
+      <div class="section-head split-head">
+        <div><p class="kicker">REPEAT ENGINE</p><h2>한 번의 거래를<br>다음 거래로.</h2></div>
+        <p>KORUAL의 자산은 화면이 아니라 거래 이력입니다. 완료된 서비스에서 다음 필요 시점과 연관 서비스를 예측해 재구매 흐름을 만듭니다.</p>
+      </div>
+      <div class="repeat-grid">
+        <article><span>NOW</span><strong id="lifecycleNow">서비스 요청 생성</strong><p>요청 조건과 선택 이유를 구조화해 저장합니다.</p></article>
+        <article><span>NEXT</span><strong id="lifecycleNext">예약 · 완료 · 후기</strong><p>거래 이후 품질 데이터를 Trust Score에 다시 반영합니다.</p></article>
+        <article><span>REPEAT</span><strong id="lifecycleRepeat">다음 서비스 예측</strong><p>주기와 연관성을 바탕으로 적절한 시점에 다시 제안합니다.</p></article>
+      </div>
+    </section>
+
     <section id="services" class="section">
       <div class="section-head">
         <p class="kicker">SERVICES</p>
@@ -181,6 +243,16 @@
       <a href="#home">다시 시작하기 <span>↑</span></a>
     </section>
   </main>
+
+
+  <div id="bookingModal" class="booking-modal" hidden>
+    <div class="booking-dialog" role="dialog" aria-modal="true" aria-labelledby="bookingTitle">
+      <div class="booking-dialog-head"><div><small>KORUAL BOOKING</small><strong id="bookingTitle">예약 요청 확인</strong></div><button id="bookingClose" type="button" aria-label="닫기">×</button></div>
+      <div class="booking-summary"><span>선택 서비스</span><strong id="bookingService">—</strong><span>선택 견적</span><strong id="bookingQuote">—</strong></div>
+      <p>현재 베타에서는 실제 결제 없이 예약 흐름만 저장합니다. 실제 파트너·결제 API가 연결되면 이 단계에서 일정과 결제 승인을 받도록 확장합니다.</p>
+      <div class="booking-actions"><button id="bookingCancel" type="button">취소</button><button id="bookingConfirm" type="button">예약 요청 저장</button></div>
+    </div>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
