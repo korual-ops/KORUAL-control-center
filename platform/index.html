@@ -19,7 +19,20 @@
   <div class="app-frame">
     <header class="app-header">
       <div class="header-left">
-        <span class="logo">K</span>
+        <span class="logo brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="img">
+            <defs>
+              <linearGradient id="korualLogoGradient" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#5DE4FF"/>
+                <stop offset=".48" stop-color="#4778FF"/>
+                <stop offset="1" stop-color="#8A62FF"/>
+              </linearGradient>
+            </defs>
+            <path class="brand-orbit" d="M11.5 36.5C5.5 25 16.1 11.5 31.8 9.7c13.1-1.5 25 5.7 27 16.1 2.2 11.4-8.5 22.2-23.7 24.1-13.4 1.6-25.5-4.3-28.4-13.5" />
+            <path class="brand-k" d="M21 17v30M22 33l20-16M22 33l22 16" />
+            <circle class="brand-node" cx="48.5" cy="18" r="3.5"/>
+          </svg>
+        </span>
         <div class="header-copy">
           <strong id="headerTitle">KORUAL</strong>
           <small id="headerSubtitle">AI Service OS</small>
@@ -90,10 +103,10 @@
             <button type="button" data-open-screen="services">전체 보기</button>
           </div>
           <div class="quick-grid">
-            <button type="button" class="quick-card" data-service="이사"><span class="quick-icon">M</span><strong>이사</strong><small>비교 견적</small></button>
-            <button type="button" class="quick-card" data-service="입주청소"><span class="quick-icon">C</span><strong>청소</strong><small>빠른 매칭</small></button>
-            <button type="button" class="quick-card" data-service="인터넷 설치"><span class="quick-icon">N</span><strong>인터넷</strong><small>설치 비교</small></button>
-            <button type="button" class="quick-card" data-service="여행"><span class="quick-icon">T</span><strong>여행</strong><small>여정 연결</small></button>
+            <button type="button" class="quick-card" data-service="이사"><span class="quick-icon">MV</span><small class="category-kicker">MOVING</small><strong>이사</strong><em>견적 비교</em></button>
+            <button type="button" class="quick-card" data-service="입주청소"><span class="quick-icon">CL</span><small class="category-kicker">CLEANING</small><strong>청소</strong><em>빠른 매칭</em></button>
+            <button type="button" class="quick-card" data-service="인터넷 설치"><span class="quick-icon">NW</span><small class="category-kicker">NETWORK</small><strong>인터넷</strong><em>설치 비교</em></button>
+            <button type="button" class="quick-card" data-service="여행"><span class="quick-icon">TR</span><small class="category-kicker">TRAVEL</small><strong>여행</strong><em>여정 연결</em></button>
           </div>
         </div>
 
@@ -245,9 +258,9 @@
         </div>
 
         <div class="service-list">
-          <button type="button" class="service-row" data-service="생활 서비스"><span class="service-icon">H</span><span><small>CORE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 인터넷</em></span><b>→</b></button>
-          <button type="button" class="service-row" data-service="여행"><span class="service-icon">T</span><span><small>TRAVEL</small><strong>KORUAL Travel</strong><em>항공 · 숙박 · 공항 이동</em></span><b>→</b></button>
-          <button type="button" class="service-row" data-service="커머스 운영"><span class="service-icon">C</span><span><small>COMMERCE</small><strong>Commerce</strong><em>상품 · 주문 · 공급처 · 배송</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-service="생활 서비스"><span class="service-icon">LF</span><span><small>DAILY LIFE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 인터넷</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-service="여행"><span class="service-icon">TR</span><span><small>TRAVEL</small><strong>KORUAL Travel</strong><em>항공 · 숙박 · 공항 이동</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-service="커머스 운영"><span class="service-icon">CM</span><span><small>COMMERCE</small><strong>KORUAL Commerce</strong><em>상품 · 주문 · 공급처 · 배송</em></span><b>→</b></button>
           <button type="button" class="service-row" data-service="AI 추천"><span class="service-icon">AI</span><span><small>INTELLIGENCE</small><strong>KORUAL AI</strong><em>조건 분석 · 추천 · 자동화</em></span><b>→</b></button>
         </div>
       </section>
