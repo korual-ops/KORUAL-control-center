@@ -55,7 +55,30 @@ const handler = async (req, res) => {
       const build = String(url.searchParams.get('build') || '')
         .replace(/[^a-z0-9._-]/gi, '')
         .slice(0, 40);
-      console.log(`KORUAL_BOOT stage=${stage || 'unknown'} build=${build || 'unknown'}`);
+      const kind = String(url.searchParams.get('kind') || '')
+        .replace(/[^a-z0-9._-]/gi, '')
+        .slice(0, 40);
+      const msg = String(url.searchParams.get('msg') || '')
+        .replace(/[\r\n\t]/g, ' ')
+        .replace(/[^a-z0-9가-힣 .,/:_()\[\]-]/gi, '')
+        .slice(0, 180);
+      const file = String(url.searchParams.get('file') || '')
+        .replace(/[^a-z0-9._-]/gi, '')
+        .slice(0, 80);
+      const line = String(url.searchParams.get('line') || '')
+        .replace(/[^0-9]/g, '')
+        .slice(0, 12);
+      const col = String(url.searchParams.get('col') || '')
+        .replace(/[^0-9]/g, '')
+        .slice(0, 12);
+      console.log(
+        `KORUAL_BOOT stage=${stage || 'unknown'} build=${build || 'unknown'}` +
+        (kind ? ` kind=${kind}` : '') +
+        (msg ? ` msg=${msg}` : '') +
+        (file ? ` file=${file}` : '') +
+        (line ? ` line=${line}` : '') +
+        (col ? ` col=${col}` : '')
+      );
       res.writeHead(204, {'Cache-Control':'no-store'});
       return res.end();
     }
