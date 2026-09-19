@@ -1,21 +1,10 @@
 {
   "name": "korual-platform",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test",
+    "build": "node build.mjs",
     "start": "node static-server.mjs"
-  },
-  "dependencies": {
-    "@vitejs/plugin-react": "6.1.1",
-    "vite": "8.3.0",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "lucide-react": "1.47.0"
-  },
-  "devDependencies": {}
+  }
 }
