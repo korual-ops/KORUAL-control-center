@@ -3,7 +3,7 @@ import { ArrowRight, CheckCircle2, ChevronRight, Home, Search, ShieldCheck, Spar
 import { createRoot } from 'react-dom/client';
 import './life-os.css';
 
-const API_BASE = import.meta.env.VITE_KORUAL_API_BASE_URL || '';
+const API_BASE = import.meta.env.VITE_KORUAL_API_BASE_URL || 'https://dtmmjkikyfgkeimhevso.supabase.co/functions/v1/korual-marketplace';
 const services = [
   ['입주청소','새 집 입주 전 필수 서비스','18–25만원'],
   ['이사','지역·거리·짐 기준 비교','35–80만원'],
@@ -89,7 +89,7 @@ function App(){
       const response=await fetch(`${API_BASE}/service-requests`,{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        credentials:'include',
+        credentials:'omit',
         body:JSON.stringify({services:selected,...request,...acquisitionMeta()})
       });
       const payload=await response.json().catch(()=>({}));
