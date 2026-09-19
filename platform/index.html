@@ -240,6 +240,32 @@
       </section>
     </main>
 
+
+    <div id="bookingSheet" class="sheet-backdrop" hidden>
+      <form id="bookingForm" class="booking-sheet" autocomplete="on">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div><small>KORUAL BOOKING</small><strong>예약 정보 입력</strong></div>
+          <button id="closeBookingSheet" type="button" aria-label="예약창 닫기">×</button>
+        </div>
+        <div class="sheet-summary">
+          <span>선택 서비스</span><strong id="sheetService">—</strong>
+          <span>선택 견적</span><strong id="sheetQuote">—</strong>
+        </div>
+        <div class="field-grid">
+          <label><span>이름</span><input id="customerName" name="name" autocomplete="name" maxlength="40" placeholder="예약자 이름" required /></label>
+          <label><span>연락처</span><input id="customerPhone" name="phone" autocomplete="tel" inputmode="tel" maxlength="13" placeholder="01012345678" required /></label>
+          <label class="field-wide"><span>서비스 지역</span><input id="customerRegion" name="region" maxlength="80" placeholder="예: 인천 영종도" required /></label>
+          <label class="field-wide"><span>희망일</span><input id="desiredDate" name="desired_date" type="date" required /></label>
+        </div>
+        <p class="sheet-note">베타 예약 정보는 KORUAL Supabase에 저장됩니다. 결제는 아직 발생하지 않습니다.</p>
+        <div class="sheet-actions">
+          <button id="cancelBookingSheet" type="button">취소</button>
+          <button id="submitBooking" type="submit">예약 요청 저장</button>
+        </div>
+      </form>
+    </div>
+
     <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
     <nav class="tabbar" aria-label="주요 탐색">
