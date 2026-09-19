@@ -35,7 +35,7 @@
       <main style="min-height:100vh;padding:72px 24px;background:linear-gradient(180deg,#fbfcfd,#f4f6f8);color:#17202a;font-family:system-ui,-apple-system,'Segoe UI',sans-serif">
         <section style="width:min(1100px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr);gap:40px;align-items:center">
           <div>
-            <div style="display:inline-flex;align-items:center;gap:7px;color:#9a7033;font-size:11px;font-weight:800;letter-spacing:.12em">✦ KORUAL BETA · R6.1</div>
+            <div style="display:inline-flex;align-items:center;gap:7px;color:#9a7033;font-size:11px;font-weight:800;letter-spacing:.12em">✦ KORUAL BETA · R6.2</div>
             <h1 style="margin:18px 0 14px;font-size:clamp(42px,6vw,72px);line-height:1.02;letter-spacing:-.055em">한 번 묻고,<br><span style="color:#b48137">좋은 선택까지.</span></h1>
             <p style="max-width:580px;margin:0;color:#66727d;font-size:15px;line-height:1.72">이사, 입주청소, 인터넷, 정수기 같은 생활 서비스를 한 화면에서 정리하고 비교합니다.</p>
             <div style="margin-top:24px;padding:16px 18px;border:1px solid #dce3e9;border-radius:16px;background:#fff;box-shadow:0 18px 50px rgba(35,49,65,.08);color:#8a949e;font-size:14px">예: 다음 달 청라로 이사하는데 무엇부터 준비해야 해?</div>
@@ -53,7 +53,7 @@
         <noscript><p style="max-width:1100px;margin:24px auto 0;color:#b14f4f">인터랙티브 기능 사용을 위해 JavaScript 실행이 필요합니다.</p></noscript>
       </main>
     </div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" data-korual-entry src="/src/main.js"></script>
     <script>
       (function () {
         window.__KORUAL_READY__ = false;
@@ -61,7 +61,7 @@
 
         function report(stage) {
           try {
-            fetch('/__boot?stage=' + encodeURIComponent(stage) + '&build=2026.09.19-R6.1', {
+            fetch('/__boot?stage=' + encodeURIComponent(stage) + '&build=2026.09.19-R6.2', {
               cache: 'no-store',
               keepalive: true,
               credentials: 'omit'
@@ -70,6 +70,10 @@
         }
 
         report('html');
+
+        window.addEventListener('error', function () {
+          if (!window.__KORUAL_READY__) report('global-error');
+        }, true);
 
         setTimeout(function () {
           if (window.__KORUAL_READY__) return;
@@ -89,23 +93,36 @@
             '<span>최신 앱 연결을 자동 복구 중입니다.</span>';
           document.body.appendChild(notice);
 
-          var script = document.querySelector('script[type="module"][src]');
+          var stage = window.__KORUAL_BOOT_STAGE__ || 'html';
+          if (stage !== 'html') {
+            report('slow-' + stage);
+            return;
+          }
+
+          var script = document.querySelector('script[data-korual-app][src],script[data-korual-entry][src]');
           if (!script || window.__KORUAL_BOOT_RETRY__) return;
 
           window.__KORUAL_BOOT_RETRY__ = true;
-          var src = script.src + (script.src.indexOf('?') >= 0 ? '&' : '?') + 'retry=R61';
+          var retry = document.createElement('script');
+          retry.src = script.src + (script.src.indexOf('?') >= 0 ? '&' : '?') + 'retry=R62';
+          retry.async = true;
+          retry.setAttribute('data-korual-retry', 'true');
 
-          import(src).then(function () {
+          retry.onload = function () {
             report('retry-loaded');
-          }).catch(function () {
-            report('retry-failed');
+          };
+
+          retry.onerror = function () {
+            report('retry-failed-classic');
             var label = notice.querySelector('span:last-child');
             if (label) label.textContent = '앱 연결이 지연되고 있습니다. 새로고침하면 최신 버전으로 다시 연결합니다.';
             notice.style.cursor = 'pointer';
             notice.onclick = function () {
               window.location.reload();
             };
-          });
+          };
+
+          document.head.appendChild(retry);
         }, 2500);
 
         setTimeout(function () {
