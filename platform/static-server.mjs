@@ -45,8 +45,15 @@ const handler = async (req, res) => {
     const url = new URL(req.url || '/', 'http://localhost');
 
     if (url.pathname === '/healthz') {
-      res.writeHead(200, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
-      return res.end(JSON.stringify({ok:true,app:'korual-beta',runtime:'railway'}));
+      // A running listener is not healthy if the built application is missing.
+      const ready = await stat(join(root, 'index.html'))
+        .then(info => info.isFile() && info.size > 0)
+        .catch(() => false);
+      res.writeHead(ready ? 200 : 503, {
+        'Content-Type':'application/json; charset=utf-8',
+        'Cache-Control':'no-store'
+      });
+      return res.end(JSON.stringify({ok:ready,app:'korual-beta',runtime:'railway'}));
     }
 
     if (url.pathname === '/__boot') {
