@@ -153,7 +153,7 @@
     let service='일반 서비스';
     let priority='가격 + 신뢰';
 
-    if(q.includes('이사')||q.includes('입주')){
+    if(q.includes('이사')||(q.includes('입주')&&!q.includes('청소'))){
       service='이사';
       add('이사');add('입주청소');add('인터넷 설치');
       if(q.includes('에어컨')) add('에어컨');
