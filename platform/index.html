@@ -12,8 +12,9 @@
   <meta name="apple-mobile-web-app-title" content="KORUAL" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-  <title>KORUAL — Mobile Service OS</title>
+  <title>KORUAL — 생활과 여행을 연결하다</title>
   <link rel="stylesheet" href="/site.css" />
+  <link rel="stylesheet" href="/discovery.css" />
 </head>
 <body>
   <div class="app-frame">
@@ -48,73 +49,15 @@
     <main class="mobile-main">
       <section class="screen screen-home is-active" data-screen="home" aria-label="홈">
 
-        <section class="cinematic-scroll" id="korualWorld" aria-label="KORUAL immersive service universe">
-          <div class="cinematic-sticky" id="korualWorldStage" data-phase="0">
-            <div class="world-space" aria-hidden="true">
-              <span class="starfield stars-a"></span>
-              <span class="starfield stars-b"></span>
-              <span class="world-glow"></span>
-              <span class="portal-frame portal-frame-a"></span>
-              <span class="portal-frame portal-frame-b"></span>
-              <span class="world-earth">
-                <i class="earth-atmosphere"></i>
-                <i class="earth-grid"></i>
-              </span>
-              <span class="orbit orbit-a"></span>
-              <span class="orbit orbit-b"></span>
-              <span class="orbit orbit-c"></span>
-            </div>
-
-            <div class="world-nav">
-              <span class="world-brand">KORUAL</span>
-              <span class="world-mode"><i></i> IMMERSIVE MODE</span>
-            </div>
-
-            <div class="world-copy">
-              <span class="world-kicker">IN THAT MOMENT</span>
-              <h2>KORUAL</h2>
-              <p class="world-tagline">WELLNESS · LIFESTYLE · TRAVEL</p>
-              <p class="world-description">AI가 여행과 생활서비스를 하나의 흐름으로 연결합니다.</p>
-              <button class="world-ai-cta" type="button" data-open-screen="match">
-                <span>✦</span>
-                <strong>Ask KORUAL AI</strong>
-                <em>→</em>
-              </button>
-            </div>
-
-            <div class="world-service-layer" aria-label="서비스 바로가기">
-              <button class="world-service service-travel" type="button" data-service="여행">
-                <span>TRAVEL</span><strong>여행</strong><small>항공 · 숙박 · 이동</small>
-              </button>
-              <button class="world-service service-wellness" type="button" data-service="웰니스">
-                <span>WELLNESS</span><strong>웰니스</strong><small>휴식 · 건강 · 케어</small>
-              </button>
-              <button class="world-service service-home" type="button" data-service="생활 서비스">
-                <span>LIFESTYLE</span><strong>생활</strong><small>청소 · 이사 · 설치</small>
-              </button>
-              <button class="world-service service-interior" type="button" data-service="인테리어">
-                <span>INTERIOR</span><strong>인테리어</strong><small>공간 · 가구 · 시공</small>
-              </button>
-            </div>
-
-            <div class="world-story" aria-live="polite">
-              <div class="story-copy story-0"><small>01 · ARRIVE</small><strong>당신의 필요에서 시작합니다.</strong><span>자연어로 말하면 AI가 목적과 조건을 이해합니다.</span></div>
-              <div class="story-copy story-1"><small>02 · EXPLORE</small><strong>서비스가 입체적으로 연결됩니다.</strong><span>여행·생활·웰니스 영역을 한 화면에서 탐색합니다.</span></div>
-              <div class="story-copy story-2"><small>03 · COMPARE</small><strong>가격만이 아니라 신뢰까지 비교합니다.</strong><span>조건·검증·응답성 데이터를 함께 보여줍니다.</span></div>
-              <div class="story-copy story-3"><small>04 · ACT</small><strong>한 번의 결정으로 예약까지.</strong><span>비교에서 예약·재구매까지 하나의 흐름으로 이어집니다.</span></div>
-            </div>
-
-            <div class="world-progress" aria-hidden="true">
-              <span class="progress-line"><i></i></span>
-              <b>01</b><b>02</b><b>03</b><b>04</b>
-            </div>
-
-            <div class="world-scroll-hint" aria-hidden="true">
-              <span class="mouse-cue"><i></i></span><small>SCROLL TO EXPLORE</small>
-            </div>
-          </div>
+        <section class="discovery-hero" aria-labelledby="discoveryTitle">
+          <div class="discovery-copy"><span class="discovery-eyebrow">KORUAL · IN THAT MOMENT</span>
+          <h1 id="discoveryTitle">일상의 모든 선택,<br><em>하나의 코루알.</em></h1>
+          <p>이사부터 여행까지. 필요한 서비스를 찾고,<br>내 조건에 맞는 비교를 시작하세요.</p>
+          <div class="discovery-actions"><button type="button" data-open-screen="services">서비스 찾아보기 <span>↗</span></button><button type="button" data-open-screen="match">✦ 요청 정리하기</button></div>
+          <small>생활 · 웰니스 · 여행을 연결하는 서비스 베타</small></div>
+          <div class="discovery-art" aria-hidden="true"><div class="discovery-ring"></div><div class="discovery-sphere">K<span>CONNECTED LIFE</span></div><span class="art-tag art-tag-a">01 / LIFESTYLE</span><span class="art-tag art-tag-b">02 / TRAVEL</span><span class="art-tag art-tag-c">03 / WELLNESS</span></div>
         </section>
-
+        <div class="release-note"><span>새로운 KORUAL</span> 전국 지역 선택 · 서비스 검색 · 조건별 비교 <small>2026.09.27</small></div>
         <div class="home-hero">
           <div class="hero-topline">
             <span class="eyebrow">KORUAL BETA</span>
@@ -127,42 +70,6 @@
             <span class="cta-copy"><small>KORUAL AI</small><strong>무엇이 필요하세요?</strong></span>
             <span class="cta-arrow">→</span>
           </button>
-        </div>
-
-
-        <div class="meta-hub-wrap" aria-label="KORUAL 3D Meta Hub">
-          <div class="meta-stage" id="metaStage">
-            <div class="meta-grid-floor"></div>
-            <div class="meta-orbit orbit-one"></div>
-            <div class="meta-orbit orbit-two"></div>
-            <button class="meta-core" type="button" data-open-screen="match" aria-label="KORUAL AI 매칭 열기">
-              <span class="core-aura"></span>
-              <span class="core-shell"><small>KORUAL</small><strong>CORE</strong><em>LIVE</em></span>
-            </button>
-
-            <button class="meta-node node-ai" type="button" data-service="AI 추천" aria-label="AI 서비스">
-              <span class="node-icon">AI</span><span class="node-copy"><small>INTELLIGENCE</small><strong>AI</strong></span>
-            </button>
-            <button class="meta-node node-life" type="button" data-service="생활 서비스" aria-label="생활 서비스">
-              <span class="node-icon">H</span><span class="node-copy"><small>LIFE</small><strong>HOME</strong></span>
-            </button>
-            <button class="meta-node node-travel" type="button" data-service="여행" aria-label="여행 서비스">
-              <span class="node-icon">T</span><span class="node-copy"><small>TRAVEL</small><strong>MOVE</strong></span>
-            </button>
-            <button class="meta-node node-commerce" type="button" data-service="커머스 운영" aria-label="커머스 서비스">
-              <span class="node-icon">C</span><span class="node-copy"><small>COMMERCE</small><strong>TRADE</strong></span>
-            </button>
-
-            <div class="meta-particle particle-a"></div>
-            <div class="meta-particle particle-b"></div>
-            <div class="meta-particle particle-c"></div>
-            <div class="meta-particle particle-d"></div>
-          </div>
-          <div class="meta-hud">
-            <span><i></i> META ONLINE</span>
-            <strong>서비스가 하나의 공간에서 연결됩니다.</strong>
-            <small>노드를 눌러 바로 이동</small>
-          </div>
         </div>
 
 
@@ -241,6 +148,74 @@
             <button type="button" data-open-screen="match">→</button>
           </article>
         </div>
+        <details class="world-details"><summary>KORUAL 3D 브랜드 경험 둘러보기 <span>＋</span></summary>        <section class="cinematic-scroll" id="korualWorld" aria-label="KORUAL immersive service universe">
+          <div class="cinematic-sticky" id="korualWorldStage" data-phase="0">
+            <div class="world-space" aria-hidden="true">
+              <span class="starfield stars-a"></span>
+              <span class="starfield stars-b"></span>
+              <span class="world-glow"></span>
+              <span class="portal-frame portal-frame-a"></span>
+              <span class="portal-frame portal-frame-b"></span>
+              <span class="world-earth">
+                <i class="earth-atmosphere"></i>
+                <i class="earth-grid"></i>
+              </span>
+              <span class="orbit orbit-a"></span>
+              <span class="orbit orbit-b"></span>
+              <span class="orbit orbit-c"></span>
+            </div>
+
+            <div class="world-nav">
+              <span class="world-brand">KORUAL</span>
+              <span class="world-mode"><i></i> IMMERSIVE MODE</span>
+            </div>
+
+            <div class="world-copy">
+              <span class="world-kicker">IN THAT MOMENT</span>
+              <h2>KORUAL</h2>
+              <p class="world-tagline">WELLNESS · LIFESTYLE · TRAVEL</p>
+              <p class="world-description">AI가 여행과 생활서비스를 하나의 흐름으로 연결합니다.</p>
+              <button class="world-ai-cta" type="button" data-open-screen="match">
+                <span>✦</span>
+                <strong>Ask KORUAL AI</strong>
+                <em>→</em>
+              </button>
+            </div>
+
+            <div class="world-service-layer" aria-label="서비스 바로가기">
+              <button class="world-service service-travel" type="button" data-service="여행">
+                <span>TRAVEL</span><strong>여행</strong><small>항공 · 숙박 · 이동</small>
+              </button>
+              <button class="world-service service-wellness" type="button" data-service="웰니스">
+                <span>WELLNESS</span><strong>웰니스</strong><small>휴식 · 건강 · 케어</small>
+              </button>
+              <button class="world-service service-home" type="button" data-service="생활 서비스">
+                <span>LIFESTYLE</span><strong>생활</strong><small>청소 · 이사 · 설치</small>
+              </button>
+              <button class="world-service service-interior" type="button" data-service="인테리어">
+                <span>INTERIOR</span><strong>인테리어</strong><small>공간 · 가구 · 시공</small>
+              </button>
+            </div>
+
+            <div class="world-story" aria-live="polite">
+              <div class="story-copy story-0"><small>01 · ARRIVE</small><strong>당신의 필요에서 시작합니다.</strong><span>자연어로 말하면 AI가 목적과 조건을 이해합니다.</span></div>
+              <div class="story-copy story-1"><small>02 · EXPLORE</small><strong>서비스가 입체적으로 연결됩니다.</strong><span>여행·생활·웰니스 영역을 한 화면에서 탐색합니다.</span></div>
+              <div class="story-copy story-2"><small>03 · COMPARE</small><strong>가격만이 아니라 신뢰까지 비교합니다.</strong><span>조건·검증·응답성 데이터를 함께 보여줍니다.</span></div>
+              <div class="story-copy story-3"><small>04 · ACT</small><strong>한 번의 결정으로 예약까지.</strong><span>비교에서 예약·재구매까지 하나의 흐름으로 이어집니다.</span></div>
+            </div>
+
+            <div class="world-progress" aria-hidden="true">
+              <span class="progress-line"><i></i></span>
+              <b>01</b><b>02</b><b>03</b><b>04</b>
+            </div>
+
+            <div class="world-scroll-hint" aria-hidden="true">
+              <span class="mouse-cue"><i></i></span><small>SCROLL TO EXPLORE</small>
+            </div>
+          </div>
+        </section>
+
+</details>
       </section>
 
       <section class="screen" data-screen="match" aria-label="AI 매칭" hidden>
@@ -391,10 +366,21 @@
         <div class="screen-heading compact">
           <span class="eyebrow">SERVICES</span>
           <h2>KORUAL<br>서비스 맵.</h2>
-          <p>하나의 계정과 데이터 흐름 위에 카테고리를 확장합니다.</p>
+          <p>필요한 서비스와 희망 지역을 선택하고 요청을 시작하세요.</p>
         </div>
 
-        <div class="service-list">
+        <div class="discovery-controls">
+          <label>서비스 검색<input id="serviceSearch" type="search" placeholder="이사, 청소, 여행…" autocomplete="off" /></label>
+          <label>희망 지역<select id="serviceRegion"><option value="">전국 · 지역 선택</option><option>서울</option><option>부산</option><option>대구</option><option>인천</option><option>광주</option><option>대전</option><option>울산</option><option>세종</option><option>경기</option><option>강원</option><option>충북</option><option>충남</option><option>전북</option><option>전남</option><option>경북</option><option>경남</option><option>제주</option></select></label>
+        </div>
+        <p class="coverage-note">전국 17개 시·도에서 희망 지역을 선택할 수 있습니다. 실제 제공 여부는 서비스와 파트너별 확인이 필요합니다.</p>
+        <p id="serviceResultCount" class="service-result-count" role="status" aria-live="polite"></p>
+        <div class="service-list"><button type="button" class="service-row" data-service="이사"><span class="service-icon">MV</span><span><small>MOVING</small><strong>이사</strong><em>가정 · 원룸 · 사무실 이사</em></span><b>→</b></button>
+<button type="button" class="service-row" data-service="입주청소"><span class="service-icon">CL</span><span><small>CLEANING</small><strong>청소</strong><em>입주 · 정기 · 에어컨 세척</em></span><b>→</b></button>
+<button type="button" class="service-row" data-service="인터넷 설치"><span class="service-icon">NW</span><span><small>NETWORK</small><strong>인터넷·설치</strong><em>인터넷 · 가전 설치</em></span><b>→</b></button>
+<button type="button" class="service-row" data-service="인테리어"><span class="service-icon">IN</span><span><small>INTERIOR</small><strong>인테리어</strong><em>공간 · 가구 · 수리·시공</em></span><b>→</b></button>
+<button type="button" class="service-row" data-service="웰니스"><span class="service-icon">WL</span><span><small>WELLNESS</small><strong>웰니스</strong><em>휴식 · 운동 · 생활 케어</em></span><b>→</b></button>
+
           <button type="button" class="service-row" data-service="생활 서비스"><span class="service-icon">LF</span><span><small>DAILY LIFE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 인터넷</em></span><b>→</b></button>
           <button type="button" class="service-row" data-service="여행"><span class="service-icon">TR</span><span><small>TRAVEL</small><strong>KORUAL Travel</strong><em>항공 · 숙박 · 공항 이동</em></span><b>→</b></button>
           <button type="button" class="service-row" data-service="커머스 운영"><span class="service-icon">CM</span><span><small>COMMERCE</small><strong>KORUAL Commerce</strong><em>상품 · 주문 · 공급처 · 배송</em></span><b>→</b></button>
@@ -530,3 +516,4 @@
   <script src="/i18n.js" defer></script>
 </body>
 </html>
+

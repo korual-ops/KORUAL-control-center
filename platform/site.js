@@ -165,6 +165,8 @@
       service='여행';
       add('항공/숙박');add('공항 이동');add('여행자 서비스');
     }
+    if(q.includes('인테리어')||q.includes('시공')){service='인테리어';add('공간 상담');add('수리/시공')}
+    if(q.includes('웰니스')||q.includes('운동')){service='웰니스';add('휴식/운동');add('생활 케어')}
     if(q.includes('커머스')||q.includes('상품')||q.includes('배송')){
       service='커머스 운영';
       add('상품');add('주문');add('배송/정산');
@@ -299,12 +301,32 @@
     analyze(btn.dataset.prompt);
   }));
   $$('[data-service]').forEach(btn=>btn.addEventListener('click',()=>{
-    const value=btn.dataset.service||'';
+    const region=$('#serviceRegion')?.value||'';
+    const value=(region ? region+' 지역에서 ' : '')+(btn.dataset.service||'');
+    if(region && $('#customerRegion')) $('#customerRegion').value=region;
     showScreen('match');
     if(matchInput) matchInput.value=value;
     analyze(value);
   }));
   goQuotes?.addEventListener('click',()=>showScreen('quotes'));
+
+  // Filter labels and descriptions, without inserting user input as markup.
+  const serviceSearch=$('#serviceSearch');
+  const serviceRegion=$('#serviceRegion');
+  function filterServices(){
+    const query=(serviceSearch?.value||'').trim().toLocaleLowerCase();
+    let count=0;
+    $$('.service-list .service-row').forEach(row=>{
+      row.hidden=!row.textContent.toLocaleLowerCase().includes(query);
+      if(!row.hidden) count++;
+    });
+    const status=$('#serviceResultCount');
+    if(status) status.textContent=count ? count+'개 서비스 분야 · '+(serviceRegion?.value||'전국') : '일치하는 서비스가 없습니다. 검색어를 바꾸거나 AI 매칭에서 직접 요청하세요.';
+  }
+  serviceSearch?.addEventListener('input',filterServices);
+  serviceRegion?.addEventListener('change',filterServices);
+  filterServices();
+
 
   const quoteList=$('#quoteList');
   const stickyQuoteName=$('#stickyQuoteName');
@@ -750,3 +772,4 @@
 
   if(state.currentRequest) loadQuotes(state.currentRequest);
 })();
+

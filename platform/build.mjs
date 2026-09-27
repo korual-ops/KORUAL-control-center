@@ -6,7 +6,7 @@ const dist = new URL('./dist/', import.meta.url);
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 
-for (const file of ['index.html','site.css','site.js','i18n.js','immersive.css','immersive.js','manifest.webmanifest','icon.svg']) {
+for (const file of ['index.html','discovery.css','site.css','site.js','i18n.js','immersive.css','immersive.js','manifest.webmanifest','icon.svg']) {
   await copyFile(new URL(file, base), new URL(file, dist));
 }
 
@@ -18,3 +18,4 @@ html = html
 await writeFile(indexPath, html, 'utf8');
 
 console.log('KORUAL mobile static build complete — immersive scroll enabled');
+
