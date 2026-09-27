@@ -100,6 +100,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px soli
 .sheet-note{margin:12px 2px 0;color:var(--muted);font-size:8px;line-height:1.55}.sheet-actions{display:grid;grid-template-columns:.8fr 1.4fr;gap:8px;margin-top:14px}.sheet-actions button{min-height:48px;border:1px solid var(--line);border-radius:14px;background:var(--surface);font-size:10px;font-weight:900;cursor:pointer}.sheet-actions button:last-child{border-color:var(--accent);background:var(--accent);color:#fff}.sheet-actions button:disabled{opacity:.5}
 .api-state{display:inline-flex;align-items:center;gap:5px}.api-state:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--success)}
 @media(max-width:440px){.booking-sheet{padding-left:14px;padding-right:14px}.field-grid{grid-template-columns:1fr}.field-wide{grid-column:auto}}
+.quote-insight{margin:12px 0 0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);color:var(--muted);font-size:11px;line-height:1.5}.quote-card.is-sample{opacity:.72}.quote-card.is-sample .verified{color:var(--muted)}
 
 
 /* ===== KORUAL META 3D UI ===== */
