@@ -23,12 +23,15 @@
     profile:['My KORUAL','설정과 플랫폼 상태']
   };
 
-  let quoteCatalog={
+  const sampleQuotes={
     best:{id:'best',name:'KORUAL Demo Recommended',price:142000,trust:96,label:'AI 추천',provider_key:'demo_best',verified:true,rating:4.9,reviews:264,response:8,jobs:534},
     value:{id:'value',name:'KORUAL Demo Value',price:128000,trust:91,label:'가성비',provider_key:'demo_value',verified:true,rating:4.8,reviews:128,response:18,jobs:286},
     premium:{id:'premium',name:'KORUAL Demo Premium',price:169000,trust:94,label:'프리미엄',provider_key:'demo_premium',verified:true,rating:5.0,reviews:96,response:12,jobs:178}
   };
+  let quoteCatalog={...sampleQuotes};
   let quoteMode='sample';
+  let liveQuoteKeys=new Set();
+  let quoteRequestVersion=0;
 
   let state={
     requests:0,
@@ -188,6 +191,7 @@
   const analysisNext=$('#analysisNext');
   const goQuotes=$('#goQuotes');
   const quoteContext=$('#quoteContext');
+  const quoteInsight=$('#quoteInsight');
   const verifiedOnly=$('#verifiedOnly');
   const budgetCap=$('#budgetCap');
   const trustSheet=$('#trustSheet');
@@ -210,14 +214,21 @@
 
   async function loadQuotes(request){
     if(!request)return;
+    const version=++quoteRequestVersion;
     quoteMode='loading';
+    liveQuoteKeys.clear();
+    quoteCatalog={...sampleQuotes};
+    state.selectedQuote=null;
+    for(const key of Object.keys(sampleQuotes)) updateQuoteCard({key,provider_name:sampleQuotes[key].name,amount:sampleQuotes[key].price,trust:sampleQuotes[key].trust,label:sampleQuotes[key].label,rating:sampleQuotes[key].rating,response_minutes:sampleQuotes[key].response});
     renderQuotesSelection();
     if(quoteContext) quoteContext.textContent='서버에서 검증된 베타 견적을 불러오는 중…';
     try{
       const data=await fetchApi('quotes',{request});
+      if(version!==quoteRequestVersion)return;
       if(Array.isArray(data.quotes)&&data.quotes.length){
-        quoteMode='live';
         for(const q of data.quotes){
+          if(!Object.hasOwn(sampleQuotes,q.key)||!q.provider_key||!Number.isFinite(Number(q.amount)))continue;
+          liveQuoteKeys.add(q.key);
           quoteCatalog[q.key]={
             id:q.key,
             name:q.provider_name,
@@ -233,13 +244,13 @@
           };
           updateQuoteCard(q);
         }
-        if(quoteContext) quoteContext.textContent=data.request.service+' · 실제 Supabase 베타 파트너 데이터';
+        quoteMode=liveQuoteKeys.size?'live':'sample';
       }else{
         quoteMode='sample';
       }
     }catch(err){
+      if(version!==quoteRequestVersion)return;
       quoteMode='sample';
-      if(quoteContext) quoteContext.textContent=request.service+' · 연결 실패 시 표시되는 로컬 샘플 견적';
       showToast('견적 서버 연결이 불안정해 샘플 모드로 표시합니다.');
     }
     renderQuotesSelection();
@@ -259,7 +270,7 @@
     const rating=$('.fact-grid span:nth-child(1) b',card);
     const response=$('.fact-grid span:nth-child(2) b',card);
     if(providerName) providerName.textContent=q.provider_name||'KORUAL Demo Partner';
-    if(providerMeta) providerMeta.textContent='검증 파트너 · 베타';
+    if(providerMeta) providerMeta.textContent=q.provider_key?'서버 조회 · 베타 데이터':'예시 데이터 · 예약 불가';
     if(price) price.textContent='₩'+Number(q.amount||0).toLocaleString('ko-KR');
     if(priceLabel) priceLabel.textContent=q.label||'견적';
     if(trust) trust.textContent=String(q.trust||0);
@@ -273,6 +284,7 @@
     if(!request.raw){showToast('필요한 서비스를 입력해주세요.');matchInput?.focus();return}
     state.currentRequest=request;
     state.selectedQuote=null;
+    quoteMode='loading';
     if(count) state.requests=(Number(state.requests)||0)+1;
     save();
     renderAnalysis(request);
@@ -311,7 +323,7 @@
   }
 
   function scoreQuote(q){
-    const prices=Object.values(quoteCatalog).map(x=>Number(x.price)||0).filter(Boolean);
+    const prices=Object.entries(quoteCatalog).filter(([key])=>quoteMode!=='live'||liveQuoteKeys.has(key)).map(([,x])=>Number(x.price)||0).filter(Boolean);
     const min=Math.min(...prices),max=Math.max(...prices);
     const priceScore=max===min?100:100-((q.price-min)/(max-min))*35;
     const trustScore=Math.max(0,Math.min(100,Number(q.trust)||0));
@@ -336,9 +348,13 @@
       const q=quoteCatalog[card.dataset.quoteCard];
       const overBudget=state.preferences.budgetCap && q && Number(q.price)>state.preferences.budgetCap;
       const unverified=state.preferences.verifiedOnly && q && !q.verified;
-      card.classList.toggle('is-filtered',Boolean(overBudget||unverified));
+      const unavailable=quoteMode==='live'&&!liveQuoteKeys.has(card.dataset.quoteCard);
+      card.classList.toggle('is-filtered',Boolean(overBudget||unverified||unavailable));
+      card.classList.toggle('is-sample',quoteMode!=='live'||unavailable);
+      const badge=$('.verified',card);
+      if(badge) badge.textContent=quoteMode==='live'&&!unavailable?(q.verified?'✓ 검증':'미검증'):'예시';
       card.classList.remove('is-top-choice','featured');
-      return {card,q,score:q?scoreQuote(q):-1,hidden:Boolean(overBudget||unverified)};
+      return {card,q,score:q?scoreQuote(q):-1,hidden:Boolean(overBudget||unverified||unavailable)};
     });
     entries.sort((a,b)=>b.score-a.score);
     entries.forEach(x=>list.appendChild(x.card));
@@ -350,8 +366,17 @@
     }
     if(quoteContext&&state.currentRequest){
       const cap=state.preferences.budgetCap?' · '+Number(state.preferences.budgetCap).toLocaleString('ko-KR')+'원 이하':'';
-      const mode=quoteMode==='live'?'베타 파트너':quoteMode==='loading'?'견적 확인 중':'예시 견적 · 예약 불가';
+      const mode=quoteMode==='live'?liveQuoteKeys.size+'개 서버 베타 견적':quoteMode==='loading'?'서버 확인 중 · 예시 표시':'예시 견적 · 예약 불가';
       quoteContext.textContent=state.currentRequest.service+' · '+mode+' · '+preferenceLabel()+' 우선'+cap;
+    }
+    if(quoteInsight){
+      const amounts=[...liveQuoteKeys].map(key=>Number(quoteCatalog[key]?.price)).filter(x=>Number.isFinite(x)&&x>=0);
+      if(quoteMode==='live'&&amounts.length){
+        const low=Math.min(...amounts),high=Math.max(...amounts);
+        quoteInsight.textContent='서버 베타 견적 '+amounts.length+'개 · 표시 가격 '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 예약은 베타 요청으로 저장됩니다. 실제 제공 여부·서비스 범위·추가 비용을 확인하세요.';
+      }else{
+        quoteInsight.textContent=quoteMode==='loading'?'파트너 연결을 확인하는 동안 예시 카드를 보여드립니다.':'예시 금액과 평점은 실제 견적이 아닙니다. 예약 전 서비스 범위와 최종 금액을 확인하세요.';
+      }
     }
   }
 
@@ -397,7 +422,7 @@
     if(state.selectedQuote){
       if(stickyQuoteName) stickyQuoteName.textContent=state.selectedQuote.label+' · '+state.selectedQuote.name;
       if(stickyQuotePrice) stickyQuotePrice.textContent='₩'+Number(state.selectedQuote.price).toLocaleString('ko-KR');
-      if(bookSelected) bookSelected.disabled=quoteMode!=='live';
+      if(bookSelected) bookSelected.disabled=quoteMode!=='live'||!liveQuoteKeys.has(state.selectedQuote.id);
     }else{
       if(stickyQuoteName) stickyQuoteName.textContent='견적을 선택하세요';
       if(stickyQuotePrice) stickyQuotePrice.textContent='—';
@@ -411,6 +436,7 @@
     if(!btn)return;
     const quote=quoteCatalog[btn.dataset.quote];
     if(!quote)return;
+    if(quoteMode==='live'&&!liveQuoteKeys.has(quote.id)){showToast('이 카드는 예시입니다. 실제 견적을 선택해주세요.');return}
     if(!state.currentRequest){
       state.currentRequest=inferRequest('생활 서비스');
       state.requests=(Number(state.requests)||0)+1;
@@ -488,7 +514,7 @@
   }
 
   function openBookingSheet(){
-    if(quoteMode!=='live'){showToast('예시 견적은 예약할 수 없습니다. 실제 견적 연결을 확인해주세요.');return}
+    if(quoteMode!=='live'||!liveQuoteKeys.has(state.selectedQuote?.id)){showToast('예시 견적은 예약할 수 없습니다. 실제 견적 연결을 확인해주세요.');return}
     if(!state.selectedQuote){showToast('먼저 견적을 선택해주세요.');return}
     if(!state.currentRequest){showToast('먼저 서비스 요청을 분석해주세요.');return}
     $('#sheetService').textContent=state.currentRequest.service;
@@ -516,7 +542,7 @@
 
   bookingForm?.addEventListener('submit',async e=>{
     e.preventDefault();
-    if(!state.selectedQuote||!state.currentRequest)return;
+    if(!state.selectedQuote||!state.currentRequest||quoteMode!=='live'||!liveQuoteKeys.has(state.selectedQuote.id))return;
     const customer={
       name:$('#customerName')?.value||'',
       phone:$('#customerPhone')?.value||'',
