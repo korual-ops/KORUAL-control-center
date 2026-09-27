@@ -190,7 +190,7 @@
     else if(mode==='prefixArrow')el.innerHTML=escape(value)+' <b>→</b>';
     else if(mode==='prefixCheck')el.innerHTML=escape(value)+' <span>✓</span>';
     else if(mode==='bullet')el.innerHTML='<span>●</span> '+escape(value);
-    else el.textContent=value;
+    else if(el.textContent!==value) el.textContent=value;
   }
   function escape(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 
@@ -220,8 +220,9 @@
     };
     const val=map[active]||map.home;
     const title=document.getElementById('headerTitle'),sub=document.getElementById('headerSubtitle');
-    if(title)title.textContent=val[0];
-    if(sub)sub.textContent=typeof val[1]==='string'?val[1]:(val[1][lang]||val[1].ko);
+    if(title && title.textContent!==val[0])title.textContent=val[0];
+    const subtitle=typeof val[1]==='string'?val[1]:(val[1][lang]||val[1].ko);
+    if(sub && sub.textContent!==subtitle)sub.textContent=subtitle;
   }
 
   function applyExact(root){
@@ -234,7 +235,8 @@
         const dynamic=(DYNAMIC[lang]||{})[source];
         if(exact[source]||dynamic){
           if(el.dataset)el.dataset.i18nSource=source;
-          el.textContent=dynamic||dict[exact[source]]||source;
+          const translated=dynamic||dict[exact[source]]||source;
+          if(el.textContent!==translated)el.textContent=translated;
         }
       }
       el=walker.nextNode();
@@ -269,7 +271,8 @@
           const dynamic=(DYNAMIC[lang]||{})[src];
           if(exact[src]||dynamic){
             parent.dataset.i18nSource=src;
-            parent.textContent=dynamic||(T[lang]||T.ko)[exact[src]]||src;
+            const translated=dynamic||(T[lang]||T.ko)[exact[src]]||src;
+            if(parent.textContent!==translated)parent.textContent=translated;
           }
         }
       }
