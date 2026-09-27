@@ -28,6 +28,7 @@
     value:{id:'value',name:'KORUAL Demo Value',price:128000,trust:91,label:'가성비',provider_key:'demo_value',verified:true,rating:4.8,reviews:128,response:18,jobs:286},
     premium:{id:'premium',name:'KORUAL Demo Premium',price:169000,trust:94,label:'프리미엄',provider_key:'demo_premium',verified:true,rating:5.0,reviews:96,response:12,jobs:178}
   };
+  let quoteMode='sample';
 
   let state={
     requests:0,
@@ -209,10 +210,13 @@
 
   async function loadQuotes(request){
     if(!request)return;
+    quoteMode='loading';
+    renderQuotesSelection();
     if(quoteContext) quoteContext.textContent='서버에서 검증된 베타 견적을 불러오는 중…';
     try{
       const data=await fetchApi('quotes',{request});
       if(Array.isArray(data.quotes)&&data.quotes.length){
+        quoteMode='live';
         for(const q of data.quotes){
           quoteCatalog[q.key]={
             id:q.key,
@@ -230,8 +234,11 @@
           updateQuoteCard(q);
         }
         if(quoteContext) quoteContext.textContent=data.request.service+' · 실제 Supabase 베타 파트너 데이터';
+      }else{
+        quoteMode='sample';
       }
     }catch(err){
+      quoteMode='sample';
       if(quoteContext) quoteContext.textContent=request.service+' · 연결 실패 시 표시되는 로컬 샘플 견적';
       showToast('견적 서버 연결이 불안정해 샘플 모드로 표시합니다.');
     }
@@ -325,7 +332,7 @@
     normalizePreferences();
     const list=$('#quoteList');
     if(!list)return;
-    const entries=$('[data-quote-card]',list).map(card=>{
+    const entries=$$('[data-quote-card]',list).map(card=>{
       const q=quoteCatalog[card.dataset.quoteCard];
       const overBudget=state.preferences.budgetCap && q && Number(q.price)>state.preferences.budgetCap;
       const unverified=state.preferences.verifiedOnly && q && !q.verified;
@@ -343,13 +350,14 @@
     }
     if(quoteContext&&state.currentRequest){
       const cap=state.preferences.budgetCap?' · '+Number(state.preferences.budgetCap).toLocaleString('ko-KR')+'원 이하':'';
-      quoteContext.textContent=state.currentRequest.service+' · '+preferenceLabel()+' 우선'+cap;
+      const mode=quoteMode==='live'?'베타 파트너':quoteMode==='loading'?'견적 확인 중':'예시 견적 · 예약 불가';
+      quoteContext.textContent=state.currentRequest.service+' · '+mode+' · '+preferenceLabel()+' 우선'+cap;
     }
   }
 
   function syncPreferenceUI(){
     normalizePreferences();
-    $('[data-priority]').forEach(btn=>btn.classList.toggle('is-active',btn.dataset.priority===state.preferences.priority));
+    $$('[data-priority]').forEach(btn=>btn.classList.toggle('is-active',btn.dataset.priority===state.preferences.priority));
     if(verifiedOnly) verifiedOnly.checked=state.preferences.verifiedOnly;
     if(budgetCap) budgetCap.value=state.preferences.budgetCap||'';
     applyDecisionLens();
@@ -389,7 +397,7 @@
     if(state.selectedQuote){
       if(stickyQuoteName) stickyQuoteName.textContent=state.selectedQuote.label+' · '+state.selectedQuote.name;
       if(stickyQuotePrice) stickyQuotePrice.textContent='₩'+Number(state.selectedQuote.price).toLocaleString('ko-KR');
-      if(bookSelected) bookSelected.disabled=false;
+      if(bookSelected) bookSelected.disabled=quoteMode!=='live';
     }else{
       if(stickyQuoteName) stickyQuoteName.textContent='견적을 선택하세요';
       if(stickyQuotePrice) stickyQuotePrice.textContent='—';
@@ -413,7 +421,7 @@
   });
 
 
-  $('[data-priority]').forEach(btn=>btn.addEventListener('click',()=>{
+    $$('[data-priority]').forEach(btn=>btn.addEventListener('click',()=>{
     normalizePreferences();
     state.preferences.priority=btn.dataset.priority||'balanced';
     save();
@@ -451,7 +459,7 @@
     setTimeout(()=>$('.agent-control')?.scrollIntoView({behavior:'smooth',block:'center'}),80);
   });
 
-  $('.filter-strip [data-sort]').forEach(btn=>btn.addEventListener('click',()=>{
+    $$('.filter-strip [data-sort]').forEach(btn=>btn.addEventListener('click',()=>{
     $$('.filter-strip [data-sort]').forEach(x=>x.classList.toggle('is-active',x===btn));
     if(!quoteList)return;
     const cards=$$('[data-quote-card]',quoteList);
@@ -480,6 +488,7 @@
   }
 
   function openBookingSheet(){
+    if(quoteMode!=='live'){showToast('예시 견적은 예약할 수 없습니다. 실제 견적 연결을 확인해주세요.');return}
     if(!state.selectedQuote){showToast('먼저 견적을 선택해주세요.');return}
     if(!state.currentRequest){showToast('먼저 서비스 요청을 분석해주세요.');return}
     $('#sheetService').textContent=state.currentRequest.service;
