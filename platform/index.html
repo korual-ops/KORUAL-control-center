@@ -15,6 +15,7 @@
   <title>KORUAL — 생활과 여행을 연결하다</title>
   <link rel="stylesheet" href="/site.css" />
   <link rel="stylesheet" href="/discovery.css" />
+  <link rel="stylesheet" href="/redesign.css" />
 </head>
 <body>
   <div class="app-frame">
@@ -49,173 +50,33 @@
     <main class="mobile-main">
       <section class="screen screen-home is-active" data-screen="home" aria-label="홈">
 
-        <section class="discovery-hero" aria-labelledby="discoveryTitle">
-          <div class="discovery-copy"><span class="discovery-eyebrow">KORUAL · IN THAT MOMENT</span>
-          <h1 id="discoveryTitle">일상의 모든 선택,<br><em>하나의 코루알.</em></h1>
-          <p>이사부터 여행까지. 필요한 서비스를 찾고,<br>내 조건에 맞는 비교를 시작하세요.</p>
-          <div class="discovery-actions"><button type="button" data-open-screen="services">서비스 찾아보기 <span>↗</span></button><button type="button" data-open-screen="match">✦ 요청 정리하기</button></div>
-          <small>생활 · 웰니스 · 여행을 연결하는 서비스 베타</small></div>
-          <div class="discovery-art" aria-hidden="true"><div class="discovery-ring"></div><div class="discovery-sphere">K<span>CONNECTED LIFE</span></div><span class="art-tag art-tag-a">01 / LIFESTYLE</span><span class="art-tag art-tag-b">02 / TRAVEL</span><span class="art-tag art-tag-c">03 / WELLNESS</span></div>
+        <section class="new-home-hero" aria-label="코루알 서비스 시작">
+          <div class="new-hero-copy">
+            <p class="new-hero-line">KORUAL · WELLNESS · LIFESTYLE · TRAVEL</p>
+            <h1>필요한 순간,<br><em>코루알</em></h1>
+            <p class="new-hero-description">생활 서비스부터 여행까지. 필요한 것을 말하면 조건을 정리하고 비교를 시작합니다.</p>
+            <button class="new-hero-search" type="button" data-open-screen="match"><span class="search-mark" aria-hidden="true">⌕</span><strong>무엇이 필요하세요?</strong><span class="search-go" aria-hidden="true">→</span></button>
+            <p class="new-hero-foot">서비스 요청 · 견적 비교 · 예약 요청</p>
+          </div>
+          <div class="new-hero-index" aria-hidden="true"><span>01 / 03</span><i></i><span>IN THAT MOMENT</span></div>
         </section>
-        <div class="release-note"><span>새로운 KORUAL</span> 전국 지역 선택 · 서비스 검색 · 조건별 비교 <small>2026.09.27</small></div>
-        <div class="home-hero">
-          <div class="hero-topline">
-            <span class="eyebrow">KORUAL BETA</span>
-            <span id="todayLabel" class="date-label">Today</span>
-          </div>
-          <h1>필요한 서비스를<br><em>더 빠르게.</em></h1>
-          <p>AI가 요청을 이해하고 필요한 서비스 묶음과 비교 기준을 정리합니다.</p>
-          <button class="hero-cta" type="button" data-open-screen="match">
-            <span class="cta-icon">✦</span>
-            <span class="cta-copy"><small>KORUAL AI</small><strong>무엇이 필요하세요?</strong></span>
-            <span class="cta-arrow">→</span>
-          </button>
-        </div>
 
-
-        <div class="section-block">
-          <div class="section-title">
-            <div><small>QUICK START</small><h2>바로 시작</h2></div>
-            <button type="button" data-open-screen="services">전체 보기</button>
-          </div>
-          <div class="quick-grid">
-            <button type="button" class="quick-card" data-service="이사"><span class="quick-icon">MV</span><small class="category-kicker">MOVING</small><strong>이사</strong><em>견적 비교</em></button>
-            <button type="button" class="quick-card" data-service="입주청소"><span class="quick-icon">CL</span><small class="category-kicker">CLEANING</small><strong>청소</strong><em>빠른 매칭</em></button>
-            <button type="button" class="quick-card" data-service="인터넷 설치"><span class="quick-icon">NW</span><small class="category-kicker">NETWORK</small><strong>인터넷</strong><em>설치 비교</em></button>
-            <button type="button" class="quick-card" data-service="여행"><span class="quick-icon">TR</span><small class="category-kicker">TRAVEL</small><strong>여행</strong><em>여정 연결</em></button>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-title">
-            <div><small>SMART FLOW</small><h2>한 번에 연결</h2></div>
-          </div>
-          <article class="flow-card">
-            <div class="flow-line"><span class="flow-step active">1</span><i></i><span class="flow-step">2</span><i></i><span class="flow-step">3</span><i></i><span class="flow-step">4</span></div>
-            <div class="flow-labels"><span>요청</span><span>매칭</span><span>비교</span><span>예약</span></div>
-            <p>입력은 한 번만. 조건 분석부터 견적 비교와 예약까지 같은 흐름에서 이어집니다.</p>
-          </article>
-        </div>
-
-        <div class="section-block life-plan-block">
-          <div class="section-title">
-            <div><small>AI LIFE PLAN</small><h2>상황별로 한 번에 준비</h2></div>
-            <button type="button" data-open-screen="match">직접 요청</button>
-          </div>
-
-          <div class="life-plan-grid">
-            <button type="button" class="life-plan-card plan-move" data-service="다음 달 아파트로 이사해. 이사, 입주청소, 인터넷 설치를 일정과 예산까지 한 번에 비교해줘">
-              <span class="plan-top"><small>MOVE HOME</small><b>01</b></span>
-              <strong>새집으로 이사</strong>
-              <p>이사 · 입주청소 · 인터넷을 하나의 일정으로 연결</p>
-              <span class="plan-flow"><i>이사</i><em>→</em><i>청소</i><em>→</em><i>설치</i></span>
-              <span class="plan-action">AI 플랜 만들기 <b>→</b></span>
-            </button>
-
-            <button type="button" class="life-plan-card plan-travel" data-service="3박 4일 여행을 준비해줘. 항공, 숙박, 공항 이동과 현지 일정을 예산에 맞춰 한 번에 정리해줘">
-              <span class="plan-top"><small>TRAVEL DAY</small><b>02</b></span>
-              <strong>여행 한 번에 준비</strong>
-              <p>항공 · 숙박 · 이동을 일정 중심으로 연결</p>
-              <span class="plan-flow"><i>항공</i><em>→</em><i>숙박</i><em>→</em><i>이동</i></span>
-              <span class="plan-action">AI 플랜 만들기 <b>→</b></span>
-            </button>
-
-            <button type="button" class="life-plan-card plan-home" data-service="집을 새롭게 정리하고 싶어. 에어컨 세척, 수리·시공, 인테리어 서비스를 가격과 신뢰도 기준으로 비교해줘">
-              <span class="plan-top"><small>HOME RESET</small><b>03</b></span>
-              <strong>집 리프레시</strong>
-              <p>관리 · 수리 · 인테리어를 우선순위대로 추천</p>
-              <span class="plan-flow"><i>관리</i><em>→</em><i>수리</i><em>→</em><i>공간</i></span>
-              <span class="plan-action">AI 플랜 만들기 <b>→</b></span>
-            </button>
-          </div>
-
-          <div class="decision-trust-strip" aria-label="KORUAL 의사결정 원칙">
-            <span><small>KORUAL SCORE</small><strong>가격 + 신뢰 + 응답성</strong></span>
-            <i></i>
-            <span><small>PRICE INTELLIGENCE</small><strong>적정가 범위 비교</strong></span>
-            <i></i>
-            <span><small>USER CONTROL</small><strong>예약 전 최종 승인</strong></span>
-          </div>
-        </div>
-
-        <div class="section-block">
-          <div class="section-title">
-            <div><small>FOR YOU</small><h2>다음 추천</h2></div>
-          </div>
-          <article class="recommend-card" id="homeRecommendation">
-            <div class="recommend-badge">AI</div>
-            <div><small>아직 요청이 없어요</small><strong>필요한 서비스를 입력해보세요.</strong><p>최근 요청을 기반으로 다음 행동을 여기에 추천합니다.</p></div>
-            <button type="button" data-open-screen="match">→</button>
-          </article>
-        </div>
-        <details class="world-details"><summary>KORUAL 3D 브랜드 경험 둘러보기 <span>＋</span></summary>        <section class="cinematic-scroll" id="korualWorld" aria-label="KORUAL immersive service universe">
-          <div class="cinematic-sticky" id="korualWorldStage" data-phase="0">
-            <div class="world-space" aria-hidden="true">
-              <span class="starfield stars-a"></span>
-              <span class="starfield stars-b"></span>
-              <span class="world-glow"></span>
-              <span class="portal-frame portal-frame-a"></span>
-              <span class="portal-frame portal-frame-b"></span>
-              <span class="world-earth">
-                <i class="earth-atmosphere"></i>
-                <i class="earth-grid"></i>
-              </span>
-              <span class="orbit orbit-a"></span>
-              <span class="orbit orbit-b"></span>
-              <span class="orbit orbit-c"></span>
-            </div>
-
-            <div class="world-nav">
-              <span class="world-brand">KORUAL</span>
-              <span class="world-mode"><i></i> IMMERSIVE MODE</span>
-            </div>
-
-            <div class="world-copy">
-              <span class="world-kicker">IN THAT MOMENT</span>
-              <h2>KORUAL</h2>
-              <p class="world-tagline">WELLNESS · LIFESTYLE · TRAVEL</p>
-              <p class="world-description">AI가 여행과 생활서비스를 하나의 흐름으로 연결합니다.</p>
-              <button class="world-ai-cta" type="button" data-open-screen="match">
-                <span>✦</span>
-                <strong>Ask KORUAL AI</strong>
-                <em>→</em>
-              </button>
-            </div>
-
-            <div class="world-service-layer" aria-label="서비스 바로가기">
-              <button class="world-service service-travel" type="button" data-service="여행">
-                <span>TRAVEL</span><strong>여행</strong><small>항공 · 숙박 · 이동</small>
-              </button>
-              <button class="world-service service-wellness" type="button" data-service="웰니스">
-                <span>WELLNESS</span><strong>웰니스</strong><small>휴식 · 건강 · 케어</small>
-              </button>
-              <button class="world-service service-home" type="button" data-service="생활 서비스">
-                <span>LIFESTYLE</span><strong>생활</strong><small>청소 · 이사 · 설치</small>
-              </button>
-              <button class="world-service service-interior" type="button" data-service="인테리어">
-                <span>INTERIOR</span><strong>인테리어</strong><small>공간 · 가구 · 시공</small>
-              </button>
-            </div>
-
-            <div class="world-story" aria-live="polite">
-              <div class="story-copy story-0"><small>01 · ARRIVE</small><strong>당신의 필요에서 시작합니다.</strong><span>자연어로 말하면 AI가 목적과 조건을 이해합니다.</span></div>
-              <div class="story-copy story-1"><small>02 · EXPLORE</small><strong>서비스가 입체적으로 연결됩니다.</strong><span>여행·생활·웰니스 영역을 한 화면에서 탐색합니다.</span></div>
-              <div class="story-copy story-2"><small>03 · COMPARE</small><strong>가격만이 아니라 신뢰까지 비교합니다.</strong><span>조건·검증·응답성 데이터를 함께 보여줍니다.</span></div>
-              <div class="story-copy story-3"><small>04 · ACT</small><strong>한 번의 결정으로 예약까지.</strong><span>비교에서 예약·재구매까지 하나의 흐름으로 이어집니다.</span></div>
-            </div>
-
-            <div class="world-progress" aria-hidden="true">
-              <span class="progress-line"><i></i></span>
-              <b>01</b><b>02</b><b>03</b><b>04</b>
-            </div>
-
-            <div class="world-scroll-hint" aria-hidden="true">
-              <span class="mouse-cue"><i></i></span><small>SCROLL TO EXPLORE</small>
-            </div>
+        <section class="new-discover" aria-label="서비스 둘러보기">
+          <div class="new-section-head"><div><small>EXPLORE KORUAL</small><h2>당신의 다음 순간을 위해</h2></div><button type="button" data-open-screen="services">모든 서비스 <span>↗</span></button></div>
+          <div class="new-category-grid">
+            <button type="button" class="new-category new-category-life" data-service="생활 서비스"><span class="new-category-symbol">⌂</span><span><small>01 · LIFESTYLE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 공간</em></span><b>↗</b></button>
+            <button type="button" class="new-category new-category-travel" data-service="여행"><span class="new-category-symbol">✈</span><span><small>02 · TRAVEL</small><strong>여행 서비스</strong><em>항공 · 숙박 · 공항 이동</em></span><b>↗</b></button>
+            <button type="button" class="new-category new-category-wellness" data-service="웰니스"><span class="new-category-symbol">✺</span><span><small>03 · WELLNESS</small><strong>웰니스</strong><em>휴식 · 케어 · 일상 회복</em></span><b>↗</b></button>
           </div>
         </section>
 
-</details>
+        <section class="new-feature" aria-label="추천 시작점">
+          <div><small>CURATED JOURNEY · 01</small><h2>이사 준비를<br>하나의 흐름으로.</h2><p>이사, 입주청소, 인터넷 설치까지 필요한 일을 한 번에 정리해보세요.</p><button type="button" data-service="다음 달 이사, 입주청소, 인터넷 설치를 일정과 예산에 맞춰 비교해줘">이사 플랜 시작 <span>→</span></button></div>
+          <div class="new-feature-visual" aria-hidden="true"><span class="feature-box box-back"></span><span class="feature-box box-front"></span><span class="feature-orb"></span></div>
+        </section>
+
+        <div id="homeRecommendation" class="new-recommendation"><div class="recommend-badge">AI</div><div><small>최근 요청</small><strong>필요한 서비스를 입력해보세요.</strong><p>조건을 정리하고 비교할 수 있습니다.</p></div><button type="button" data-open-screen="match">→</button></div>
+
       </section>
 
       <section class="screen" data-screen="match" aria-label="AI 매칭" hidden>
@@ -516,4 +377,3 @@
   <script src="/i18n.js" defer></script>
 </body>
 </html>
-
