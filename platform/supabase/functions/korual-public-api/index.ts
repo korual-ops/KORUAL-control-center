@@ -7,7 +7,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-const ENGINE_VERSION = "8.3";
+const ENGINE_VERSION = "8.4";
 const TRANSACTION_VERSION = "3.3";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
@@ -87,7 +87,7 @@ function normalizeBundle(input: unknown, fallback: string) {
   return out.length ? out : [fallback];
 }
 
-function detectServices(request: any) {
+function detectServiceIntent(request: any) {
   const source = [
     cleanText(request?.service, 100),
     cleanText(request?.raw, 240),
@@ -95,23 +95,42 @@ function detectServices(request: any) {
   ].join(" ");
 
   const out: string[] = [];
-  const add = (service: string) => {
+  const signals: string[] = [];
+  const add = (service: string, signal: string) => {
     if (!out.includes(service)) out.push(service);
+    if (!signals.includes(signal)) signals.push(signal);
   };
 
-  if (/입주\s*청소/.test(source)) add("입주청소");
-  if (/이사/.test(source)) add("이사");
-  if (/인터넷|와이파이|wifi/i.test(source)) add("인터넷 설치");
-  if (/에어컨/.test(source)) add("에어컨");
-  if (/인테리어|리모델링/.test(source)) add("인테리어");
-  if (/수리|시공|설비|커튼/.test(source)) add("수리·시공");
-  if (/여행|항공|숙박|호텔/.test(source)) add("여행");
-  if (/웰니스|운동|마사지|케어/.test(source)) add("웰니스");
-  if (/커머스|상품|주문|배송/.test(source)) add("커머스 운영");
-  if (/청소/.test(source) && !out.includes("입주청소")) add("청소");
-  if (!out.length && /생활\s*서비스/.test(source)) add("생활 서비스");
-  if (!out.length) add("생활 서비스");
-  return out.slice(0, 6);
+  if (/입주\s*청소/.test(source)) add("입주청소","move_in_cleaning");
+  if (/이사/.test(source)) add("이사","moving");
+  if (/인터넷|와이파이|wifi/i.test(source)) add("인터넷 설치","internet");
+  if (/에어컨/.test(source)) add("에어컨","aircon");
+  if (/인테리어|리모델링/.test(source)) add("인테리어","interior");
+  if (/수리|시공|설비|커튼/.test(source)) add("수리·시공","repair");
+  if (/여행|항공|숙박|호텔/.test(source)) add("여행","travel");
+  if (/웰니스|운동|마사지|케어/.test(source)) add("웰니스","wellness");
+  if (/커머스|상품|주문|배송/.test(source)) add("커머스 운영","commerce");
+  if (/청소/.test(source) && !out.includes("입주청소")) add("청소","cleaning");
+
+  const explicitGeneric = /생활\s*서비스|집\s*관리|홈\s*서비스/.test(source);
+  if (!out.length && explicitGeneric) add("생활 서비스","generic_lifestyle");
+
+  const matched = out.length > 0;
+  const genericOnly = matched && out.length === 1 && out[0] === "생활 서비스";
+  const confidence = !matched ? 0 : genericOnly ? 0.62 : out.length > 1 ? 0.96 : 0.93;
+
+  return {
+    services: out.slice(0,6),
+    matched,
+    generic_only: genericOnly,
+    confidence,
+    signals,
+    suggestions: ["이사","입주청소","에어컨","인터넷 설치","인테리어"]
+  };
+}
+
+function detectServices(request: any) {
+  return detectServiceIntent(request).services;
 }
 
 function detectRegion(request: any) {
@@ -687,7 +706,7 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 13,
+        version: 14,
         engine_version: ENGINE_VERSION,
         operational_reliability_gate: 20,
         transaction_version: TRANSACTION_VERSION,
@@ -705,7 +724,8 @@ Deno.serve(async (req: Request) => {
         atomic_recovery_swap: true,
         provider_metrics_min_samples: 20,
         date_aware_ranking: true,
-        availability_states: ["available","unavailable","unknown"]
+        availability_states: ["available","unavailable","unknown"],
+        intent_quality_gate: true
       });
     }
 
@@ -714,7 +734,8 @@ Deno.serve(async (req: Request) => {
       const service = cleanText(request.service || request.raw, 100);
       if (!service) return json(origin, { ok: false, error: "SERVICE_REQUIRED" }, 400);
 
-      const services = detectServices(request);
+      const intent = detectServiceIntent(request);
+      const services = intent.services;
       const region = detectRegion(request);
       const priorityMode = normalizePriority(request);
       const weights = priorityWeights(priorityMode);
@@ -722,6 +743,29 @@ Deno.serve(async (req: Request) => {
       const desiredDate = desiredDateRaw && validateDate(desiredDateRaw) ? desiredDateRaw : null;
       if (desiredDateRaw && !desiredDate) {
         return json(origin, { ok: false, error: "DATE_INVALID" }, 400);
+      }
+
+      if (!intent.matched) {
+        return json(origin, {
+          ok: true,
+          request: {
+            service,
+            services: [],
+            region,
+            priority_mode: priorityMode,
+            priority: cleanText(request.priority, 40),
+            bundle: normalizeBundle(request.bundle, service)
+          },
+          engine_version: ENGINE_VERSION,
+          quotes: [],
+          notice: "NEEDS_SERVICE_CLARIFICATION",
+          intent_quality: {
+            status: "needs_clarification",
+            confidence: intent.confidence,
+            signals: intent.signals,
+            suggestions: intent.suggestions
+          }
+        });
       }
 
       const rawBudgetCap = Number(request?.budget_cap ?? request?.budgetCap);
@@ -761,7 +805,12 @@ Deno.serve(async (req: Request) => {
           request: { service, services, region, priority_mode: priorityMode, budget_cap: budgetCap, excluded_provider_keys: [...excludedProviderKeys] },
           engine_version: ENGINE_VERSION,
           quotes: [],
-          notice: "NO_ELIGIBLE_PROVIDER"
+          notice: "NO_ELIGIBLE_PROVIDER",
+          intent_quality: {
+            status: "ready",
+            confidence: intent.confidence,
+            signals: intent.signals
+          }
         });
       }
 
@@ -1125,6 +1174,12 @@ Deno.serve(async (req: Request) => {
           desired_date: desiredDate,
           bundle: normalizeBundle(request.bundle, service),
           excluded_provider_keys: [...excludedProviderKeys]
+        },
+        intent_quality: {
+          status: "ready",
+          confidence: intent.confidence,
+          signals: intent.signals,
+          generic_only: intent.generic_only
         },
         engine_version: ENGINE_VERSION,
         recommendation_run_id: recommendationRunId,
