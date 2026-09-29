@@ -1440,6 +1440,18 @@
       const previousStatus=normalizeBookingStatus(state.booking?.status);
       const quoteAmount=Number(server.quote?.amount);
       const services=Array.isArray(server.request?.services)?server.request.services.filter(Boolean):[];
+      if(!state.currentRequest&&services.length){
+        const region=String(server.request?.region||'').trim();
+        state.currentRequest={
+          raw:(region?region+' ':'')+services.join(' '),
+          service:services[0],
+          bundle:services,
+          priority:'가격 + 신뢰',
+          priorityMode:'balanced',
+          preferenceExplicit:false,
+          budgetCap:null
+        };
+      }
 
       state.booking={
         ...state.booking,
