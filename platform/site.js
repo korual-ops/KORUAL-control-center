@@ -773,6 +773,7 @@
         REGION_NOT_SUPPORTED:'선택한 업체가 해당 지역을 지원하지 않습니다.',
         QUOTE_TOKEN_INVALID:'견적 유효시간이 지났거나 견적 정보가 변경되었습니다. 견적을 다시 불러와주세요.',
         QUOTE_SERVICE_MISMATCH:'선택한 견적과 현재 요청 서비스가 일치하지 않습니다. 다시 비교해주세요.',
+        QUOTE_REGION_MISMATCH:'견적을 받은 지역과 예약 지역이 다릅니다. 지역 조건으로 다시 비교해주세요.',
         QUOTE_TOKEN_REQUIRED:'최신 견적 확인이 필요합니다. 견적을 다시 불러와주세요.',
         RATE_LIMITED:'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
         ORIGIN_NOT_ALLOWED:'현재 접속 주소에서는 예약 저장을 사용할 수 없습니다.'
