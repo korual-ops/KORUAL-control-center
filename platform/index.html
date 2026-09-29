@@ -222,7 +222,8 @@
             <div class="timeline-item"><i></i><div><strong>업체 확인</strong><small>파트너 확인 단계</small></div></div>
             <div class="timeline-item"><i></i><div><strong>서비스 완료</strong><small>완료 후 후기를 남길 수 있습니다.</small></div></div>
           </div>
-          <div class="booking-actions"><button type="button" data-open-screen="quotes">견적 다시 보기</button><button id="completeDemo" type="button">완료 시뮬레이션</button></div>
+          <div class="booking-actions"><button type="button" data-open-screen="quotes">견적 다시 보기</button><button id="rescheduleBooking" type="button">일정 변경</button></div>
+          <div class="booking-actions booking-actions-danger"><button id="cancelBooking" type="button">예약 취소</button><button id="completeDemo" type="button">완료 시뮬레이션</button></div>
         </article>
 
         <article id="repeatCard" class="repeat-card">
@@ -369,6 +370,25 @@
         <div class="sheet-actions">
           <button id="cancelBookingSheet" type="button">취소</button>
           <button id="submitBooking" type="submit">예약 요청 저장</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="rescheduleSheet" class="sheet-backdrop" hidden>
+      <form id="rescheduleForm" class="booking-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div><small>KORUAL RESCHEDULE</small><strong>예약 일정 변경</strong></div>
+          <button id="closeRescheduleSheet" type="button" aria-label="일정 변경창 닫기">×</button>
+        </div>
+        <div class="field-grid">
+          <label><span>변경 날짜</span><input id="rescheduleDate" type="date" required /></label>
+          <label><span>가능 시간</span><select id="rescheduleTime" required disabled><option value="">날짜를 먼저 선택</option></select></label>
+        </div>
+        <p id="rescheduleStatus" class="sheet-note" role="status" aria-live="polite">날짜를 선택하면 실제 가능한 시간을 확인합니다.</p>
+        <div class="sheet-actions">
+          <button id="cancelRescheduleSheet" type="button">닫기</button>
+          <button id="submitReschedule" type="submit" disabled>일정 변경 확정</button>
         </div>
       </form>
     </div>
