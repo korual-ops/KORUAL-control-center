@@ -247,6 +247,8 @@
       if(Array.isArray(data.quotes)&&data.quotes.length){
         for(const q of data.quotes){
           if(!Object.hasOwn(sampleQuotes,q.key)||!q.provider_key||!Number.isFinite(Number(q.amount))||Number(q.amount)<0)continue;
+          q.decision_context=data.decision_context||null;
+          q.recommendation_run_id=data.recommendation_run_id||null;
           liveQuoteKeys.add(q.key);
           quoteCatalog[q.key]={
             id:q.key,
@@ -265,6 +267,11 @@
             reasons:Array.isArray(q.reasons)?q.reasons.slice(0,3):[],
             breakdown:q.score_breakdown&&typeof q.score_breakdown==='object'?q.score_breakdown:null,
             lineItems:Array.isArray(q.line_items)?q.line_items.slice(0,8):[],
+            pareto:q.pareto_efficient===true,
+            roles:Array.isArray(q.roles)?q.roles.slice(0,3):[],
+            explanation:q.explanation&&typeof q.explanation==='object'?q.explanation:null,
+            decisionContext:data?.decision_context||null,
+            recommendationRunId:data?.recommendation_run_id||null,
             enginePriority:data?.request?.priority_mode||null,
             engineVersion:data?.engine_version||null
           };
@@ -287,6 +294,14 @@
     if(!card)return;
     card.dataset.price=String(q.amount||0);
     card.dataset.trust=String(q.trust||0);
+    card.dataset.matchScore=Number.isFinite(Number(q.ranking_score))?String(q.ranking_score):'';
+    card.dataset.confidence=Number.isFinite(Number(q.confidence_score))?String(q.confidence_score):'';
+    card.dataset.pareto=q.pareto_efficient===true?'true':'false';
+    card.dataset.roles=Array.isArray(q.roles)?q.roles.join('|'):'';
+    card.dataset.reasons=Array.isArray(q.reasons)?q.reasons.join('|'):'';
+    card.dataset.scoreBreakdown=q.score_breakdown?JSON.stringify(q.score_breakdown):'';
+    card.dataset.decisionLevel=q.decision_context?.level||'';
+    card.dataset.decisionGap=q.decision_context?.score_gap==null?'':String(q.decision_context.score_gap);
     const providerName=$('.provider-row strong',card);
     const providerMeta=$('.provider-row small',card);
     const price=$('.price-row strong',card);
