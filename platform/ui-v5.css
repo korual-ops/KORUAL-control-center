@@ -45,3 +45,17 @@ html[data-theme="dark"] .uxv5-role-row .pareto{background:#3d3321;color:#f0d097}
   .uxv5-decision-status{display:block;padding:12px 13px}
   .uxv5-decision-status span{margin-top:6px;text-align:left}
 }
+
+
+/* Transaction lifecycle — server-synced booking state */
+.booking-sync-meta{
+  margin:10px 0 0;padding:8px 10px;border:1px solid var(--line);border-radius:11px;
+  background:var(--surface2);color:var(--muted);font-size:8px;line-height:1.45
+}
+#bookingStatusBadge[data-status="confirmed"]{background:#e8f0e9;color:#386349}
+#bookingStatusBadge[data-status="completed"]{background:#e5efe9;color:#2f6548}
+#bookingStatusBadge[data-status="cancelled"]{background:#f3e5e2;color:#8c4e45}
+html[data-theme="dark"] #bookingStatusBadge[data-status="confirmed"],
+html[data-theme="dark"] #bookingStatusBadge[data-status="completed"]{background:#183226;color:#bfe0ca}
+html[data-theme="dark"] #bookingStatusBadge[data-status="cancelled"]{background:#39231f;color:#e4b8b0}
+.timeline-item.cancelled{opacity:.46}
