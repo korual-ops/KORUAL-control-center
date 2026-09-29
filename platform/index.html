@@ -217,12 +217,17 @@
           <div class="booking-card-head"><div><small id="bookingStatusEyebrow">REQUESTED</small><strong id="bookingId">—</strong></div><span id="bookingStatusBadge">접수됨</span></div>
           <div class="booking-service"><span class="service-avatar">K</span><div><small id="bookingServiceLabel">서비스</small><strong id="bookingProviderLabel">Partner</strong></div><b id="bookingPriceLabel">—</b></div>
           <p id="bookingSyncMeta" class="booking-sync-meta" aria-live="polite">서버 상태 동기화 대기</p>
+          <div id="bookingConfirmationNotice" class="booking-confirmation-notice" data-state="awaiting" role="status" aria-live="polite">
+            <small>PROVIDER CONFIRMATION</small>
+            <strong>업체 확인 대기</strong>
+            <span>확인 상태를 서버에서 동기화합니다.</span>
+          </div>
           <div class="timeline">
             <div class="timeline-item done"><i></i><div><strong>예약 요청</strong><small>요청이 저장되었습니다.</small></div></div>
             <div class="timeline-item"><i></i><div><strong>업체 확인</strong><small>파트너 확인 단계</small></div></div>
             <div class="timeline-item"><i></i><div><strong>서비스 완료</strong><small>완료 후 후기를 남길 수 있습니다.</small></div></div>
           </div>
-          <div class="booking-actions"><button type="button" data-open-screen="quotes">견적 다시 보기</button><button id="rescheduleBooking" type="button">일정 변경</button></div>
+          <div class="booking-actions"><button id="bookingCompareAlternatives" type="button" data-open-screen="quotes">견적 다시 보기</button><button id="rescheduleBooking" type="button">일정 변경</button></div>
           <div class="booking-actions booking-actions-danger"><button id="cancelBooking" type="button">예약 취소</button><button id="completeDemo" type="button">완료 시뮬레이션</button></div>
         </article>
 
