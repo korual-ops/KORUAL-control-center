@@ -1270,6 +1270,177 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (action === "booking_availability") {
+      const bookingId = cleanText(body?.booking_id, 80);
+      const desiredDate = cleanText(body?.desired_date, 10);
+      if (!/^[0-9a-f-]{36}$/i.test(bookingId)) {
+        return json(origin, { ok: false, error: "BOOKING_ID_INVALID" }, 400);
+      }
+      if (!validateDate(desiredDate)) {
+        return json(origin, { ok: false, error: "DATE_INVALID" }, 400);
+      }
+
+      const { data: booking, error: bookingError } = await db
+        .from("bookings")
+        .select("id,request_id,provider_id,status,scheduled_at")
+        .eq("id", bookingId)
+        .single();
+      if (bookingError || !booking) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_FOUND" }, 404);
+      }
+      if (!["pending","confirmed"].includes(booking.status)) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_RESCHEDULABLE" }, 409);
+      }
+
+      const { data: requestRow, error: requestError } = await db
+        .from("service_requests")
+        .select("id,session_id")
+        .eq("id", booking.request_id)
+        .eq("session_id", sessionId)
+        .single();
+      if (requestError || !requestRow) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_OWNED" }, 403);
+      }
+
+      const { data: slots, error: slotError } = await db.rpc("get_provider_available_slots", {
+        p_provider_id: booking.provider_id,
+        p_date: desiredDate
+      });
+      if (slotError) throw slotError;
+
+      return json(origin, {
+        ok: true,
+        transaction_version: TRANSACTION_VERSION,
+        desired_date: desiredDate,
+        timezone: "Asia/Seoul",
+        current_scheduled_at: booking.scheduled_at,
+        hold_minutes: 10,
+        slots: (slots ?? []).map((s: any) => ({
+          starts_at: s.starts_at,
+          ends_at: s.ends_at,
+          capacity: Number(s.capacity),
+          remaining: Number(s.remaining)
+        }))
+      });
+    }
+
+    if (action === "hold_booking_slot") {
+      const bookingId = cleanText(body?.booking_id, 80);
+      const startsAt = cleanText(body?.starts_at, 64);
+      if (!/^[0-9a-f-]{36}$/i.test(bookingId)) {
+        return json(origin, { ok: false, error: "BOOKING_ID_INVALID" }, 400);
+      }
+      if (!startsAt || Number.isNaN(Date.parse(startsAt))) {
+        return json(origin, { ok: false, error: "SLOT_INVALID" }, 400);
+      }
+
+      const { data: booking, error: bookingError } = await db
+        .from("bookings")
+        .select("id,request_id,provider_id,status")
+        .eq("id", bookingId)
+        .single();
+      if (bookingError || !booking) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_FOUND" }, 404);
+      }
+      if (!["pending","confirmed"].includes(booking.status)) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_RESCHEDULABLE" }, 409);
+      }
+
+      const { data: requestRow, error: requestError } = await db
+        .from("service_requests")
+        .select("id,session_id")
+        .eq("id", booking.request_id)
+        .eq("session_id", sessionId)
+        .single();
+      if (requestError || !requestRow) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_OWNED" }, 403);
+      }
+
+      const { data: hold, error: holdError } = await db.rpc("hold_provider_slot", {
+        p_provider_id: booking.provider_id,
+        p_session_id: sessionId,
+        p_starts_at: startsAt
+      });
+
+      if (holdError) {
+        const msg = String(holdError.message || "").toLowerCase();
+        if (msg.includes("slot unavailable")) {
+          return json(origin, { ok: false, error: "SLOT_UNAVAILABLE" }, 409);
+        }
+        throw holdError;
+      }
+
+      return json(origin, {
+        ok: true,
+        transaction_version: TRANSACTION_VERSION,
+        hold,
+        timezone: "Asia/Seoul"
+      });
+    }
+
+    if (action === "cancel_booking") {
+      const bookingId = cleanText(body?.booking_id, 80);
+      const reason = cleanText(body?.reason, 200);
+      if (!/^[0-9a-f-]{36}$/i.test(bookingId)) {
+        return json(origin, { ok: false, error: "BOOKING_ID_INVALID" }, 400);
+      }
+
+      const { data, error } = await db.rpc("cancel_beta_booking_v1", {
+        p_session_id: sessionId,
+        p_booking_id: bookingId,
+        p_reason: reason || null
+      });
+
+      if (error) {
+        const msg = String(error.message || "").toLowerCase();
+        if (msg.includes("booking not found")) return json(origin, { ok: false, error: "BOOKING_NOT_FOUND" }, 404);
+        if (msg.includes("cannot be cancelled")) return json(origin, { ok: false, error: "BOOKING_NOT_CANCELLABLE" }, 409);
+        throw error;
+      }
+
+      return json(origin, {
+        ok: true,
+        transaction_version: TRANSACTION_VERSION,
+        booking: data
+      });
+    }
+
+    if (action === "reschedule_booking") {
+      const bookingId = cleanText(body?.booking_id, 80);
+      const slotHoldId = cleanText(body?.slot_hold_id, 80);
+      if (!/^[0-9a-f-]{36}$/i.test(bookingId)) {
+        return json(origin, { ok: false, error: "BOOKING_ID_INVALID" }, 400);
+      }
+      if (!/^[0-9a-f-]{36}$/i.test(slotHoldId)) {
+        return json(origin, { ok: false, error: "SLOT_HOLD_REQUIRED" }, 409);
+      }
+
+      const { data, error } = await db.rpc("reschedule_beta_booking_v1", {
+        p_session_id: sessionId,
+        p_booking_id: bookingId,
+        p_slot_hold_id: slotHoldId
+      });
+
+      if (error) {
+        const msg = String(error.message || "").toLowerCase();
+        if (msg.includes("booking not found")) return json(origin, { ok: false, error: "BOOKING_NOT_FOUND" }, 404);
+        if (msg.includes("cannot be rescheduled")) return json(origin, { ok: false, error: "BOOKING_NOT_RESCHEDULABLE" }, 409);
+        if (msg.includes("slot hold expired")) return json(origin, { ok: false, error: "SLOT_HOLD_EXPIRED" }, 409);
+        if (msg.includes("slot hold inactive")) return json(origin, { ok: false, error: "SLOT_HOLD_INACTIVE" }, 409);
+        if (msg.includes("slot hold provider mismatch") || msg.includes("slot hold session mismatch")) {
+          return json(origin, { ok: false, error: "SLOT_HOLD_MISMATCH" }, 409);
+        }
+        if (msg.includes("slot hold not found")) return json(origin, { ok: false, error: "SLOT_HOLD_REQUIRED" }, 409);
+        throw error;
+      }
+
+      return json(origin, {
+        ok: true,
+        transaction_version: TRANSACTION_VERSION,
+        booking: data
+      });
+    }
+
     if (action === "booking_status") {
       const bookingId = cleanText(body?.booking_id, 80);
       if (!/^[0-9a-f-]{36}$/i.test(bookingId)) {
