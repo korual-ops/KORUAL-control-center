@@ -1241,6 +1241,7 @@
       desiredDate.min=localDateString(todayDate);
       const preferredDate=state.currentRequest?.desiredDate||state.selectedQuote?.availability?.desired_date||'';
       desiredDate.value=preferredDate||localDateString(tomorrow);
+      desiredDate.disabled=Boolean(preferredDate);
     }
     const recoveryMode=Boolean(
       state.recoveryContext?.oldBookingId===state.booking?.backend_id &&
@@ -1269,6 +1270,7 @@
       desiredTime.innerHTML='<option value="">날짜를 먼저 선택</option>';
       desiredTime.disabled=true;
     }
+    if(desiredDate)desiredDate.disabled=false;
     bookingSheet.hidden=true;
     document.body.style.overflow='';
   }
@@ -1481,6 +1483,7 @@
         QUOTE_SERVICE_MISMATCH:'선택한 견적과 현재 요청 서비스가 일치하지 않습니다. 다시 비교해주세요.',
         QUOTE_REGION_MISMATCH:'견적을 받은 지역과 예약 지역이 다릅니다. 지역 조건으로 다시 비교해주세요.',
         QUOTE_TOKEN_REQUIRED:'최신 견적 확인이 필요합니다. 견적을 다시 불러와주세요.',
+        QUOTE_DATE_MISMATCH:'희망일이 변경되었습니다. 견적 화면에서 해당 날짜 기준으로 다시 비교해주세요.',
         SLOT_HOLD_REQUIRED:'예약 시간을 다시 선택해주세요.',
         SLOT_HOLD_EXPIRED:'선택한 시간 hold가 만료되었습니다. 시간을 다시 선택해주세요.',
         SLOT_HOLD_INACTIVE:'선택한 시간이 더 이상 확보되어 있지 않습니다.',
@@ -1490,10 +1493,15 @@
         ORIGIN_NOT_ALLOWED:'현재 접속 주소에서는 예약 저장을 사용할 수 없습니다.'
       };
       if(state.selectedQuote)bestEffortTrack('booking_failure',state.selectedQuote);
-      if(['SLOT_HOLD_REQUIRED','SLOT_HOLD_EXPIRED','SLOT_HOLD_INACTIVE','SLOT_HOLD_MISMATCH','SLOT_UNAVAILABLE'].includes(code)){
+      if(['SLOT_HOLD_REQUIRED','SLOT_HOLD_EXPIRED','SLOT_HOLD_INACTIVE','SLOT_HOLD_MISMATCH','SLOT_UNAVAILABLE','QUOTE_DATE_MISMATCH'].includes(code)){
         clearActiveSlotHoldLocal();
         if(desiredTime)desiredTime.value='';
-        loadAvailability();
+        if(code==='QUOTE_DATE_MISMATCH'){
+          closeSheet();
+          showScreen('quotes');
+        }else{
+          loadAvailability();
+        }
       }
       showToast(messages[code]||'예약 저장에 실패했습니다. 다시 시도해주세요.');
     }finally{
