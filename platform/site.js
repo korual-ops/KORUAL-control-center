@@ -1045,7 +1045,7 @@
 
 
   function setBundleStep(step){
-    $('.bundle-flow-steps span').forEach((el,index)=>{
+    $$('.bundle-flow-steps span').forEach((el,index)=>{
       const n=index+1;
       el.classList.toggle('is-done',n<step);
       el.classList.toggle('is-active',n===step);
@@ -1103,7 +1103,7 @@
       prepareBundleBooking.disabled=true;
       return;
     }
-    const selects=bundlePlanItems?$('select[data-bundle-slot]',bundlePlanItems):[];
+    const selects=bundlePlanItems?$$('select[data-bundle-slot]',bundlePlanItems):[];
     const ready=selects.length>0&&selects.every(x=>Boolean(x.value));
     prepareBundleBooking.disabled=!ready;
     if(ready)setBundleStep(2);
@@ -1242,7 +1242,7 @@
 
   async function prepareAtomicBundle(){
     if(!activeBundlePlan?.ready_for_atomic_booking||!state.currentRequest)return;
-    const selects=bundlePlanItems?$('select[data-bundle-slot]',bundlePlanItems):[];
+    const selects=bundlePlanItems?$$('select[data-bundle-slot]',bundlePlanItems):[];
     if(!selects.length||selects.some(x=>!x.value)){
       showToast('각 서비스의 시간을 모두 선택해주세요.');
       return;
