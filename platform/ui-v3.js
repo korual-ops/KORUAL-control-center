@@ -162,6 +162,9 @@
         }
         const price=Number(card.dataset.price);
         const trust=Number(card.dataset.trust);
+        const signature=String(price)+'::'+String(trust);
+        if(card.dataset.v3EnhanceSignature===signature)return;
+        card.dataset.v3EnhanceSignature=signature;
         const tags=[];
         if(Number.isFinite(price)&&price===min)tags.push(['가격 메리트',true]);
         if(Number.isFinite(trust)&&trust>=94)tags.push(['신뢰도 강점',true]);
@@ -174,7 +177,7 @@
 
     const quoteList=document.querySelector('#quoteList');
     if(quoteList&&'MutationObserver' in window){
-      new MutationObserver(()=>enhanceQuotes()).observe(quoteList,{childList:true,subtree:true,attributes:true,attributeFilter:['data-price','data-trust']});
+      new MutationObserver(()=>enhanceQuotes()).observe(quoteList,{subtree:true,attributes:true,attributeFilter:['data-price','data-trust']});
     }
 
     // Keep the UI focused: no duplicate floating AI button once the Dock exists.
