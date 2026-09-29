@@ -670,7 +670,7 @@
       const overBudget=state.preferences.budgetCap && q && Number(q.price)>state.preferences.budgetCap;
       const unverified=state.preferences.verifiedOnly && q && !q.verified;
       const unavailable=(quoteMode==='live'&&!liveQuoteKeys.has(card.dataset.quoteCard))||
-        ['loading','clarification','no-provider','date-empty','recovery-empty','error'].includes(quoteMode);
+        ['sample','loading','clarification','no-provider','date-empty','recovery-empty','error'].includes(quoteMode);
       card.classList.toggle('is-filtered',Boolean(overBudget||unverified||unavailable));
       card.hidden=Boolean(overBudget||unverified||unavailable);
       const select=$('[data-quote]',card);
@@ -774,7 +774,8 @@
         'date-empty':['선택한 날짜에 예약 가능한 업체가 없습니다.','희망일을 바꾸면 실제 가용시간을 기준으로 다시 비교합니다.'],
         'no-provider':['현재 조건을 모두 충족하는 업체가 없습니다.','서비스·지역·예산 조건을 조정해 다시 확인해주세요.'],
         'recovery-empty':['현재 대체 가능한 다른 업체가 없습니다.','기존 예약은 유지됩니다. 조건을 수정하거나 기존 예약 상태를 확인해주세요.'],
-        error:['견적 서버 연결을 확인하지 못했습니다.','예시 데이터로 대체하지 않았습니다. 잠시 후 실제 견적을 다시 조회해주세요.']
+        error:['견적 서버 연결을 확인하지 못했습니다.','예시 데이터로 대체하지 않았습니다. 잠시 후 실제 견적을 다시 조회해주세요.'],
+        sample:['먼저 필요한 서비스를 알려주세요.','요청을 분석한 뒤 실제 연결 가능한 업체 견적만 표시합니다.']
       }[quoteMode];
       if(emptyCopy){
         quoteEmptyTitle.textContent=emptyCopy[0];
