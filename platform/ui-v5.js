@@ -49,8 +49,9 @@
       const metrics=[
         ['가격',b.price],['예산 적합',b.budget],['Trust',b.trust],
         ['평점',b.rating],['응답',b.response],['완료이력',b.experience],
-        ['서비스 일치',b.coverage],['가격 근거',b.evidence],['검증',b.verification]
-      ].filter(([,v])=>Number.isFinite(Number(v)));
+        ['서비스 일치',b.coverage],['가격 근거',b.evidence],
+        ['운영 신뢰',b.operational],['검증',b.verification]
+      ].filter(([,v])=>v!==null&&v!==undefined&&Number.isFinite(Number(v)));
       const match=Number(card.dataset.matchScore);
       const rawRanking=Number(card.dataset.rawRankingScore);
       const uncertaintyPenalty=Number(card.dataset.uncertaintyPenalty);
