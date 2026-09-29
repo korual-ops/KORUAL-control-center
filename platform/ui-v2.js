@@ -112,13 +112,6 @@
     syncNav();
     window.addEventListener('hashchange',syncNav);
 
-    // Selected quote gets an explicit state without changing business logic.
-    document.querySelectorAll('.select-quote').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        document.querySelectorAll('.quote-card').forEach(card=>card.removeAttribute('data-selected'));
-        const card=btn.closest('.quote-card');
-        if(card) card.setAttribute('data-selected','true');
-      });
-    });
+    // Quote selection state is owned by site.js to avoid duplicate click state.
   });
 })();
