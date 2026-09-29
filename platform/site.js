@@ -43,6 +43,7 @@
     currentRequest:null,
     selectedQuote:null,
     booking:null,
+    recoveryContext:null,
     preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}
   };
 
@@ -181,7 +182,12 @@
       service:String(request?.service||'').trim(),
       bundle:Array.isArray(request?.bundle)?request.bundle.slice(0,8):[],
       priority_mode:String(request?.priority_mode||'balanced'),
-      budget_cap:Number(request?.budget_cap)||null
+      budget_cap:Number(request?.budget_cap)||null,
+      exclude_provider_keys:Array.isArray(request?.exclude_provider_keys)
+        ?request.exclude_provider_keys.slice(0,8)
+        :Array.isArray(request?.excludeProviderKeys)
+          ?request.excludeProviderKeys.slice(0,8)
+          :[]
     });
   }
 
@@ -299,7 +305,12 @@
       const requestForApi={
         ...request,
         priority_mode:state.preferences.priority,
-        budget_cap:state.preferences.budgetCap||null
+        budget_cap:state.preferences.budgetCap||null,
+        exclude_provider_keys:Array.isArray(request?.excludeProviderKeys)
+          ?request.excludeProviderKeys.slice(0,8)
+          :Array.isArray(request?.exclude_provider_keys)
+            ?request.exclude_provider_keys.slice(0,8)
+            :[]
       };
       const data=await fetchQuotesStable(requestForApi,requestSignal);
       if(version!==quoteRequestVersion||requestSignal.aborted)return;
@@ -352,7 +363,9 @@
           };
           updateQuoteCard(q);
         });
-        quoteMode=liveQuoteKeys.size?'live':'sample';
+        quoteMode=liveQuoteKeys.size
+          ?'live'
+          :(requestForApi.exclude_provider_keys.length?'recovery-empty':'sample');
         if(quoteMode==='live'){
           queueMicrotask(()=>{
             for(const key of liveQuoteKeys){
@@ -362,7 +375,7 @@
           });
         }
       }else{
-        quoteMode='sample';
+        quoteMode=requestForApi.exclude_provider_keys.length?'recovery-empty':'sample';
       }
     }catch(err){
       if(version!==quoteRequestVersion||requestSignal.aborted||err?.name==='AbortError')return;
@@ -443,6 +456,7 @@
     state.currentRequest=request;
     state.selectedQuote=null;
     quoteMode='loading';
+    state.recoveryContext=null;
     if(count) state.requests=(Number(state.requests)||0)+1;
     state.history=[{...request,createdAt:Date.now()},...state.history.filter(x=>x.raw!==request.raw)].slice(0,20);
     save();
@@ -572,7 +586,7 @@
       const q=quoteCatalog[card.dataset.quoteCard];
       const overBudget=state.preferences.budgetCap && q && Number(q.price)>state.preferences.budgetCap;
       const unverified=state.preferences.verifiedOnly && q && !q.verified;
-      const unavailable=quoteMode==='live'&&!liveQuoteKeys.has(card.dataset.quoteCard);
+      const unavailable=(quoteMode==='live'&&!liveQuoteKeys.has(card.dataset.quoteCard))||quoteMode==='recovery-empty';
       card.classList.toggle('is-filtered',Boolean(overBudget||unverified||unavailable));
       card.hidden=Boolean(overBudget||unverified||unavailable);
       const select=$('[data-quote]',card);
@@ -619,7 +633,13 @@
     }
     if(quoteContext&&state.currentRequest){
       const cap=state.preferences.budgetCap?' · '+Number(state.preferences.budgetCap).toLocaleString('ko-KR')+'원 이하':'';
-      const mode=quoteMode==='live'?liveQuoteKeys.size+'개 서버 베타 견적':quoteMode==='loading'?'서버 확인 중 · 예시 표시':'예시 견적 · 예약 불가';
+      const mode=quoteMode==='live'
+        ?liveQuoteKeys.size+'개 서버 베타 견적'
+        :quoteMode==='loading'
+          ?'서버 확인 중 · 예시 표시'
+          :quoteMode==='recovery-empty'
+            ?'대체 가능한 다른 업체 없음'
+            :'예시 견적 · 예약 불가';
       quoteContext.textContent=state.currentRequest.service+' · '+mode+' · '+preferenceLabel()+' 우선'+cap;
     }
     if(quoteInsight){
@@ -628,7 +648,11 @@
         const low=Math.min(...amounts),high=Math.max(...amounts);
         quoteInsight.textContent='서버 베타 견적 '+amounts.length+'개 · 표시 가격 '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 예약은 베타 요청으로 저장됩니다. 실제 제공 여부·서비스 범위·추가 비용을 확인하세요.';
       }else{
-        quoteInsight.textContent=quoteMode==='loading'?'파트너 연결을 확인하는 동안 예시 카드를 보여드립니다.':'예시 금액과 평점은 실제 견적이 아닙니다. 예약 전 서비스 범위와 최종 금액을 확인하세요.';
+        quoteInsight.textContent=quoteMode==='loading'
+          ?'파트너 연결을 확인하는 동안 예시 카드를 보여드립니다.'
+          :quoteMode==='recovery-empty'
+            ?'현재 조건에서 기존 업체를 제외한 대체 후보가 없습니다. 기존 예약 상태를 유지하거나 조건을 수정해주세요.'
+            :'예시 금액과 평점은 실제 견적이 아닙니다. 예약 전 서비스 범위와 최종 금액을 확인하세요.';
       }
     }
   }
@@ -646,7 +670,11 @@
     clearTimeout(quoteRefreshTimer);
     if(!state.currentRequest)return;
     quoteRefreshTimer=setTimeout(()=>{
-      if(state.currentRequest)loadQuotes(state.currentRequest);
+      if(!state.currentRequest)return;
+      const request=state.recoveryContext?.oldBookingId===state.booking?.backend_id
+        ?{...state.currentRequest,excludeProviderKeys:state.recoveryContext.excludedProviderKeys||[]}
+        :state.currentRequest;
+      loadQuotes(request);
     },delay);
   }
 
@@ -771,6 +799,7 @@
   const slotStatus=$('#slotStatus');
   const rescheduleBooking=$('#rescheduleBooking');
   const cancelBooking=$('#cancelBooking');
+  const bookingCompareAlternatives=$('#bookingCompareAlternatives');
   const rescheduleSheet=$('#rescheduleSheet');
   const rescheduleForm=$('#rescheduleForm');
   const closeRescheduleSheet=$('#closeRescheduleSheet');
@@ -1120,6 +1149,19 @@
       desiredDate.min=localDateString(todayDate);
       if(!desiredDate.value) desiredDate.value=localDateString(tomorrow);
     }
+    const recoveryMode=Boolean(
+      state.recoveryContext?.oldBookingId===state.booking?.backend_id &&
+      (state.booking?.confirmation?.recovery_status==='action_required'||state.booking?.confirmation?.action_required===true)
+    );
+    for(const id of ['#customerName','#customerPhone','#customerRegion']){
+      const field=$(id);
+      if(!field)continue;
+      field.disabled=recoveryMode;
+      field.required=!recoveryMode;
+    }
+    if(recoveryMode){
+      $('#sheetService').textContent='대체 예약 · '+state.currentRequest.service;
+    }
     pendingIdempotency=makeIdempotency();
     bookingSheet.hidden=false;
     document.body.style.overflow='hidden';
@@ -1148,6 +1190,32 @@
   bookingSheet?.addEventListener('click',e=>{if(e.target===bookingSheet)closeSheet()});
   desiredDate?.addEventListener('change',loadAvailability);
   desiredTime?.addEventListener('change',holdSelectedSlot);
+  bookingCompareAlternatives?.addEventListener('click',()=>{
+    const recoveryRequired=state.booking?.confirmation?.recovery_status==='action_required'||state.booking?.confirmation?.action_required===true;
+    if(!recoveryRequired){
+      state.recoveryContext=null;
+      save();
+      showScreen('quotes');
+      if(state.currentRequest)loadQuotes(state.currentRequest);
+      return;
+    }
+    const providerKey=state.booking?.quote?.provider_key;
+    state.recoveryContext={
+      oldBookingId:state.booking.backend_id,
+      excludedProviderKeys:providerKey?[providerKey]:[],
+      operationKey:state.recoveryContext?.oldBookingId===state.booking.backend_id
+        ?state.recoveryContext.operationKey
+        :makeIdempotency().replace(/^kb_/,'kr_'),
+      startedAt:Date.now()
+    };
+    state.selectedQuote=null;
+    save();
+    showScreen('quotes');
+    if(state.currentRequest){
+      loadQuotes({...state.currentRequest,excludeProviderKeys:state.recoveryContext.excludedProviderKeys});
+    }
+    showToast('기존 예약은 유지한 채 다른 업체만 다시 비교합니다.');
+  });
   rescheduleBooking?.addEventListener('click',openReschedule);
   closeRescheduleSheet?.addEventListener('click',closeReschedule);
   cancelRescheduleSheet?.addEventListener('click',closeReschedule);
@@ -1251,15 +1319,27 @@
     };
     if(submitBooking){submitBooking.disabled=true;submitBooking.textContent='저장 중…'}
     try{
-      const data=await fetchApi('book',{
-        request:state.currentRequest,
-        quote_token:state.selectedQuote.quoteToken||null,
-        quote_key:state.selectedQuote.id,
-        recommendation_run_id:state.selectedQuote.recommendationRunId||null,
-        customer,
-        slot_hold_id:activeSlotHold.hold_id,
-        idempotency_key:pendingIdempotency||makeIdempotency()
-      });
+      const recoveryMode=Boolean(
+        state.recoveryContext?.oldBookingId===state.booking?.backend_id &&
+        (state.booking?.confirmation?.recovery_status==='action_required'||state.booking?.confirmation?.action_required===true)
+      );
+      const data=recoveryMode
+        ?await fetchApi('replace_booking',{
+            old_booking_id:state.recoveryContext.oldBookingId,
+            operation_key:state.recoveryContext.operationKey,
+            quote_token:state.selectedQuote.quoteToken||null,
+            recommendation_run_id:state.selectedQuote.recommendationRunId||null,
+            slot_hold_id:activeSlotHold.hold_id
+          })
+        :await fetchApi('book',{
+            request:state.currentRequest,
+            quote_token:state.selectedQuote.quoteToken||null,
+            quote_key:state.selectedQuote.id,
+            recommendation_run_id:state.selectedQuote.recommendationRunId||null,
+            customer,
+            slot_hold_id:activeSlotHold.hold_id,
+            idempotency_key:pendingIdempotency||makeIdempotency()
+          });
       const b=data.booking||{};
       state.booking={
         id:b.request_code||b.booking_id||('KR-'+Date.now().toString(36).toUpperCase()),
@@ -1271,7 +1351,13 @@
           id:state.selectedQuote.id,
           backend_id:b.quote_id||null,
           name:b.provider_name||state.selectedQuote.name,
-          price:Number(b.amount??state.selectedQuote.price)
+          price:Number(b.amount??state.selectedQuote.price),
+          provider_key:b.provider_key||state.selectedQuote.provider_key||null
+        },
+        customer:{
+          name:customer.name||state.booking?.customer?.name||'',
+          phone:customer.phone||state.booking?.customer?.phone||'',
+          region:customer.region||state.booking?.customer?.region||''
         },
         requestStatus:'BOOKED',
         scheduledAt:b.scheduled_at||activeSlotHold?.starts_at||null,
@@ -1279,6 +1365,7 @@
         serverUpdatedAt:Date.now()
       };
       clearActiveSlotHoldLocal();
+      state.recoveryContext=null;
       save();
       closeSheet();
       showScreen('bookings');
@@ -1294,6 +1381,9 @@
         PROVIDER_NOT_VERIFIED:'검증 상태가 확인되지 않아 예약할 수 없습니다.',
         SERVICE_NOT_SUPPORTED:'선택한 업체의 제공 서비스 범위를 다시 확인해주세요.',
         REGION_NOT_SUPPORTED:'선택한 업체가 해당 지역을 지원하지 않습니다.',
+        RECOVERY_NOT_REQUIRED:'현재 예약은 대체 예약이 필요한 상태가 아닙니다.',
+        RECOVERY_SAME_PROVIDER:'복구 예약은 기존 업체가 아닌 다른 업체를 선택해주세요.',
+        BOOKING_NOT_RECOVERABLE:'현재 예약 상태에서는 업체 교체를 진행할 수 없습니다.',
         QUOTE_TOKEN_INVALID:'견적 유효시간이 지났거나 견적 정보가 변경되었습니다. 견적을 다시 불러와주세요.',
         QUOTE_SERVICE_MISMATCH:'선택한 견적과 현재 요청 서비스가 일치하지 않습니다. 다시 비교해주세요.',
         QUOTE_REGION_MISMATCH:'견적을 받은 지역과 예약 지역이 다릅니다. 지역 조건으로 다시 비교해주세요.',
@@ -1365,12 +1455,16 @@
           ...state.booking.quote,
           backend_id:server.quote?.id||state.booking.quote?.backend_id||null,
           name:server.provider?.name||state.booking.quote?.name||'Partner',
+          provider_key:server.provider?.provider_key||state.booking.quote?.provider_key||null,
           price:Number.isFinite(quoteAmount)?quoteAmount:state.booking.quote?.price
         }
       };
 
       if(previousStatus!=='COMPLETED'&&nextStatus==='COMPLETED'){
         state.completes=(Number(state.completes)||0)+1;
+      }
+      if(!(state.booking?.confirmation?.recovery_status==='action_required'||state.booking?.confirmation?.action_required===true)){
+        state.recoveryContext=null;
       }
       save();
       renderBooking();
