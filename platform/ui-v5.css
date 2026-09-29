@@ -109,3 +109,29 @@ html[data-theme="dark"] .booking-actions-danger button:first-child{color:#e6aaa3
 html[data-theme="dark"] .booking-confirmation-notice[data-state="confirmed"]{background:#182b21}
 html[data-theme="dark"] .booking-confirmation-notice[data-state="expired"],
 html[data-theme="dark"] .booking-confirmation-notice[data-state="declined"]{background:#30201f}
+
+
+/* Date-aware recommendation */
+.quote-date-filter{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:10px 0;padding:11px 12px;border:1px solid var(--line);border-radius:14px;
+  background:var(--surface2)
+}
+.quote-date-filter>div{display:grid;gap:2px;min-width:0}
+.quote-date-filter small{font-size:7px;font-weight:900;letter-spacing:.12em;color:var(--muted)}
+.quote-date-filter strong{font-size:9px;line-height:1.4}
+.quote-date-filter label{display:grid;gap:3px;min-width:132px}
+.quote-date-filter label span{font-size:7px;font-weight:800;color:var(--muted)}
+.quote-date-filter input{
+  height:38px;border:1px solid var(--line);border-radius:10px;background:var(--bg);
+  color:var(--text);padding:0 9px;font-size:10px;outline:none
+}
+.quote-date-filter input:focus{border-color:color-mix(in srgb,var(--accent) 50%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 7%,transparent)}
+.quote-card[data-availability="available"]{--availability-accent:#4f8b68}
+.quote-card[data-availability="unknown"]{--availability-accent:#a47b3d}
+.quote-card[data-availability="unavailable"]{--availability-accent:#a4554e}
+@media(max-width:640px){
+  .quote-date-filter{align-items:stretch;flex-direction:column}
+  .quote-date-filter label{min-width:0}
+  .quote-date-filter input{width:100%}
+}
