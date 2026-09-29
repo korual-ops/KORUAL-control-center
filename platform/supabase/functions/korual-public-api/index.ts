@@ -640,7 +640,12 @@ async function hashValue(value: string) {
 }
 
 async function checkRate(ipHash: string, action: string) {
-  const max = action === "book" ? 8 : action === "quotes" ? 120 : 180;
+  const max =
+    action === "book" || action === "book_bundle" ? 8 :
+    action === "hold_bundle_slot" ? 60 :
+    action === "bundle_plan" || action === "bundle_status" ? 90 :
+    action === "quotes" ? 120 :
+    180;
   const { data, error } = await db.rpc("consume_api_rate_limit", {
     p_ip_hash: ipHash,
     p_action: action,
@@ -727,7 +732,7 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 16,
+        version: 17,
         engine_version: ENGINE_VERSION,
         operational_reliability_gate: 20,
         transaction_version: TRANSACTION_VERSION,
@@ -1643,6 +1648,16 @@ Deno.serve(async (req: Request) => {
 
       const bookingIds=(items ?? []).map((x:any)=>x.booking_id).filter(Boolean);
       const providerIds=[...new Set((items ?? []).map((x:any)=>x.provider_id).filter(Boolean))];
+
+      if (bookingIds.length) {
+        const refreshes=await Promise.all(
+          bookingIds.map((bookingId:string)=>db.rpc("refresh_booking_confirmation_v1",{p_booking_id:bookingId}))
+        );
+        const refreshError=refreshes.find((x:any)=>x.error)?.error;
+        if (refreshError && !String(refreshError.message||"").toLowerCase().includes("booking not found")) {
+          throw refreshError;
+        }
+      }
 
       const [bookingResult,providerResult]=await Promise.all([
         bookingIds.length
