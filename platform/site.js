@@ -43,6 +43,8 @@
     currentRequest:null,
     selectedQuote:null,
     booking:null,
+    bundlePlan:null,
+    bundleBooking:null,
     recoveryContext:null,
     preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}
   };
@@ -107,7 +109,10 @@
     if(updateHash && location.hash!=='#'+name) history.pushState(null,'','#'+name);
     tabs.forEach(tab=>tab.setAttribute('aria-current',tab.dataset.tab===name?'page':'false'));
     window.scrollTo({top:0,behavior:'auto'});
-    if(name==='bookings') queueMicrotask(()=>syncBookingStatus({silent:true}));
+    if(name==='bookings') queueMicrotask(()=>{
+      syncBookingStatus({silent:true});
+      syncBundleStatus({silent:true});
+    });
   }
 
   tabs.forEach(tab=>tab.addEventListener('click',()=>showScreen(tab.dataset.tab)));
@@ -311,6 +316,12 @@
   const quoteEmptyTitle=$('#quoteEmptyTitle');
   const quoteEmptyMessage=$('#quoteEmptyMessage');
   const quoteDesiredDate=$('#quoteDesiredDate');
+  const bundlePlanCard=$('#bundlePlanCard');
+  const bundlePlanStatus=$('#bundlePlanStatus');
+  const bundlePlanMessage=$('#bundlePlanMessage');
+  const bundlePlanItems=$('#bundlePlanItems');
+  const bundlePlanTotal=$('#bundlePlanTotal');
+  const prepareBundleBooking=$('#prepareBundleBooking');
   const verifiedOnly=$('#verifiedOnly');
   const budgetCap=$('#budgetCap');
   const trustSheet=$('#trustSheet');
@@ -962,6 +973,19 @@
 
   const bookingSheet=$('#bookingSheet');
   const bookingForm=$('#bookingForm');
+  const bundleBookingSheet=$('#bundleBookingSheet');
+  const bundleBookingForm=$('#bundleBookingForm');
+  const closeBundleBookingSheet=$('#closeBundleBookingSheet');
+  const cancelBundleBookingSheet=$('#cancelBundleBookingSheet');
+  const bundleCustomerName=$('#bundleCustomerName');
+  const bundleCustomerPhone=$('#bundleCustomerPhone');
+  const bundleCustomerRegion=$('#bundleCustomerRegion');
+  const bundleDesiredDate=$('#bundleDesiredDate');
+  const bundleSheetServices=$('#bundleSheetServices');
+  const bundleSheetTotal=$('#bundleSheetTotal');
+  const bundleSheetSchedule=$('#bundleSheetSchedule');
+  const bundleBookingStatus=$('#bundleBookingStatus');
+  const submitBundleBooking=$('#submitBundleBooking');
   const closeBookingSheet=$('#closeBookingSheet');
   const cancelBookingSheet=$('#cancelBookingSheet');
   const submitBooking=$('#submitBooking');
@@ -988,6 +1012,9 @@
   let rescheduleAvailabilityVersion=0;
   let rescheduleHoldVersion=0;
   let rescheduleHoldTicker=null;
+  let bundlePlanVersion=0;
+  let bundleOperationKey='';
+  let activeBundleHolds=[];
 
   function localDateString(date){
     return new Intl.DateTimeFormat('en-CA',{
