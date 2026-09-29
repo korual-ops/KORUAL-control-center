@@ -72,3 +72,14 @@ html[data-theme="dark"] #bookingStatusBadge[data-status="cancelled"]{background:
 .field-grid select:focus{border-color:color-mix(in srgb,var(--accent) 50%,var(--line));box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 7%,transparent)}
 .field-grid select:disabled{opacity:.6;cursor:not-allowed}
 #slotStatus{min-height:28px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;background:var(--surface2)}
+
+
+/* Booking lifecycle actions */
+.booking-actions+.booking-actions{margin-top:7px}
+.booking-actions button:disabled{opacity:.46;cursor:not-allowed;filter:saturate(.7)}
+.booking-actions-danger button:first-child{
+  border-color:color-mix(in srgb,#b45d55 48%,var(--line));
+  color:#9b4c45;background:color-mix(in srgb,var(--surface) 92%,#f0d9d6 8%)
+}
+.booking-actions-danger button:first-child:hover:not(:disabled){background:color-mix(in srgb,var(--surface) 82%,#edd0cc 18%)}
+html[data-theme="dark"] .booking-actions-danger button:first-child{color:#e6aaa3;background:#2e2020;border-color:#69413d}
