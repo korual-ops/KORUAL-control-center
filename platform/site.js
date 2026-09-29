@@ -183,6 +183,7 @@
       bundle:Array.isArray(request?.bundle)?request.bundle.slice(0,8):[],
       priority_mode:String(request?.priority_mode||'balanced'),
       budget_cap:Number(request?.budget_cap)||null,
+      desired_date:String(request?.desired_date||request?.desiredDate||'').trim()||null,
       exclude_provider_keys:Array.isArray(request?.exclude_provider_keys)
         ?request.exclude_provider_keys.slice(0,8)
         :Array.isArray(request?.excludeProviderKeys)
@@ -202,6 +203,45 @@
       if(oldest)quoteResponseCache.delete(oldest);
     }
     return data;
+  }
+
+  function addSeoulDays(days){
+    const base=localDateString(new Date());
+    const d=new Date(base+'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate()+days);
+    return d.toISOString().slice(0,10);
+  }
+
+  function normalizeInferredDate(year,month,day){
+    const y=Number(year),m=Number(month),d=Number(day);
+    if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)||m<1||m>12||d<1||d>31)return null;
+    const value=String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const parsed=new Date(value+'T00:00:00Z');
+    if(Number.isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==value)return null;
+    const today=localDateString(new Date());
+    const max=addSeoulDays(366);
+    return value>=today&&value<=max?value:null;
+  }
+
+  function inferDesiredDate(text){
+    const raw=String(text||'').trim();
+    if(!raw)return null;
+
+    const full=raw.match(/(20\d{2})\s*(?:년|[-./])\s*(\d{1,2})\s*(?:월|[-./])\s*(\d{1,2})\s*일?/);
+    if(full)return normalizeInferredDate(full[1],full[2],full[3]);
+
+    if(/모레/.test(raw))return addSeoulDays(2);
+    if(/내일/.test(raw))return addSeoulDays(1);
+    if(/오늘/.test(raw))return addSeoulDays(0);
+
+    const md=raw.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+    if(md){
+      const today=localDateString(new Date());
+      const currentYear=Number(today.slice(0,4));
+      return normalizeInferredDate(currentYear,md[1],md[2])||
+        normalizeInferredDate(currentYear+1,md[1],md[2]);
+    }
+    return null;
   }
 
   function inferRequest(text){
@@ -252,7 +292,8 @@
       priority:priorityLabels[priorityMode],
       priorityMode,
       preferenceExplicit,
-      budgetCap
+      budgetCap,
+      desiredDate:inferDesiredDate(raw)
     };
   }
 
@@ -267,6 +308,7 @@
   const goQuotes=$('#goQuotes');
   const quoteContext=$('#quoteContext');
   const quoteInsight=$('#quoteInsight');
+  const quoteDesiredDate=$('#quoteDesiredDate');
   const verifiedOnly=$('#verifiedOnly');
   const budgetCap=$('#budgetCap');
   const trustSheet=$('#trustSheet');
@@ -284,7 +326,11 @@
     if(analysisPriority) analysisPriority.textContent=request.priority;
     if(analysisNext) analysisNext.textContent='조건에 맞는 견적 확인';
     if(goQuotes) goQuotes.disabled=false;
-    if(quoteContext) quoteContext.textContent=request.service+' · '+request.priority+' 기준의 베타 견적입니다.';
+    if(quoteDesiredDate){
+      quoteDesiredDate.min=localDateString(new Date());
+      quoteDesiredDate.value=request.desiredDate||'';
+    }
+    if(quoteContext) quoteContext.textContent=request.service+' · '+request.priority+(request.desiredDate?' · '+request.desiredDate:'')+' 기준의 베타 견적입니다.';
   }
 
   async function loadQuotes(request){
@@ -306,6 +352,7 @@
         ...request,
         priority_mode:state.preferences.priority,
         budget_cap:state.preferences.budgetCap||null,
+        desired_date:request?.desiredDate||request?.desired_date||null,
         exclude_provider_keys:Array.isArray(request?.excludeProviderKeys)
           ?request.excludeProviderKeys.slice(0,8)
           :Array.isArray(request?.exclude_provider_keys)
@@ -346,6 +393,8 @@
             evidence:Number.isFinite(Number(q.evidence_score))?Number(q.evidence_score):null,
             coverage:Number.isFinite(Number(q.coverage_score))?Number(q.coverage_score):null,
             budgetScore:Number.isFinite(Number(q.budget_score))?Number(q.budget_score):null,
+            availability:q.availability&&typeof q.availability==='object'?q.availability:null,
+            availabilityAdjustment:Number.isFinite(Number(q.availability_adjustment))?Number(q.availability_adjustment):0,
             reasons:Array.isArray(q.reasons)?q.reasons.slice(0,3):[],
             breakdown:q.score_breakdown&&typeof q.score_breakdown==='object'?q.score_breakdown:null,
             lineItems:Array.isArray(q.line_items)?q.line_items.slice(0,8):[],
@@ -413,6 +462,9 @@
     card.dataset.evidence=q.evidence_score==null?'':String(q.evidence_score);
     card.dataset.coverage=q.coverage_score==null?'':String(q.coverage_score);
     card.dataset.budgetScore=q.budget_score==null?'':String(q.budget_score);
+    card.dataset.availability=q.availability?.status||'';
+    card.dataset.availabilitySlots=q.availability?.slot_count==null?'':String(q.availability.slot_count);
+    card.dataset.availabilityRemaining=q.availability?.total_remaining==null?'':String(q.availability.total_remaining);
     card.dataset.sensitivityLevel=q.decision_context?.sensitivity?.level||'';
     card.dataset.sensitivityStability=q.decision_context?.sensitivity?.stability==null?'':String(q.decision_context.sensitivity.stability);
     card.dataset.sensitivityWinners=q.decision_context?.sensitivity?.winners?JSON.stringify(q.decision_context.sensitivity.winners):'';
@@ -424,6 +476,8 @@
     const score=$('.score i',card);
     const rating=$('.fact-grid span:nth-child(1) b',card);
     const response=$('.fact-grid span:nth-child(2) b',card);
+    const thirdLabel=$('.fact-grid span:nth-child(3) small',card);
+    const thirdValue=$('.fact-grid span:nth-child(3) b',card);
     if(providerName) providerName.textContent=q.provider_name||'KORUAL Demo Partner';
     if(providerMeta) providerMeta.textContent=q.provider_key?'서버 조회 · 베타 데이터':'예시 데이터 · 예약 불가';
     if(price) price.textContent='₩'+Number(q.amount||0).toLocaleString('ko-KR');
@@ -432,6 +486,14 @@
     if(score) score.style.width=Math.max(0,Math.min(100,Number(q.trust)||0))+'%';
     if(rating) rating.textContent=Number(q.rating||0).toFixed(1);
     if(response) response.textContent=q.response_minutes==null?'—':(q.response_minutes<=10?'매우 빠름':q.response_minutes<=20?'빠름':q.response_minutes+'분');
+    if(thirdLabel&&thirdValue&&q.availability?.status&&q.availability.status!=='not_requested'){
+      thirdLabel.textContent='희망일';
+      thirdValue.textContent=q.availability.status==='available'
+        ?'예약 가능'
+        :q.availability.status==='unavailable'
+          ?'마감'
+          :'일정 확인';
+    }
   }
 
   let lastAnalyzeRaw='';
@@ -518,6 +580,7 @@
 
   function scoreQuote(q){
     if(!q)return -1;
+    if(quoteMode==='live'&&Number.isFinite(Number(q.decisionScore)))return Number(q.decisionScore);
     const prices=Object.entries(quoteCatalog)
       .filter(([key])=>quoteMode!=='live'||liveQuoteKeys.has(key))
       .map(([,x])=>Number(x.price)||0)
@@ -573,9 +636,12 @@
 
   function isEligible(id){
     const q=quoteCatalog[id];
+    const dateRequested=Boolean(state.currentRequest?.desiredDate);
+    const dateEligible=!dateRequested||q?.availability?.status==='available';
     return Boolean(q && quoteMode==='live' && liveQuoteKeys.has(id) &&
       (!state.preferences.verifiedOnly||q.verified) &&
-      (!state.preferences.budgetCap||q.price<=state.preferences.budgetCap));
+      (!state.preferences.budgetCap||q.price<=state.preferences.budgetCap) &&
+      dateEligible);
   }
 
   function applyDecisionLens(){
@@ -602,7 +668,12 @@
       if(providerMeta&&q){
         if(quoteMode==='live'&&!unavailable){
           const confidence=Number.isFinite(Number(q.confidence))?' · Confidence '+Math.round(Number(q.confidence))+'%':'';
-          providerMeta.textContent='서버 베타 · Match '+Math.round(decisionScore)+confidence;
+          const availability=q.availability?.status==='available'
+            ?' · 희망일 가능'
+            :q.availability?.status==='unknown'
+              ?' · 일정 확인 필요'
+              :'';
+          providerMeta.textContent='서버 베타 · Match '+Math.round(decisionScore)+confidence+availability;
         }else{
           providerMeta.textContent='예시 데이터 · 예약 불가';
         }
@@ -640,13 +711,20 @@
           :quoteMode==='recovery-empty'
             ?'대체 가능한 다른 업체 없음'
             :'예시 견적 · 예약 불가';
-      quoteContext.textContent=state.currentRequest.service+' · '+mode+' · '+preferenceLabel()+' 우선'+cap;
+      const date=state.currentRequest.desiredDate?' · '+state.currentRequest.desiredDate:'';
+      quoteContext.textContent=state.currentRequest.service+' · '+mode+' · '+preferenceLabel()+' 우선'+cap+date;
     }
     if(quoteInsight){
       const amounts=[...liveQuoteKeys].map(key=>Number(quoteCatalog[key]?.price)).filter(x=>Number.isFinite(x)&&x>=0);
       if(quoteMode==='live'&&amounts.length){
         const low=Math.min(...amounts),high=Math.max(...amounts);
-        quoteInsight.textContent='서버 베타 견적 '+amounts.length+'개 · 표시 가격 '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 예약은 베타 요청으로 저장됩니다. 실제 제공 여부·서비스 범위·추가 비용을 확인하세요.';
+        const liveQuotes=[...liveQuoteKeys].map(key=>quoteCatalog[key]).filter(Boolean);
+        const availableCount=liveQuotes.filter(q=>q.availability?.status==='available').length;
+        const unknownCount=liveQuotes.filter(q=>q.availability?.status==='unknown').length;
+        const availabilityText=state.currentRequest?.desiredDate
+          ?' · 희망일 예약 가능 '+availableCount+'개'+(unknownCount?' · 일정 확인 '+unknownCount+'개':'')
+          :'';
+        quoteInsight.textContent='서버 베타 견적 '+amounts.length+'개'+availabilityText+' · 표시 가격 '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 실제 제공 범위와 추가 비용을 확인하세요.';
       }else{
         quoteInsight.textContent=quoteMode==='loading'
           ?'파트너 연결을 확인하는 동안 예시 카드를 보여드립니다.'
@@ -662,6 +740,10 @@
     $$('[data-priority]').forEach(btn=>btn.classList.toggle('is-active',btn.dataset.priority===state.preferences.priority));
     if(verifiedOnly) verifiedOnly.checked=state.preferences.verifiedOnly;
     if(budgetCap) budgetCap.value=state.preferences.budgetCap||'';
+    if(quoteDesiredDate){
+      quoteDesiredDate.min=localDateString(new Date());
+      quoteDesiredDate.value=state.currentRequest?.desiredDate||'';
+    }
     applyDecisionLens();
   }
 
@@ -767,6 +849,16 @@
     save();
     applyDecisionLens();
     scheduleQuoteRefresh(550);
+  });
+
+  quoteDesiredDate?.addEventListener('change',()=>{
+    if(!state.currentRequest)return;
+    state.currentRequest.desiredDate=quoteDesiredDate.value||null;
+    state.selectedQuote=null;
+    save();
+    renderAnalysis(state.currentRequest);
+    scheduleQuoteRefresh(40);
+    showToast(quoteDesiredDate.value?'희망일 기준으로 예약 가능 업체를 다시 확인합니다.':'희망일 조건을 해제했습니다.');
   });
 
   document.addEventListener('click',e=>{
@@ -1147,7 +1239,8 @@
     const tomorrow=new Date(todayDate.getTime()+24*60*60*1000);
     if(desiredDate){
       desiredDate.min=localDateString(todayDate);
-      if(!desiredDate.value) desiredDate.value=localDateString(tomorrow);
+      const preferredDate=state.currentRequest?.desiredDate||state.selectedQuote?.availability?.desired_date||'';
+      desiredDate.value=preferredDate||localDateString(tomorrow);
     }
     const recoveryMode=Boolean(
       state.recoveryContext?.oldBookingId===state.booking?.backend_id &&
