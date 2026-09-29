@@ -419,6 +419,7 @@
           :(requestForApi.exclude_provider_keys.length?'recovery-empty':'no-provider');
         if(quoteMode==='live'){
           if(data.intent_quality)state.currentRequest.intentQuality=data.intent_quality;
+          if(data.bundle_strategy)state.currentRequest.bundleStrategy=data.bundle_strategy;
           queueMicrotask(()=>{
             for(const key of liveQuoteKeys){
               const quote=quoteCatalog[key];
@@ -437,6 +438,13 @@
           if(goQuotes)goQuotes.disabled=true;
         }else if(notice==='NO_AVAILABLE_PROVIDER_FOR_DATE'){
           quoteMode='date-empty';
+        }else if(notice==='BUNDLE_ORCHESTRATION_REQUIRED'){
+          quoteMode='bundle-plan';
+          if(state.currentRequest)state.currentRequest.bundleStrategy=data.bundle_strategy||null;
+          if(analysisTitle)analysisTitle.textContent='서비스별 여러 업체 조합이 필요합니다';
+          if(analysisState){analysisState.textContent='BUNDLE';analysisState.classList.add('ready')}
+          if(analysisNext)analysisNext.textContent='조합 플랜 확인';
+          if(goQuotes)goQuotes.disabled=false;
         }else if(notice==='NO_ELIGIBLE_PROVIDER'){
           quoteMode=requestForApi.exclude_provider_keys.length?'recovery-empty':'no-provider';
         }else{
@@ -670,7 +678,7 @@
       const overBudget=state.preferences.budgetCap && q && Number(q.price)>state.preferences.budgetCap;
       const unverified=state.preferences.verifiedOnly && q && !q.verified;
       const unavailable=(quoteMode==='live'&&!liveQuoteKeys.has(card.dataset.quoteCard))||
-        ['sample','loading','clarification','no-provider','date-empty','recovery-empty','error'].includes(quoteMode);
+        ['sample','loading','clarification','bundle-plan','no-provider','date-empty','recovery-empty','error'].includes(quoteMode);
       card.classList.toggle('is-filtered',Boolean(overBudget||unverified||unavailable));
       card.hidden=Boolean(overBudget||unverified||unavailable);
       const select=$('[data-quote]',card);
@@ -728,7 +736,9 @@
           ?'서버 확인 중'
           :quoteMode==='clarification'
             ?'서비스 정보 보완 필요'
-            :quoteMode==='date-empty'
+            :quoteMode==='bundle-plan'
+              ?'여러 업체 조합 필요'
+              :quoteMode==='date-empty'
               ?'희망일 예약 가능 업체 없음'
               :quoteMode==='recovery-empty'
                 ?'대체 가능한 다른 업체 없음'
@@ -756,7 +766,9 @@
           ?'검증된 파트너와 조건을 확인하고 있습니다.'
           :quoteMode==='clarification'
             ?'서비스 종류를 구체적으로 입력하면 실제 지원 업체만 비교합니다.'
-            :quoteMode==='date-empty'
+            :quoteMode==='bundle-plan'
+              ?'한 업체가 전체 서비스를 제공하지 못하지만 서비스별 검증 업체 조합은 가능합니다. 현재는 조합 플랜을 먼저 보여주고 개별 예약을 분리합니다.'
+              :quoteMode==='date-empty'
               ?'선택한 희망일에는 예약 가능한 검증 업체가 없습니다. 다른 날짜를 선택해주세요.'
               :quoteMode==='recovery-empty'
                 ?'현재 조건에서 기존 업체를 제외한 대체 후보가 없습니다. 기존 예약 상태를 유지하거나 조건을 수정해주세요.'
@@ -771,6 +783,7 @@
     if(quoteEmptyTitle&&quoteEmptyMessage){
       const emptyCopy={
         clarification:['어떤 서비스가 필요한지 더 구체적으로 알려주세요.','예: “10월 5일 서울 이사”, “입주청소 견적”, “에어컨 청소가 필요해”.'],
+        'bundle-plan':['한 업체가 모든 서비스를 처리할 수 없습니다.','서비스별로 검증 업체를 나눠 연결할 수 있습니다. 요청 조건은 유지한 채 조합 예약 구조로 처리합니다.'],
         'date-empty':['선택한 날짜에 예약 가능한 업체가 없습니다.','희망일을 바꾸면 실제 가용시간을 기준으로 다시 비교합니다.'],
         'no-provider':['현재 조건을 모두 충족하는 업체가 없습니다.','서비스·지역·예산 조건을 조정해 다시 확인해주세요.'],
         'recovery-empty':['현재 대체 가능한 다른 업체가 없습니다.','기존 예약은 유지됩니다. 조건을 수정하거나 기존 예약 상태를 확인해주세요.'],
@@ -788,7 +801,9 @@
       if(action){
         action.textContent=quoteMode==='clarification'||quoteMode==='no-provider'
           ?'요청 수정'
-          :quoteMode==='date-empty'
+          :quoteMode==='bundle-plan'
+            ?'요청 확인'
+            :quoteMode==='date-empty'
             ?'날짜 변경'
             :quoteMode==='recovery-empty'
               ?'예약 상태 보기'
@@ -1888,7 +1903,7 @@
   }
   $('#retryQuotes')?.addEventListener('click',()=>loadQuotes(state.currentRequest));
   $('#clearQuoteFilters')?.addEventListener('click',()=>{
-    if(quoteMode==='clarification'||quoteMode==='no-provider'){
+    if(quoteMode==='clarification'||quoteMode==='no-provider'||quoteMode==='bundle-plan'){
       showScreen('match');
       matchInput?.focus();
       return;
