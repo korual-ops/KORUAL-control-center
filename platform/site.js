@@ -769,11 +769,25 @@
   const desiredDate=$('#desiredDate');
   const desiredTime=$('#desiredTime');
   const slotStatus=$('#slotStatus');
+  const rescheduleBooking=$('#rescheduleBooking');
+  const cancelBooking=$('#cancelBooking');
+  const rescheduleSheet=$('#rescheduleSheet');
+  const rescheduleForm=$('#rescheduleForm');
+  const closeRescheduleSheet=$('#closeRescheduleSheet');
+  const cancelRescheduleSheet=$('#cancelRescheduleSheet');
+  const rescheduleDate=$('#rescheduleDate');
+  const rescheduleTime=$('#rescheduleTime');
+  const rescheduleStatus=$('#rescheduleStatus');
+  const submitReschedule=$('#submitReschedule');
   let pendingIdempotency='';
   let activeSlotHold=null;
   let availabilityVersion=0;
   let slotHoldVersion=0;
   let slotHoldTicker=null;
+  let activeRescheduleHold=null;
+  let rescheduleAvailabilityVersion=0;
+  let rescheduleHoldVersion=0;
+  let rescheduleHoldTicker=null;
 
   function localDateString(date){
     return new Intl.DateTimeFormat('en-CA',{
@@ -930,6 +944,170 @@
     }
   }
 
+  function stopRescheduleTicker(){
+    if(rescheduleHoldTicker){
+      clearInterval(rescheduleHoldTicker);
+      rescheduleHoldTicker=null;
+    }
+  }
+
+  function clearActiveRescheduleHoldLocal(){
+    stopRescheduleTicker();
+    activeRescheduleHold=null;
+  }
+
+  function updateRescheduleHoldStatus(){
+    if(!activeRescheduleHold)return;
+    const remain=Math.max(0,Math.floor((new Date(activeRescheduleHold.expires_at).getTime()-Date.now())/1000));
+    if(remain<=0){
+      clearActiveRescheduleHoldLocal();
+      if(submitReschedule)submitReschedule.disabled=true;
+      if(rescheduleStatus)rescheduleStatus.textContent='선택 시간 hold가 만료되었습니다. 시간을 다시 선택해주세요.';
+      if(rescheduleTime){
+        rescheduleTime.value='';
+        rescheduleTime.disabled=false;
+      }
+      return;
+    }
+    const min=Math.floor(remain/60);
+    const sec=String(remain%60).padStart(2,'0');
+    if(rescheduleStatus)rescheduleStatus.textContent='새 시간이 '+min+':'+sec+' 동안 임시 확보되었습니다. 확정 전까지 기존 예약은 유지됩니다.';
+  }
+
+  async function releaseActiveRescheduleHold(){
+    const hold=activeRescheduleHold;
+    clearActiveRescheduleHoldLocal();
+    if(submitReschedule)submitReschedule.disabled=true;
+    if(!hold?.hold_id)return;
+    try{await fetchApi('release_slot',{hold_id:hold.hold_id})}catch(_){}
+  }
+
+  async function loadRescheduleAvailability(){
+    const version=++rescheduleAvailabilityVersion;
+    ++rescheduleHoldVersion;
+    await releaseActiveRescheduleHold();
+
+    if(!rescheduleDate?.value||!state.booking?.backend_id){
+      if(rescheduleTime){
+        rescheduleTime.innerHTML='<option value="">날짜를 먼저 선택</option>';
+        rescheduleTime.disabled=true;
+      }
+      if(rescheduleStatus)rescheduleStatus.textContent='날짜를 선택하면 실제 가능한 시간을 확인합니다.';
+      return;
+    }
+
+    if(rescheduleTime){
+      rescheduleTime.innerHTML='<option value="">가능 시간 확인 중…</option>';
+      rescheduleTime.disabled=true;
+    }
+    if(rescheduleStatus)rescheduleStatus.textContent='서버에서 변경 가능한 시간을 확인하고 있습니다.';
+    if(submitReschedule)submitReschedule.disabled=true;
+
+    try{
+      const data=await fetchApi('booking_availability',{
+        booking_id:state.booking.backend_id,
+        desired_date:rescheduleDate.value
+      });
+      if(version!==rescheduleAvailabilityVersion)return;
+      const slots=Array.isArray(data?.slots)?data.slots:[];
+      if(!slots.length){
+        if(rescheduleTime){
+          rescheduleTime.innerHTML='<option value="">가능한 시간 없음</option>';
+          rescheduleTime.disabled=true;
+        }
+        if(rescheduleStatus)rescheduleStatus.textContent='선택한 날짜에는 변경 가능한 시간이 없습니다.';
+        return;
+      }
+      if(rescheduleTime){
+        rescheduleTime.innerHTML='<option value="">시간 선택</option>'+slots.map(slot=>{
+          const start=formatKstTime(slot.starts_at);
+          const end=formatKstTime(slot.ends_at);
+          const remaining=Number(slot.remaining);
+          return '<option value="'+escapeHtml(slot.starts_at)+'">'+start+'–'+end+(Number.isFinite(remaining)?' · '+remaining+'자리':'')+'</option>';
+        }).join('');
+        rescheduleTime.disabled=false;
+      }
+      if(rescheduleStatus)rescheduleStatus.textContent='변경 가능한 시간 '+slots.length+'개 · 새 시간을 선택하면 10분간 임시 확보합니다.';
+    }catch(err){
+      if(version!==rescheduleAvailabilityVersion)return;
+      if(rescheduleTime){
+        rescheduleTime.innerHTML='<option value="">시간 조회 실패</option>';
+        rescheduleTime.disabled=true;
+      }
+      if(rescheduleStatus)rescheduleStatus.textContent='변경 가능 시간을 불러오지 못했습니다.';
+    }
+  }
+
+  async function holdRescheduleSlot(){
+    const startsAt=rescheduleTime?.value||'';
+    const version=++rescheduleHoldVersion;
+    await releaseActiveRescheduleHold();
+    if(!startsAt||!state.booking?.backend_id)return;
+
+    if(rescheduleStatus)rescheduleStatus.textContent='새 시간을 임시 확보하는 중입니다.';
+    if(submitReschedule)submitReschedule.disabled=true;
+
+    try{
+      const data=await fetchApi('hold_booking_slot',{
+        booking_id:state.booking.backend_id,
+        starts_at:startsAt
+      });
+      const hold=data?.hold;
+      if(!hold?.hold_id)throw Error('HOLD_INVALID');
+
+      if(version!==rescheduleHoldVersion){
+        try{await fetchApi('release_slot',{hold_id:hold.hold_id})}catch(_){}
+        return;
+      }
+
+      activeRescheduleHold=hold;
+      updateRescheduleHoldStatus();
+      stopRescheduleTicker();
+      rescheduleHoldTicker=setInterval(updateRescheduleHoldStatus,1000);
+      if(submitReschedule)submitReschedule.disabled=false;
+    }catch(err){
+      if(version!==rescheduleHoldVersion)return;
+      clearActiveRescheduleHoldLocal();
+      if(submitReschedule)submitReschedule.disabled=true;
+      if(rescheduleTime)rescheduleTime.value='';
+      if(rescheduleStatus)rescheduleStatus.textContent='선택 시간이 방금 마감되었습니다. 다른 시간을 선택해주세요.';
+      loadRescheduleAvailability();
+    }
+  }
+
+  function openReschedule(){
+    if(!state.booking?.backend_id){showToast('서버 예약만 일정 변경할 수 있습니다.');return}
+    const status=normalizeBookingStatus(state.booking.status);
+    if(!['PENDING','CONFIRMED'].includes(status)){showToast('현재 상태에서는 일정을 변경할 수 없습니다.');return}
+
+    const today=new Date();
+    if(rescheduleDate){
+      rescheduleDate.min=localDateString(today);
+      const current=state.booking.scheduledAt?new Date(state.booking.scheduledAt):new Date(today.getTime()+24*60*60*1000);
+      rescheduleDate.value=localDateString(current);
+    }
+    if(rescheduleTime){
+      rescheduleTime.innerHTML='<option value="">가능 시간 확인 중…</option>';
+      rescheduleTime.disabled=true;
+    }
+    if(rescheduleStatus)rescheduleStatus.textContent='기존 예약은 새 일정이 확정될 때까지 그대로 유지됩니다.';
+    rescheduleSheet.hidden=false;
+    document.body.style.overflow='hidden';
+    loadRescheduleAvailability();
+  }
+
+  function closeReschedule(){
+    ++rescheduleAvailabilityVersion;
+    ++rescheduleHoldVersion;
+    releaseActiveRescheduleHold();
+    if(rescheduleTime){
+      rescheduleTime.innerHTML='<option value="">날짜를 먼저 선택</option>';
+      rescheduleTime.disabled=true;
+    }
+    rescheduleSheet.hidden=true;
+    document.body.style.overflow='';
+  }
+
   function openBookingSheet(){
     if(!isEligible(state.selectedQuote?.id)){showToast('예시 견적은 예약할 수 없습니다. 실제 견적 연결을 확인해주세요.');return}
     if(!state.selectedQuote){showToast('먼저 견적을 선택해주세요.');return}
@@ -970,6 +1148,87 @@
   bookingSheet?.addEventListener('click',e=>{if(e.target===bookingSheet)closeSheet()});
   desiredDate?.addEventListener('change',loadAvailability);
   desiredTime?.addEventListener('change',holdSelectedSlot);
+  rescheduleBooking?.addEventListener('click',openReschedule);
+  closeRescheduleSheet?.addEventListener('click',closeReschedule);
+  cancelRescheduleSheet?.addEventListener('click',closeReschedule);
+  rescheduleSheet?.addEventListener('click',e=>{if(e.target===rescheduleSheet)closeReschedule()});
+  rescheduleDate?.addEventListener('change',loadRescheduleAvailability);
+  rescheduleTime?.addEventListener('change',holdRescheduleSlot);
+
+  rescheduleForm?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!state.booking?.backend_id||!activeRescheduleHold?.hold_id)return;
+    if(new Date(activeRescheduleHold.expires_at).getTime()<=Date.now()){
+      clearActiveRescheduleHoldLocal();
+      if(submitReschedule)submitReschedule.disabled=true;
+      showToast('새 시간 hold가 만료되었습니다. 다시 선택해주세요.');
+      return;
+    }
+    if(submitReschedule){submitReschedule.disabled=true;submitReschedule.textContent='변경 중…'}
+    try{
+      await fetchApi('reschedule_booking',{
+        booking_id:state.booking.backend_id,
+        slot_hold_id:activeRescheduleHold.hold_id
+      });
+      clearActiveRescheduleHoldLocal();
+      rescheduleSheet.hidden=true;
+      document.body.style.overflow='';
+      await syncBookingStatus({silent:true});
+      renderBooking();
+      renderHome();
+      showToast('예약 일정이 변경되었습니다.');
+    }catch(err){
+      const code=err?.code||'API_ERROR';
+      const messages={
+        BOOKING_NOT_RESCHEDULABLE:'현재 상태에서는 일정을 변경할 수 없습니다.',
+        SLOT_HOLD_EXPIRED:'새 시간 hold가 만료되었습니다. 다시 선택해주세요.',
+        SLOT_HOLD_INACTIVE:'새 시간이 더 이상 확보되어 있지 않습니다.',
+        SLOT_HOLD_MISMATCH:'예약 업체와 선택 시간이 일치하지 않습니다.',
+        SLOT_HOLD_REQUIRED:'변경할 시간을 다시 선택해주세요.'
+      };
+      if(['SLOT_HOLD_EXPIRED','SLOT_HOLD_INACTIVE','SLOT_HOLD_MISMATCH','SLOT_HOLD_REQUIRED'].includes(code)){
+        clearActiveRescheduleHoldLocal();
+        if(rescheduleTime)rescheduleTime.value='';
+        loadRescheduleAvailability();
+      }
+      showToast(messages[code]||'일정 변경에 실패했습니다.');
+    }finally{
+      if(submitReschedule){
+        submitReschedule.textContent='일정 변경 확정';
+        const valid=activeRescheduleHold?.hold_id&&new Date(activeRescheduleHold.expires_at).getTime()>Date.now();
+        submitReschedule.disabled=!valid;
+      }
+    }
+  });
+
+  cancelBooking?.addEventListener('click',async()=>{
+    if(!state.booking?.backend_id)return;
+    const status=normalizeBookingStatus(state.booking.status);
+    if(!['PENDING','CONFIRMED'].includes(status)){showToast('현재 상태에서는 예약을 취소할 수 없습니다.');return}
+    if(!window.confirm('이 예약을 취소할까요? 취소하면 해당 시간은 다시 예약 가능 상태로 돌아갑니다.'))return;
+
+    cancelBooking.disabled=true;
+    const original=cancelBooking.textContent;
+    cancelBooking.textContent='취소 중…';
+    try{
+      await fetchApi('cancel_booking',{
+        booking_id:state.booking.backend_id,
+        reason:'customer_cancelled'
+      });
+      await syncBookingStatus({silent:true});
+      renderBooking();
+      renderHome();
+      renderProfile();
+      showToast('예약이 취소되었습니다.');
+    }catch(err){
+      const code=err?.code||'API_ERROR';
+      showToast(code==='BOOKING_NOT_CANCELLABLE'?'현재 상태에서는 예약을 취소할 수 없습니다.':'예약 취소에 실패했습니다.');
+    }finally{
+      cancelBooking.textContent=original||'예약 취소';
+      const current=normalizeBookingStatus(state.booking?.status);
+      cancelBooking.disabled=!['PENDING','CONFIRMED'].includes(current);
+    }
+  });
 
   bookingForm?.addEventListener('submit',async e=>{
     e.preventDefault();
@@ -1113,6 +1372,9 @@
         state.completes=(Number(state.completes)||0)+1;
       }
       save();
+      renderBooking();
+      renderHome();
+      renderProfile();
     }catch(err){
       if(!silent&&meta)meta.textContent='서버 상태 확인 실패 · 기존 표시 유지';
     }finally{
@@ -1174,6 +1436,11 @@
 
     const repeat=$('#repeatMessage');
     const complete=$('#completeDemo');
+    const reschedule=$('#rescheduleBooking');
+    const cancel=$('#cancelBooking');
+    const manageable=['PENDING','CONFIRMED'].includes(status);
+    if(reschedule)reschedule.disabled=!manageable;
+    if(cancel)cancel.disabled=!manageable;
 
     if(status==='COMPLETED'){
       if(repeat)repeat.textContent='완료 데이터가 서버에 기록되었습니다. 후기와 다음 연관 서비스 추천 단계로 연결됩니다.';
