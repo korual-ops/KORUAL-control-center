@@ -169,6 +169,17 @@
 
         <div class="quote-tools"><p>제공 범위·추가 비용·취소 조건까지 확인하세요.</p><button id="retryQuotes" type="button">견적 다시 조회</button></div>
         <div id="quoteEmpty" class="empty-card" hidden><strong id="quoteEmptyTitle">현재 조건에 맞는 견적이 없습니다.</strong><p id="quoteEmptyMessage">예산 또는 검증 조건을 변경해 다시 비교해보세요.</p><button id="clearQuoteFilters" type="button">필터 해제</button></div>
+        <article id="bundlePlanCard" class="bundle-plan-card" hidden>
+          <div class="bundle-plan-head">
+            <div><small>ATOMIC BUNDLE PLAN</small><strong>서비스별 조합 플랜</strong></div>
+            <span id="bundlePlanStatus">PLANNING</span>
+          </div>
+          <p id="bundlePlanMessage">서비스별 검증 업체와 시간을 조합합니다.</p>
+          <div id="bundlePlanItems" class="bundle-plan-items"></div>
+          <div class="bundle-plan-total"><span>예상 합계</span><strong id="bundlePlanTotal">—</strong></div>
+          <button id="prepareBundleBooking" class="wide-primary" type="button" disabled>선택 시간 임시 확보 <span>→</span></button>
+          <p class="bundle-plan-note">모든 서비스 시간 확보가 성공한 경우에만 최종 묶음 예약을 진행합니다.</p>
+        </article>
         <div id="quoteList" class="quote-list">
           <article class="quote-card featured" data-quote-card="best" data-price="142000" data-trust="96">
             <div class="quote-top"><span class="ai-pick">AI PICK</span><span class="verified">✓ 검증</span></div>
@@ -217,6 +228,14 @@
           <p>견적을 선택하고 예약 요청을 저장하면 여기에 표시됩니다.</p>
           <button type="button" data-open-screen="match">서비스 찾기</button>
         </div>
+
+        <article id="bundleBookingCard" class="booking-card bundle-booking-card" hidden>
+          <div class="booking-card-head"><div><small>BUNDLE BOOKING</small><strong id="bundleBookingId">—</strong></div><span id="bundleBookingStatusBadge">접수됨</span></div>
+          <div class="bundle-booking-summary"><span>서비스 묶음</span><strong id="bundleBookingServices">—</strong><span>총 예상금액</span><strong id="bundleBookingTotal">—</strong></div>
+          <div id="bundleBookingItems" class="bundle-booking-items"></div>
+          <p id="bundleBookingMeta" class="booking-sync-meta" aria-live="polite">묶음 예약 상태 동기화 대기</p>
+          <div class="booking-actions"><button type="button" data-open-screen="quotes">조합 다시 보기</button><button type="button" data-open-screen="match">새 요청</button></div>
+        </article>
 
         <article id="bookingCard" class="booking-card" hidden>
           <div class="booking-card-head"><div><small id="bookingStatusEyebrow">REQUESTED</small><strong id="bookingId">—</strong></div><span id="bookingStatusBadge">접수됨</span></div>
@@ -380,6 +399,33 @@
         <div class="sheet-actions">
           <button id="cancelBookingSheet" type="button">취소</button>
           <button id="submitBooking" type="submit">예약 요청 저장</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="bundleBookingSheet" class="sheet-backdrop" hidden>
+      <form id="bundleBookingForm" class="booking-sheet" autocomplete="on">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div><small>KORUAL ATOMIC BUNDLE</small><strong>묶음 예약 최종 확인</strong></div>
+          <button id="closeBundleBookingSheet" type="button" aria-label="묶음 예약창 닫기">×</button>
+        </div>
+        <div class="sheet-summary">
+          <span>서비스</span><strong id="bundleSheetServices">—</strong>
+          <span>예상 합계</span><strong id="bundleSheetTotal">—</strong>
+        </div>
+        <div id="bundleSheetSchedule" class="bundle-sheet-schedule"></div>
+        <div class="field-grid">
+          <label><span>이름</span><input id="bundleCustomerName" autocomplete="name" maxlength="40" placeholder="예약자 이름" required /></label>
+          <label><span>연락처</span><input id="bundleCustomerPhone" autocomplete="tel" inputmode="tel" maxlength="13" placeholder="01012345678" required /></label>
+          <label class="field-wide"><span>서비스 지역</span><input id="bundleCustomerRegion" maxlength="80" placeholder="예: 서울 강남구" required /></label>
+          <label class="field-wide"><span>희망일</span><input id="bundleDesiredDate" type="date" required readonly /></label>
+        </div>
+        <p id="bundleBookingStatus" class="sheet-note" role="status" aria-live="polite">선택한 모든 시간은 10분간 임시 확보됩니다.</p>
+        <p class="sheet-note">하나라도 예약 검증에 실패하면 전체 묶음 예약은 생성되지 않습니다. 결제는 아직 발생하지 않습니다.</p>
+        <div class="sheet-actions">
+          <button id="cancelBundleBookingSheet" type="button">취소</button>
+          <button id="submitBundleBooking" type="submit">전체 예약 확정</button>
         </div>
       </form>
     </div>
