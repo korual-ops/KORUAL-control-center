@@ -1,0 +1,132 @@
+/* KORUAL UI/UX v4 — decision intelligence + booking confidence */
+:root{
+  --v4-navy:#081c35;
+  --v4-gold:#d7b679;
+  --v4-line:color-mix(in srgb,var(--line) 88%,transparent);
+  --v4-ease:cubic-bezier(.2,.78,.2,1);
+}
+
+/* Quote market intelligence */
+.uxv4-market{
+  margin:0 0 12px;padding:18px;border:1px solid var(--v4-line);border-radius:21px;
+  background:var(--surface);box-shadow:0 12px 36px rgba(7,26,51,.045)
+}
+.uxv4-market-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.uxv4-market-head small,.uxv4-market-head strong{display:block}
+.uxv4-market-head small{font-size:8px;letter-spacing:.15em;color:#9b7742;font-weight:900}
+.uxv4-market-head strong{font-size:15px;margin-top:4px;letter-spacing:-.025em}
+.uxv4-market-head p{max-width:370px;margin:0;color:var(--muted);font-size:9px;line-height:1.55;text-align:right}
+.uxv4-market-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px}
+.uxv4-market-stats div{padding:11px 12px;border-radius:13px;background:var(--surface2)}
+.uxv4-market-stats small,.uxv4-market-stats strong{display:block}
+.uxv4-market-stats small{font-size:7px;color:var(--muted);letter-spacing:.08em}
+.uxv4-market-stats strong{font-size:13px;margin-top:4px}
+.uxv4-market-range{position:relative;height:8px;margin:16px 5px 2px;border-radius:999px;background:linear-gradient(90deg,#d9eadf,#eadfc3,#ead3ca);overflow:visible}
+.uxv4-market-range i{position:absolute;top:50%;width:13px;height:13px;border:3px solid var(--surface);border-radius:50%;background:#0d3156;box-shadow:0 2px 7px rgba(0,0,0,.18);transform:translate(-50%,-50%)}
+.uxv4-market-range i[data-kind="median"]{background:#d3aa64}
+.uxv4-market-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:7px;margin-top:7px}
+
+/* Per quote price position */
+.uxv4-position{margin:13px 0 0;padding:11px 12px;border:1px solid var(--v4-line);border-radius:13px;background:var(--surface2)}
+.uxv4-position-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.uxv4-position-head small{font-size:7px;color:var(--muted);font-weight:800}
+.uxv4-position-head strong{font-size:9px;color:var(--text)}
+.uxv4-position-track{height:5px;margin-top:8px;border-radius:999px;background:color-mix(in srgb,var(--line) 75%,transparent);overflow:hidden}
+.uxv4-position-track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#6c9e8c,#d6b579,#bd8173)}
+.uxv4-position-note{display:block;margin-top:7px;color:var(--muted);font-size:7px;line-height:1.45}
+
+/* Decision cockpit controls */
+.uxv4-compare-button{
+  min-height:34px;padding:0 12px;border:1px solid #d3b170;border-radius:999px;
+  background:transparent;color:var(--text);font-size:9px;font-weight:850;cursor:pointer;
+  white-space:nowrap;transition:.18s var(--v4-ease)
+}
+.uxv4-compare-button:hover{background:#efe3c9;transform:translateY(-1px)}
+html[data-theme="dark"] .uxv4-compare-button:hover{background:#3e3422}
+
+/* Selected quote decision summary */
+.uxv4-selection-summary{
+  display:none;margin:10px 0 0;padding:12px 13px;border:1px solid #dbc18f;border-radius:14px;
+  background:color-mix(in srgb,var(--surface) 82%,#eddbb8 18%)
+}
+.uxv4-selection-summary.is-visible{display:block}
+.uxv4-selection-summary small,.uxv4-selection-summary strong,.uxv4-selection-summary span{display:block}
+.uxv4-selection-summary small{font-size:7px;color:#92703b;letter-spacing:.12em;font-weight:900}
+.uxv4-selection-summary strong{font-size:11px;margin-top:4px}
+.uxv4-selection-summary span{font-size:8px;color:var(--muted);margin-top:3px;line-height:1.45}
+
+/* Shared decision sheet */
+.uxv4-backdrop{
+  position:fixed;inset:0;z-index:130;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(3,11,22,.56);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)
+}
+.uxv4-sheet{
+  width:min(100%,880px);max-height:92dvh;overflow:auto;padding:11px 20px calc(20px + env(safe-area-inset-bottom));
+  border-radius:28px 28px 0 0;background:var(--surface);box-shadow:0 -30px 90px rgba(0,0,0,.27)
+}
+.uxv4-handle{width:42px;height:4px;margin:2px auto 15px;border-radius:999px;background:var(--line)}
+.uxv4-sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.uxv4-sheet-head small,.uxv4-sheet-head strong{display:block}
+.uxv4-sheet-head small{font-size:8px;letter-spacing:.15em;color:#9b7743;font-weight:900}
+.uxv4-sheet-head strong{font-size:21px;margin-top:4px;letter-spacing:-.04em}
+.uxv4-close{width:40px;height:40px;border:0;border-radius:13px;background:var(--surface2);color:var(--text);font-size:20px;cursor:pointer}
+
+/* Comparison table */
+.uxv4-table-wrap{overflow-x:auto;margin-top:17px;border:1px solid var(--v4-line);border-radius:17px}
+.uxv4-table{width:100%;min-width:660px;border-collapse:collapse;background:var(--surface)}
+.uxv4-table th,.uxv4-table td{padding:13px 14px;border-bottom:1px solid var(--v4-line);text-align:left;font-size:10px}
+.uxv4-table th{position:sticky;top:0;background:var(--surface2);color:var(--muted);font-size:8px;letter-spacing:.07em}
+.uxv4-table tr:last-child td{border-bottom:0}
+.uxv4-table td strong{font-size:11px}
+.uxv4-table .is-best{color:#8b672e;font-weight:900}
+.uxv4-table .is-selected{background:color-mix(in srgb,var(--surface2) 68%,#ead6ad 32%)}
+.uxv4-table-note{margin:12px 2px 0;color:var(--muted);font-size:8px;line-height:1.6}
+
+/* Pre-booking review */
+.uxv4-review-hero{
+  margin-top:16px;padding:18px;border-radius:18px;background:linear-gradient(135deg,#081c35,#123e68);color:#fff
+}
+.uxv4-review-hero small,.uxv4-review-hero strong,.uxv4-review-hero span{display:block}
+.uxv4-review-hero small{font-size:8px;color:#e3c78f;letter-spacing:.13em;font-weight:900}
+.uxv4-review-hero strong{font-size:20px;margin-top:6px}
+.uxv4-review-hero span{font-size:12px;color:#d7e1eb;margin-top:5px}
+.uxv4-review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.uxv4-review-grid div{padding:13px;border:1px solid var(--v4-line);border-radius:14px;background:var(--surface2)}
+.uxv4-review-grid small,.uxv4-review-grid strong{display:block}
+.uxv4-review-grid small{font-size:7px;color:var(--muted)}
+.uxv4-review-grid strong{font-size:11px;margin-top:5px}
+.uxv4-checks{margin-top:14px;padding:14px;border:1px solid var(--v4-line);border-radius:15px}
+.uxv4-checks strong{display:block;font-size:11px}
+.uxv4-checks p{margin:8px 0 0;color:var(--muted);font-size:9px;line-height:1.65}
+.uxv4-checks p span{color:#a37c40;font-weight:900}
+.uxv4-review-actions{display:grid;grid-template-columns:.8fr 1.4fr;gap:8px;margin-top:14px}
+.uxv4-review-actions button{min-height:49px;border:1px solid var(--v4-line);border-radius:14px;background:var(--surface);color:var(--text);font-size:10px;font-weight:900;cursor:pointer}
+.uxv4-review-actions button:last-child{border-color:#0b2d50;background:#0b2d50;color:#fff}
+.uxv4-review-actions button:last-child span{color:#efcf93;margin-left:5px}
+
+/* Trust sheet enrichment */
+.uxv4-trust-lens{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}
+.uxv4-trust-lens div{padding:11px;border:1px solid var(--v4-line);border-radius:13px;background:var(--surface2)}
+.uxv4-trust-lens small,.uxv4-trust-lens strong{display:block}
+.uxv4-trust-lens small{font-size:7px;color:var(--muted);letter-spacing:.05em}
+.uxv4-trust-lens strong{font-size:10px;margin-top:4px}
+.uxv4-trust-lens p{grid-column:1/-1;margin:0;padding:10px 11px;border-radius:11px;background:color-mix(in srgb,var(--surface2) 80%,#ead7b0 20%);color:var(--muted);font-size:8px;line-height:1.55}
+
+html[data-theme="dark"] .uxv4-review-hero{background:linear-gradient(135deg,#071528,#123657)}
+html[data-theme="dark"] .uxv4-selection-summary{background:#293048}
+html[data-theme="dark"] .uxv4-market{background:#0f2239}
+
+@media(max-width:800px){
+  .uxv4-market{padding:15px;border-radius:18px}
+  .uxv4-market-head{display:block}
+  .uxv4-market-head p{margin-top:7px;text-align:left}
+  .uxv4-market-stats{gap:5px}
+  .uxv4-market-stats div{padding:9px}
+  .uxv4-market-stats strong{font-size:11px}
+  .uxv4-sheet{padding-left:15px;padding-right:15px}
+  .uxv4-sheet-head strong{font-size:19px}
+  .uxv4-review-grid{grid-template-columns:1fr 1fr}
+  .uxv4-review-grid div:last-child{grid-column:1/-1}
+  .uxv4-trust-lens{grid-template-columns:1fr 1fr}
+  .uxv4-trust-lens div:last-of-type{grid-column:1/-1}
+}
