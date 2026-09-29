@@ -414,3 +414,71 @@ on conflict(provider_id,day_of_week,start_time,end_time) do update set
   timezone=excluded.timezone,
   active=excluded.active,
   updated_at=now();
+
+
+-- Date-aware availability summary v1.
+create or replace function public.get_provider_date_availability_v1(
+  p_provider_ids uuid[],
+  p_date date
+)
+returns table(
+  provider_id uuid,
+  availability_status text,
+  slot_count integer,
+  total_remaining integer,
+  earliest_start timestamptz
+)
+language sql
+security definer
+set search_path = pg_catalog, public
+as $$
+  with provider_ids as (
+    select distinct unnest(p_provider_ids) as provider_id
+  ),
+  rule_state as (
+    select
+      i.provider_id,
+      exists(
+        select 1
+        from public.provider_availability_rules r
+        where r.provider_id=i.provider_id
+          and r.active=true
+          and r.day_of_week=extract(dow from p_date)::int
+      ) as has_rules
+    from provider_ids i
+  ),
+  slot_rows as (
+    select
+      i.provider_id,
+      s.starts_at,
+      s.remaining
+    from provider_ids i
+    left join lateral public.get_provider_available_slots(i.provider_id,p_date) s on true
+  ),
+  slot_agg as (
+    select
+      provider_id,
+      count(starts_at)::int as slot_count,
+      coalesce(sum(remaining),0)::int as total_remaining,
+      min(starts_at) as earliest_start
+    from slot_rows
+    group by provider_id
+  )
+  select
+    r.provider_id,
+    case
+      when not r.has_rules then 'unknown'
+      when coalesce(a.slot_count,0)>0 then 'available'
+      else 'unavailable'
+    end as availability_status,
+    coalesce(a.slot_count,0)::int,
+    coalesce(a.total_remaining,0)::int,
+    a.earliest_start
+  from rule_state r
+  left join slot_agg a using(provider_id);
+$$;
+
+revoke all on function public.get_provider_date_availability_v1(uuid[],date)
+  from public,anon,authenticated;
+grant execute on function public.get_provider_date_availability_v1(uuid[],date)
+  to service_role;
