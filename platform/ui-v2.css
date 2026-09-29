@@ -156,3 +156,5 @@ html[data-theme="dark"] .tabbar{background:rgba(3,14,29,.95)}
   *,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
   .korual-reveal{opacity:1;transform:none}
 }
+
+/* deployment refresh: ui-v2 */
