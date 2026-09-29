@@ -1508,7 +1508,18 @@ Deno.serve(async (req: Request) => {
           candidate.reasons=buildReasons(candidate,rawCandidates);
         });
 
-        const top = selectDiverseShortlist(rawCandidates,3);
+        const top: any[] = [];
+        const availableCandidates = rawCandidates.filter((c:any)=>c.availability.status==="available");
+        const unknownCandidates = rawCandidates.filter((c:any)=>c.availability.status==="unknown");
+        for (const candidate of selectDiverseShortlist(availableCandidates,3)) {
+          if (!top.some((x:any)=>x.provider_key===candidate.provider_key)) top.push(candidate);
+        }
+        if (top.length<3) {
+          for (const candidate of selectDiverseShortlist(unknownCandidates,3)) {
+            if (top.length>=3) break;
+            if (!top.some((x:any)=>x.provider_key===candidate.provider_key)) top.push(candidate);
+          }
+        }
         const signed: any[] = [];
         for (const candidate of top) {
           const quoteToken = await signQuote({
