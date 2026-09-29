@@ -16,7 +16,8 @@
         card.dataset.roles||'',card.dataset.scoreBreakdown||'',
         card.dataset.budgetStatus||'',card.dataset.budgetFitCount||'',card.dataset.budgetCap||'',
         card.dataset.decisionStatus||'',card.dataset.evidence||'',card.dataset.coverage||'',card.dataset.budgetScore||'',
-        card.dataset.rawRankingScore||'',card.dataset.uncertaintyPenalty||''
+        card.dataset.rawRankingScore||'',card.dataset.uncertaintyPenalty||'',
+        card.dataset.sensitivityLevel||'',card.dataset.sensitivityStability||'',card.dataset.sensitivityWinners||''
       ].join('::');
       if(card.dataset.v5Signature===signature)return;
       card.dataset.v5Signature=signature;
@@ -84,6 +85,10 @@
       }[level]||['의사결정 보조 모드','가격·신뢰·응답·이력과 데이터 완성도를 함께 비교합니다.'];
       const budgetStatus=first.dataset.budgetStatus||'';
       const decisionStatus=first.dataset.decisionStatus||'';
+      const sensitivityLevel=first.dataset.sensitivityLevel||'';
+      const sensitivityStability=Number(first.dataset.sensitivityStability);
+      let sensitivityWinners={};
+      try{sensitivityWinners=JSON.parse(first.dataset.sensitivityWinners||'{}')}catch(_){}
       const fitCount=Number(first.dataset.budgetFitCount);
       const budgetCap=Number(first.dataset.budgetCap);
       let budgetText='';
@@ -99,8 +104,18 @@
         compare_tradeoffs:'상위 후보가 근소해 장점별 비교가 중요합니다.',
         ready:'현재 조건으로 비교 가능한 후보군입니다.'
       }[decisionStatus]||'';
+      const sensitivityText={
+        robust:'가격·신뢰·속도·균형 기준을 바꿔도 같은 상위 후보입니다.',
+        stable:'대부분의 기준에서 같은 상위 후보가 유지됩니다.',
+        sensitive:'우선순위에 따라 상위 후보가 바뀔 수 있습니다.',
+        highly_sensitive:'우선순위에 매우 민감합니다. 장점별 비교가 더 중요합니다.'
+      }[sensitivityLevel]||'';
+      const winnerCount=new Set(Object.values(sensitivityWinners||{}).filter(Boolean)).size;
+      const stabilityText=Number.isFinite(sensitivityStability)
+        ?' · 추천 안정성 '+Math.round(sensitivityStability*100)+'%'+(winnerCount>1?' · 기준별 상위 후보 '+winnerCount+'개':'')
+        :'';
       box.dataset.level=level;
-      box.innerHTML='<div><small>DECISION CONFIDENCE</small><strong>'+copy[0]+'</strong></div><span>'+copy[1]+(statusText?' · '+statusText:'')+(Number.isFinite(gap)?' · 상위 점수 차이 '+gap.toFixed(1):'')+budgetText+'</span>';
+      box.innerHTML='<div><small>DECISION CONFIDENCE</small><strong>'+copy[0]+'</strong></div><span>'+copy[1]+(statusText?' · '+statusText:'')+(sensitivityText?' · '+sensitivityText:'')+(Number.isFinite(gap)?' · 상위 점수 차이 '+gap.toFixed(1):'')+stabilityText+budgetText+'</span>';
     };
 
     const syncAll=()=>{
@@ -124,7 +139,7 @@
     if('MutationObserver' in window){
       new MutationObserver(()=>syncAll()).observe(quoteList,{
         childList:true,subtree:true,attributes:true,
-        attributeFilter:['data-match-score','data-raw-ranking-score','data-uncertainty-penalty','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','data-budget-status','data-budget-fit-count','data-budget-cap','data-decision-status','data-evidence','data-coverage','data-budget-score','hidden']
+        attributeFilter:['data-match-score','data-raw-ranking-score','data-uncertainty-penalty','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','data-budget-status','data-budget-fit-count','data-budget-cap','data-decision-status','data-evidence','data-coverage','data-budget-score','data-sensitivity-level','data-sensitivity-stability','data-sensitivity-winners','hidden']
       });
     }
   });
