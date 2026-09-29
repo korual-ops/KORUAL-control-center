@@ -7,8 +7,8 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-const ENGINE_VERSION = "8.5";
-const TRANSACTION_VERSION = "3.3";
+const ENGINE_VERSION = "8.6";
+const TRANSACTION_VERSION = "4.0";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
 const allowedOrigins = new Set([
@@ -727,7 +727,7 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 15,
+        version: 16,
         engine_version: ENGINE_VERSION,
         operational_reliability_gate: 20,
         transaction_version: TRANSACTION_VERSION,
@@ -747,7 +747,9 @@ Deno.serve(async (req: Request) => {
         date_aware_ranking: true,
         availability_states: ["available","unavailable","unknown"],
         intent_quality_gate: true,
-        bundle_strategy_engine: true
+        bundle_strategy_engine: true,
+        atomic_bundle_booking: true,
+        bundle_child_requests: true
       });
     }
 
@@ -1281,6 +1283,340 @@ Deno.serve(async (req: Request) => {
 
       if (trackError) throw trackError;
       return json(origin, { ok: true, tracked: true });
+    }
+
+    if (action === "bundle_plan") {
+      const request = body?.request ?? {};
+      const intent = detectServiceIntent(request);
+      const services = intent.services;
+      const region = detectRegion(request);
+      const priorityMode = normalizePriority(request);
+      const desiredDateRaw = cleanText(request?.desired_date || request?.desiredDate, 10);
+      const desiredDate = desiredDateRaw && validateDate(desiredDateRaw) ? desiredDateRaw : null;
+      const rawBudgetCap = Number(request?.budget_cap ?? request?.budgetCap);
+      const budgetCap = Number.isFinite(rawBudgetCap) && rawBudgetCap > 0 ? rawBudgetCap : null;
+
+      if (!intent.matched || services.length < 2) {
+        return json(origin, { ok: false, error: "BUNDLE_NOT_REQUIRED" }, 409);
+      }
+      if (!region) {
+        return json(origin, { ok: false, error: "REGION_REQUIRED" }, 400);
+      }
+      if (!desiredDate) {
+        return json(origin, { ok: false, error: "DATE_REQUIRED" }, 400);
+      }
+
+      const [providerResult, benchmarkResult, profileResult] = await Promise.all([
+        db.from("providers")
+          .select("id,provider_key,name,rating,review_count,verified,korual_score,avg_response_minutes,completed_jobs,service_categories,regions,is_demo")
+          .eq("active", true)
+          .eq("verified", true),
+        db.from("price_benchmarks")
+          .select("service_category,region,min_amount,median_amount,max_amount,sample_count,confidence_score,source")
+          .in("service_category", services)
+          .in("region", [region, "전국"]),
+        db.from("provider_pricing_profiles")
+          .select("provider_id,service_category,multiplier,confidence_score,source")
+      ]);
+
+      if (providerResult.error) throw providerResult.error;
+      if (benchmarkResult.error) throw benchmarkResult.error;
+      if (profileResult.error) throw profileResult.error;
+
+      const providers = (providerResult.data ?? []).filter((p: any) => providerCoversRegion(p, region));
+      const providerIds = providers.map((p: any) => p.id);
+      const { data: availabilityRows, error: availabilityError } = await db.rpc(
+        "get_provider_date_availability_v1",
+        { p_provider_ids: providerIds, p_date: desiredDate }
+      );
+      if (availabilityError) throw availabilityError;
+
+      const availabilityByProvider = new Map(
+        (availabilityRows ?? []).map((a: any) => [a.provider_id, a])
+      );
+      const weights = priorityWeights(priorityMode);
+      const items: any[] = [];
+
+      for (const serviceName of services) {
+        const benchmark = benchmarkFor(serviceName, region, benchmarkResult.data ?? []);
+        const serviceProviders = providers.filter((p: any) => providerSupports(p, [serviceName]));
+        const rawCandidates = serviceProviders.map((p: any) => {
+          const profile = pricingProfile(p.id, serviceName, profileResult.data ?? []);
+          const amount = round1000(benchmark.median_amount * profile.multiplier);
+          const availabilityRow = availabilityByProvider.get(p.id);
+          const availability = {
+            status: cleanText(availabilityRow?.availability_status || "unknown", 20),
+            slot_count: Math.max(0, Number(availabilityRow?.slot_count) || 0),
+            total_remaining: Math.max(0, Number(availabilityRow?.total_remaining) || 0),
+            earliest_start: availabilityRow?.earliest_start || null
+          };
+          const evidence = clamp(
+            Number(benchmark.confidence_score || 0) * 0.65 +
+            Number(profile.confidence_score || 0) * 0.35
+          );
+          return {
+            provider_id: p.id,
+            provider_key: cleanText(p.provider_key,120),
+            provider_name: cleanText(p.name,120),
+            amount,
+            trust: clamp(Number(p.korual_score) || 0),
+            rating: Number(p.rating) || 0,
+            reviews: Number(p.review_count) || 0,
+            response_minutes: p.avg_response_minutes == null ? null : Number(p.avg_response_minutes),
+            experience: Number(p.completed_jobs) || 0,
+            confidence: providerDataConfidence(p),
+            evidence,
+            availability,
+            profile_source: profile.source,
+            benchmark_source: benchmark.source,
+            demo: Boolean(p.is_demo)
+          };
+        }).filter((c: any) => c.availability.status !== "unavailable");
+
+        if (!rawCandidates.length) {
+          items.push({
+            service: serviceName,
+            status: "unavailable",
+            suggested: null,
+            alternatives: []
+          });
+          continue;
+        }
+
+        const amounts = rawCandidates.map((c: any) => c.amount);
+        const minAmount = Math.min(...amounts);
+        const maxAmount = Math.max(...amounts);
+
+        for (const candidate of rawCandidates) {
+          const price = maxAmount === minAmount
+            ? 100
+            : clamp(100 - ((candidate.amount - minAmount) / Math.max(1,maxAmount-minAmount)) * 55);
+          const base =
+            price * weights.price +
+            candidate.trust * weights.trust +
+            ratingScore(candidate.rating,candidate.reviews) * weights.rating +
+            responseScore(candidate.response_minutes) * weights.response +
+            experienceScore(candidate.experience) * weights.experience +
+            100 * weights.verification +
+            100 * weights.coverage +
+            budgetFitScore(candidate.amount,budgetCap) * weights.budget +
+            candidate.evidence * weights.evidence;
+          candidate.decision_score = Number(clamp(
+            base + availabilityAdjustment(candidate,priorityMode)
+          ).toFixed(2));
+        }
+
+        rawCandidates.sort((a: any,b: any) =>
+          (b.availability.status === "available" ? 1 : 0) -
+          (a.availability.status === "available" ? 1 : 0) ||
+          b.decision_score-a.decision_score ||
+          a.amount-b.amount
+        );
+
+        const top = rawCandidates.slice(0,3);
+        const signed: any[] = [];
+        for (const candidate of top) {
+          const quoteToken = await signQuote({
+            v:1,
+            provider_key:candidate.provider_key,
+            amount:candidate.amount,
+            services:[serviceName],
+            region,
+            priority_mode:priorityMode,
+            desired_date:desiredDate,
+            bundle:true,
+            engine_version:ENGINE_VERSION,
+            exp:Date.now()+QUOTE_TTL_MS
+          });
+          signed.push({ ...candidate, quote_token:quoteToken });
+        }
+
+        const suggested = signed[0] || null;
+        let suggestedSlots: any[] = [];
+        if (suggested?.availability?.status === "available") {
+          const { data: slotRows, error: slotError } = await db.rpc("get_provider_available_slots", {
+            p_provider_id:suggested.provider_id,
+            p_date:desiredDate
+          });
+          if (slotError) throw slotError;
+          suggestedSlots=(slotRows ?? []).slice(0,4).map((s:any)=>({
+            starts_at:s.starts_at,
+            ends_at:s.ends_at,
+            remaining:Number(s.remaining)
+          }));
+        }
+
+        items.push({
+          service:serviceName,
+          status:suggested ? suggested.availability.status : "unavailable",
+          benchmark:{
+            median_amount:benchmark.median_amount,
+            confidence_score:benchmark.confidence_score,
+            source:benchmark.source
+          },
+          suggested:suggested ? { ...suggested, available_slots:suggestedSlots } : null,
+          alternatives:signed.slice(1)
+        });
+      }
+
+      const readyItems=items.filter((x:any)=>x.suggested?.availability?.status==="available");
+      const totalAmount=items.reduce((sum:number,x:any)=>sum+Number(x.suggested?.amount||0),0);
+      const readyForAtomicBooking=items.length===services.length && readyItems.length===services.length;
+
+      return json(origin,{
+        ok:true,
+        engine_version:ENGINE_VERSION,
+        transaction_version:TRANSACTION_VERSION,
+        request:{services,region,desired_date:desiredDate,priority_mode:priorityMode,budget_cap:budgetCap},
+        bundle_plan:{
+          status:readyForAtomicBooking?"ready":"needs_attention",
+          ready_for_atomic_booking:readyForAtomicBooking,
+          total_amount:totalAmount,
+          item_count:items.length,
+          items
+        }
+      });
+    }
+
+    if (action === "hold_bundle_slot") {
+      const token=cleanText(body?.quote_token,6000);
+      const startsAt=cleanText(body?.starts_at,64);
+      const operationKey=cleanText(body?.operation_key,80);
+      if (!token) return json(origin,{ok:false,error:"QUOTE_TOKEN_REQUIRED"},409);
+      if (!/^[A-Za-z0-9_-]{8,80}$/.test(operationKey)) {
+        return json(origin,{ok:false,error:"IDEMPOTENCY_INVALID"},400);
+      }
+      if (!startsAt || Number.isNaN(Date.parse(startsAt))) {
+        return json(origin,{ok:false,error:"SLOT_INVALID"},400);
+      }
+
+      const payload=await verifyQuoteToken(token);
+      if (!payload || payload.bundle!==true) {
+        return json(origin,{ok:false,error:"QUOTE_TOKEN_INVALID"},409);
+      }
+      const tokenServices=(Array.isArray(payload.services)?payload.services:[])
+        .map((x:unknown)=>cleanText(x,60)).filter(Boolean);
+      if (tokenServices.length!==1) {
+        return json(origin,{ok:false,error:"BUNDLE_QUOTE_INVALID"},409);
+      }
+      const desiredDate=cleanText(payload.desired_date,10);
+      if (desiredDate && seoulDateString(new Date(startsAt))!==desiredDate) {
+        return json(origin,{ok:false,error:"QUOTE_DATE_MISMATCH"},409);
+      }
+
+      const providerKey=cleanText(payload.provider_key,120);
+      const { data:provider,error:providerError }=await db.from("providers")
+        .select("id,provider_key,active,verified")
+        .eq("provider_key",providerKey)
+        .eq("active",true)
+        .eq("verified",true)
+        .single();
+      if (providerError || !provider) {
+        return json(origin,{ok:false,error:"PROVIDER_UNAVAILABLE"},409);
+      }
+
+      const context="bundle:"+operationKey+":"+tokenServices[0];
+      const { data:hold,error:holdError }=await db.rpc("hold_provider_slot_bundle_v1",{
+        p_provider_id:provider.id,
+        p_session_id:sessionId,
+        p_hold_context:context.slice(0,160),
+        p_starts_at:startsAt
+      });
+      if (holdError) {
+        const msg=String(holdError.message||"").toLowerCase();
+        if (msg.includes("slot unavailable")) return json(origin,{ok:false,error:"SLOT_UNAVAILABLE"},409);
+        throw holdError;
+      }
+
+      return json(origin,{ok:true,transaction_version:TRANSACTION_VERSION,hold});
+    }
+
+    if (action === "book_bundle") {
+      const request=body?.request ?? {};
+      const customer=body?.customer ?? {};
+      const operationKey=cleanText(body?.operation_key,80);
+      const rawItems=Array.isArray(body?.items)?body.items:[];
+      const intent=detectServiceIntent(request);
+      const services=intent.services;
+      const region=cleanText(customer.region || detectRegion(request),80);
+      const desiredDate=cleanText(customer.desired_date || request?.desired_date || request?.desiredDate,10);
+      const name=cleanText(customer.name,40);
+      const phone=cleanText(customer.phone,24).replace(/[^0-9]/g,"");
+
+      if (services.length<2) return json(origin,{ok:false,error:"BUNDLE_NOT_REQUIRED"},409);
+      if (!/^[A-Za-z0-9_-]{8,80}$/.test(operationKey)) return json(origin,{ok:false,error:"IDEMPOTENCY_INVALID"},400);
+      if (!validateDate(desiredDate)) return json(origin,{ok:false,error:"DATE_INVALID"},400);
+      if (region.length<2) return json(origin,{ok:false,error:"REGION_REQUIRED"},400);
+      if (name.length<2) return json(origin,{ok:false,error:"NAME_REQUIRED"},400);
+      if (phone.length<10 || phone.length>11) return json(origin,{ok:false,error:"PHONE_INVALID"},400);
+      if (rawItems.length!==services.length) return json(origin,{ok:false,error:"BUNDLE_ITEM_COUNT_MISMATCH"},409);
+
+      const rpcItems:any[]=[];
+      const seenServices=new Set<string>();
+      for (const rawItem of rawItems) {
+        const token=cleanText(rawItem?.quote_token,6000);
+        const slotHoldId=cleanText(rawItem?.slot_hold_id,80);
+        if (!token || !/^[0-9a-f-]{36}$/i.test(slotHoldId)) {
+          return json(origin,{ok:false,error:"BUNDLE_ITEM_INVALID"},409);
+        }
+        const payload=await verifyQuoteToken(token);
+        if (!payload || payload.bundle!==true) {
+          return json(origin,{ok:false,error:"QUOTE_TOKEN_INVALID"},409);
+        }
+        const tokenServices=(Array.isArray(payload.services)?payload.services:[])
+          .map((x:unknown)=>cleanText(x,60)).filter(Boolean);
+        if (tokenServices.length!==1) return json(origin,{ok:false,error:"BUNDLE_QUOTE_INVALID"},409);
+        const serviceName=tokenServices[0];
+        if (!services.includes(serviceName) || seenServices.has(serviceName)) {
+          return json(origin,{ok:false,error:"BUNDLE_SERVICE_MISMATCH"},409);
+        }
+        seenServices.add(serviceName);
+        if (!quoteRegionMatches(payload.region,region)) {
+          return json(origin,{ok:false,error:"QUOTE_REGION_MISMATCH"},409);
+        }
+        const tokenDate=cleanText(payload.desired_date,10);
+        if (tokenDate && tokenDate!==desiredDate) {
+          return json(origin,{ok:false,error:"QUOTE_DATE_MISMATCH"},409);
+        }
+
+        rpcItems.push({
+          service:serviceName,
+          provider_key:cleanText(payload.provider_key,120),
+          amount:Math.round(Number(payload.amount)),
+          slot_hold_id:slotHoldId
+        });
+      }
+
+      if (seenServices.size!==services.length) {
+        return json(origin,{ok:false,error:"BUNDLE_SERVICE_MISMATCH"},409);
+      }
+
+      const { data,error }=await db.rpc("create_beta_bundle_booking_v1",{
+        p_session_id:sessionId,
+        p_operation_key:operationKey,
+        p_services:services,
+        p_region:region,
+        p_desired_date:desiredDate,
+        p_customer_name:name,
+        p_phone:phone,
+        p_items:rpcItems
+      });
+
+      if (error) {
+        const msg=String(error.message||"").toLowerCase();
+        if (msg.includes("slot hold expired")) return json(origin,{ok:false,error:"SLOT_HOLD_EXPIRED"},409);
+        if (msg.includes("slot hold inactive")) return json(origin,{ok:false,error:"SLOT_HOLD_INACTIVE"},409);
+        if (msg.includes("slot hold")) return json(origin,{ok:false,error:"SLOT_HOLD_MISMATCH"},409);
+        if (msg.includes("provider")) return json(origin,{ok:false,error:"PROVIDER_UNAVAILABLE"},409);
+        throw error;
+      }
+
+      return json(origin,{
+        ok:true,
+        engine_version:ENGINE_VERSION,
+        transaction_version:TRANSACTION_VERSION,
+        bundle:data
+      });
     }
 
     if (action === "availability") {
