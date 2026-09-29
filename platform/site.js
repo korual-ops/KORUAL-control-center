@@ -1357,6 +1357,7 @@
         requestStatus:String(server.request?.status||state.booking.requestStatus||'').toUpperCase(),
         scheduledAt:server.scheduled_at||state.booking.scheduledAt||null,
         recommendationRunId:server.recommendation_run_id||state.booking.recommendationRunId||null,
+        confirmation:server.confirmation&&typeof server.confirmation==='object'?server.confirmation:state.booking.confirmation||null,
         events:Array.isArray(server.events)?server.events.slice(0,20):[],
         serverUpdatedAt:Date.now(),
         service:services.length?services.join(' · '):state.booking.service,
@@ -1409,6 +1410,8 @@
     const eyebrow=$('#bookingStatusEyebrow');
     const badge=$('#bookingStatusBadge');
     const syncMeta=$('#bookingSyncMeta');
+    const confirmationNotice=$('#bookingConfirmationNotice');
+    const compareAlternatives=$('#bookingCompareAlternatives');
 
     if(bookingId)bookingId.textContent=state.booking.id||'—';
     if(serviceLabel)serviceLabel.textContent=state.booking.service||'서비스';
@@ -1427,7 +1430,38 @@
       syncMeta.textContent='서버 '+requestStatus+' · '+scheduled+' · 마지막 동기화 '+time;
     }
 
-    const timeline=$$('.timeline-item');
+    const confirmation=state.booking.confirmation||{};
+    const confirmationState=String(confirmation.status||'awaiting').toLowerCase();
+    const recoveryRequired=confirmation.recovery_status==='action_required'||confirmation.action_required===true;
+    if(confirmationNotice){
+      const copy={
+        awaiting:['업체 확인 대기','확인 기한 내 응답을 기다리고 있습니다.'],
+        confirmed:['업체 확인 완료','업체가 예약을 확인했습니다.'],
+        expired:['업체 확인 지연','확인 기한이 지나 대안 비교가 필요합니다.'],
+        declined:['업체 예약 거절','현재 업체가 예약을 진행할 수 없습니다.'],
+        not_required:['확인 단계 종료','현재 예약 상태에서는 추가 업체 확인이 필요하지 않습니다.']
+      }[confirmationState]||['업체 확인 상태','서버에서 확인 상태를 동기화합니다.'];
+      let deadlineText='';
+      if(confirmation.deadline&&confirmationState==='awaiting'){
+        try{
+          deadlineText=' · 확인 기한 '+new Intl.DateTimeFormat('ko-KR',{
+            timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false
+          }).format(new Date(confirmation.deadline));
+        }catch(_){}
+      }
+      confirmationNotice.dataset.state=confirmationState;
+      const small=confirmationNotice.querySelector('small');
+      const strong=confirmationNotice.querySelector('strong');
+      const span=confirmationNotice.querySelector('span');
+      if(small)small.textContent=recoveryRequired?'RECOVERY REQUIRED':'PROVIDER CONFIRMATION';
+      if(strong)strong.textContent=copy[0];
+      if(span)span.textContent=copy[1]+deadlineText;
+    }
+    if(compareAlternatives){
+      compareAlternatives.textContent=recoveryRequired?'대안 다시 비교':'견적 다시 보기';
+    }
+
+    const timeline=$('.timeline-item');
     const doneCount=status==='COMPLETED'?3:status==='CONFIRMED'?2:1;
     timeline.forEach((x,i)=>{
       x.classList.toggle('done',i<doneCount);
@@ -1448,8 +1482,13 @@
     }else if(status==='CANCELLED'){
       if(repeat)repeat.textContent='취소된 예약입니다. 필요하면 조건을 다시 비교해 새 요청을 시작할 수 있습니다.';
       if(complete){complete.textContent='취소됨';complete.disabled=true}
+    }else if(recoveryRequired){
+      if(repeat)repeat.textContent=confirmationState==='declined'
+        ?'업체가 예약을 거절했습니다. 기존 요청 조건으로 다른 후보를 다시 비교할 수 있습니다.'
+        :'업체 확인 기한이 지났습니다. 기존 예약을 유지한 채 대안 견적을 다시 비교할 수 있습니다.';
+      if(complete){complete.textContent='확인 대기';complete.disabled=true}
     }else{
-      if(repeat)repeat.textContent=status==='CONFIRMED'
+      if(repeat)repeat.textContent=confirmationState==='confirmed'||status==='CONFIRMED'
         ?'업체 확인이 완료되었습니다. 서비스 완료 후 다음 추천 흐름으로 연결됩니다.'
         :'예약 요청이 접수되었습니다. 업체 확인 상태는 서버에서 동기화됩니다.';
       if(complete){complete.textContent='완료 시뮬레이션';complete.disabled=false}
@@ -1480,7 +1519,10 @@
     if(state.booking?.status==='COMPLETED'){
       card.innerHTML='<div class="recommend-badge">↻</div><div><small>REPEAT ENGINE</small><strong>다음 연관 서비스를 준비했어요.</strong><p>'+escapeHtml(state.booking.service)+' 완료 이력을 기반으로 후속 서비스를 추천합니다.</p></div><button type="button" data-open-screen="services">→</button>';
     }else if(state.booking){
-      card.innerHTML='<div class="recommend-badge">B</div><div><small>예약 진행 중</small><strong>'+escapeHtml(state.booking.service)+' 예약을 확인하세요.</strong><p>'+escapeHtml(state.booking.quote?.name||'Partner')+' · '+escapeHtml(state.booking.id)+'</p></div><button type="button" data-open-screen="bookings">→</button>';
+      const recovery=state.booking.confirmation?.recovery_status==='action_required'||state.booking.confirmation?.action_required===true;
+      card.innerHTML=recovery
+        ?'<div class="recommend-badge">!</div><div><small>확인 필요</small><strong>'+escapeHtml(state.booking.service)+' 예약의 대안을 확인하세요.</strong><p>업체 확인 지연 또는 거절 상태입니다. 기존 조건으로 다시 비교할 수 있습니다.</p></div><button type="button" data-open-screen="bookings">→</button>'
+        :'<div class="recommend-badge">B</div><div><small>예약 진행 중</small><strong>'+escapeHtml(state.booking.service)+' 예약을 확인하세요.</strong><p>'+escapeHtml(state.booking.quote?.name||'Partner')+' · '+escapeHtml(state.booking.id)+'</p></div><button type="button" data-open-screen="bookings">→</button>';
     }else if(state.currentRequest){
       card.innerHTML='<div class="recommend-badge">AI</div><div><small>최근 요청</small><strong>'+escapeHtml(state.currentRequest.service)+' 견적을 비교해보세요.</strong><p>'+state.currentRequest.bundle.map(escapeHtml).join(' · ')+'</p></div><button type="button" data-open-screen="quotes">→</button>';
     }else{
