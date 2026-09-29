@@ -8,7 +8,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 const ENGINE_VERSION = "8.1";
-const TRANSACTION_VERSION = "3.2";
+const TRANSACTION_VERSION = "3.3";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
 const allowedOrigins = new Set([
@@ -614,7 +614,7 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 11,
+        version: 12,
         engine_version: ENGINE_VERSION,
         transaction_version: TRANSACTION_VERSION,
         pricing: "database_profiles",
@@ -625,8 +625,11 @@ Deno.serve(async (req: Request) => {
         customer_cancel: true,
         atomic_reschedule: true,
         provider_confirmation_sla: true,
+        business_hours_sla: true,
+        background_sla_sweeper: true,
         recovery_engine: true,
-        atomic_recovery_swap: true
+        atomic_recovery_swap: true,
+        provider_metrics_min_samples: 20
       });
     }
 
