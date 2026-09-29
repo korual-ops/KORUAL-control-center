@@ -11,6 +11,12 @@
 
     const enhanceCard=card=>{
       if(!card||!card.matches('[data-quote-card]'))return;
+      const signature=[
+        card.dataset.matchScore||'',card.dataset.confidence||'',card.dataset.pareto||'',
+        card.dataset.roles||'',card.dataset.scoreBreakdown||''
+      ].join('::');
+      if(card.dataset.v5Signature===signature)return;
+      card.dataset.v5Signature=signature;
       let roles=card.querySelector('.uxv5-role-row');
       if(!roles){
         roles=document.createElement('div');
@@ -95,7 +101,7 @@
     if('MutationObserver' in window){
       new MutationObserver(()=>syncAll()).observe(quoteList,{
         childList:true,subtree:true,attributes:true,
-        attributeFilter:['data-match-score','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','hidden','class']
+        attributeFilter:['data-match-score','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','hidden']
       });
     }
   });
