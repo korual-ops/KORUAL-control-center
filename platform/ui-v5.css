@@ -188,3 +188,32 @@ html[data-theme="dark"] .booking-confirmation-notice[data-state="declined"]{back
 @media(max-width:640px){
   .bundle-plan-item{grid-template-columns:1fr}
 }
+
+
+.bundle-flow-steps{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 12px
+}
+.bundle-flow-steps span{
+  display:flex;align-items:center;gap:5px;min-width:0;padding:7px 8px;border:1px solid var(--line);
+  border-radius:10px;background:var(--bg);font-size:7px;font-weight:800;color:var(--muted)
+}
+.bundle-flow-steps b{
+  width:18px;height:18px;display:grid;place-items:center;border-radius:50%;background:var(--surface2);
+  border:1px solid var(--line);font-size:7px;color:var(--text);flex:0 0 auto
+}
+.bundle-flow-steps span.is-active,
+.bundle-flow-steps span.is-done{
+  color:var(--text);border-color:color-mix(in srgb,var(--accent) 36%,var(--line));
+  background:color-mix(in srgb,var(--surface) 92%,var(--accent) 8%)
+}
+.bundle-flow-steps span.is-active b,
+.bundle-flow-steps span.is-done b{
+  background:var(--accent);border-color:var(--accent);color:#071a33
+}
+.bundle-plan-item.is-selected{
+  border-color:color-mix(in srgb,var(--accent) 50%,var(--line));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 8%,transparent)
+}
+.bundle-plan-item[data-state="unavailable"]{opacity:.65}
+.bundle-plan-card[aria-busy="true"]{pointer-events:none}
+.bundle-plan-card[aria-busy="true"] .bundle-plan-items{opacity:.55}
