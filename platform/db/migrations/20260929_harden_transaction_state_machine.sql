@@ -114,7 +114,9 @@ returns trigger
 language plpgsql
 security definer
 set search_path = pg_catalog, public
-as $$
+as $
+declare
+  v_match_count integer := 0;
 begin
   if new.matching_mode <> 'marketplace' then
     return new;
@@ -131,13 +133,24 @@ begin
     sent_at = coalesce(public.service_request_matches.sent_at, excluded.sent_at),
     updated_at = now();
 
-  update public.service_requests
-  set status='MATCHING', updated_at=now()
-  where id=new.id and status='NEW';
+  get diagnostics v_match_count = row_count;
+
+  if v_match_count > 0 then
+    update public.service_requests
+    set status='MATCHING', updated_at=now()
+    where id=new.id and status='NEW';
+  else
+    insert into public.service_request_events(
+      request_id,event_type,from_status,to_status,actor_type,metadata
+    ) values (
+      new.id,'matching.no_candidates','NEW','NEW','system',
+      jsonb_build_object('matching_mode',new.matching_mode)
+    );
+  end if;
 
   return new;
 end;
-$$;
+$;
 
 revoke all on function public.auto_dispatch_service_request_matches() from public, anon, authenticated;
 
