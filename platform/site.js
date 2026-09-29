@@ -273,6 +273,7 @@
             reasons:Array.isArray(q.reasons)?q.reasons.slice(0,3):[],
             breakdown:q.score_breakdown&&typeof q.score_breakdown==='object'?q.score_breakdown:null,
             lineItems:Array.isArray(q.line_items)?q.line_items.slice(0,8):[],
+            budgetFit:q.budget_fit!==false,
             pareto:q.pareto_efficient===true,
             roles:Array.isArray(q.roles)?q.roles.slice(0,3):[],
             explanation:q.explanation&&typeof q.explanation==='object'?q.explanation:null,
@@ -308,6 +309,10 @@
     card.dataset.scoreBreakdown=q.score_breakdown?JSON.stringify(q.score_breakdown):'';
     card.dataset.decisionLevel=q.decision_context?.level||'';
     card.dataset.decisionGap=q.decision_context?.score_gap==null?'':String(q.decision_context.score_gap);
+    card.dataset.budgetStatus=q.decision_context?.budget?.status||'';
+    card.dataset.budgetFitCount=q.decision_context?.budget?.fit_count==null?'':String(q.decision_context.budget.fit_count);
+    card.dataset.budgetCap=q.decision_context?.budget?.cap==null?'':String(q.decision_context.budget.cap);
+    card.dataset.budgetFit=q.budget_fit===false?'false':'true';
     const providerName=$('.provider-row strong',card);
     const providerMeta=$('.provider-row small',card);
     const price=$('.price-row strong',card);
