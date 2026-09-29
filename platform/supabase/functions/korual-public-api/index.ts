@@ -1608,33 +1608,39 @@ Deno.serve(async (req: Request) => {
         return json(origin, { ok: false, error: "BOOKING_ID_INVALID" }, 400);
       }
 
-      const { error: refreshError } = await db.rpc("refresh_booking_confirmation_v1", {
-        p_booking_id: bookingId
-      });
-      if (refreshError && !String(refreshError.message || "").toLowerCase().includes("booking not found")) {
-        throw refreshError;
-      }
-
-      const { data: booking, error: bookingError } = await db
+      const { data: bookingInitial, error: bookingError } = await db
         .from("bookings")
         .select("id,request_id,quote_id,provider_id,status,scheduled_at,recommendation_run_id,confirmation_status,confirmation_deadline,confirmation_sla_minutes,provider_confirmed_at,provider_declined_at,recovery_status,created_at,updated_at")
         .eq("id", bookingId)
         .single();
 
-      if (bookingError || !booking) {
+      if (bookingError || !bookingInitial) {
         return json(origin, { ok: false, error: "BOOKING_NOT_FOUND" }, 404);
       }
 
       const { data: requestRow, error: requestError } = await db
         .from("service_requests")
         .select("id,request_code,services,region,desired_date,status,session_id,matching_mode,created_at,updated_at")
-        .eq("id", booking.request_id)
+        .eq("id", bookingInitial.request_id)
         .eq("session_id", sessionId)
         .single();
 
       if (requestError || !requestRow) {
         return json(origin, { ok: false, error: "BOOKING_NOT_OWNED" }, 403);
       }
+
+      const { error: refreshError } = await db.rpc("refresh_booking_confirmation_v1", {
+        p_booking_id: bookingId
+      });
+      if (refreshError) throw refreshError;
+
+      const { data: bookingFresh, error: bookingFreshError } = await db
+        .from("bookings")
+        .select("id,request_id,quote_id,provider_id,status,scheduled_at,recommendation_run_id,confirmation_status,confirmation_deadline,confirmation_sla_minutes,provider_confirmed_at,provider_declined_at,recovery_status,created_at,updated_at")
+        .eq("id", bookingId)
+        .single();
+      if (bookingFreshError || !bookingFresh) throw bookingFreshError || new Error("BOOKING_REFRESH_FAILED");
+      const booking = bookingFresh;
 
       const [providerResult, quoteResult, eventsResult] = await Promise.all([
         db.from("providers")
