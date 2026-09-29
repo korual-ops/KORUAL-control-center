@@ -2405,7 +2405,11 @@
     save();syncPreferenceUI();
   });
   document.addEventListener('keydown',event=>{
-    if(event.key==='Escape'){closeTrust();closeSheet();}
+    if(event.key==='Escape'){
+      closeTrust();
+      closeSheet();
+      closeBundleSheet({release:true});
+    }
   });
 
   $('#resetDemo')?.addEventListener('click',()=>{
