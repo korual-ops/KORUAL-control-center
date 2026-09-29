@@ -102,7 +102,7 @@
     if(headerSubtitle) headerSubtitle.textContent=titles[name][1];
     if(updateHash && location.hash!=='#'+name) history.pushState(null,'','#'+name);
     tabs.forEach(tab=>tab.setAttribute('aria-current',tab.dataset.tab===name?'page':'false'));
-    window.scrollTo({top:0,behavior:'instant'});
+    window.scrollTo({top:0,behavior:'auto'});
   }
 
   tabs.forEach(tab=>tab.addEventListener('click',()=>showScreen(tab.dataset.tab)));
@@ -331,9 +331,15 @@
     if(response) response.textContent=q.response_minutes==null?'—':(q.response_minutes<=10?'매우 빠름':q.response_minutes<=20?'빠름':q.response_minutes+'분');
   }
 
+  let lastAnalyzeRaw='';
+  let lastAnalyzeAt=0;
+
   function analyze(text,{count=true}={}){
     const request=inferRequest(text);
     if(!request.raw){showToast('필요한 서비스를 입력해주세요.');matchInput?.focus();return}
+    const now=Date.now();
+    if(count&&request.raw===lastAnalyzeRaw&&now-lastAnalyzeAt<700)return;
+    if(count){lastAnalyzeRaw=request.raw;lastAnalyzeAt=now}
     normalizePreferences();
     if(request.preferenceExplicit&&['balanced','price','trust','speed'].includes(request.priorityMode)){
       state.preferences.priority=request.priorityMode;
@@ -545,6 +551,15 @@
     applyDecisionLens();
   }
 
+  let quoteRefreshTimer;
+  function scheduleQuoteRefresh(delay=350){
+    clearTimeout(quoteRefreshTimer);
+    if(!state.currentRequest)return;
+    quoteRefreshTimer=setTimeout(()=>{
+      if(state.currentRequest)loadQuotes(state.currentRequest);
+    },delay);
+  }
+
   function recommendationReason(q){
     if(!q)return '추천 근거를 확인할 수 없습니다.';
     const reasons=decisionReasons(q);
@@ -615,6 +630,7 @@
     state.preferences.priority=btn.dataset.priority||'balanced';
     save();
     syncPreferenceUI();
+    scheduleQuoteRefresh(80);
     showToast('추천 기준을 '+preferenceLabel()+' 우선으로 변경했습니다.');
   }));
 
@@ -631,6 +647,7 @@
     state.preferences.budgetCap=Number.isFinite(cap)&&cap>0?cap:null;
     save();
     applyDecisionLens();
+    scheduleQuoteRefresh(550);
   });
 
   document.addEventListener('click',e=>{
@@ -690,7 +707,10 @@
     document.body.style.overflow='';
   }
 
-  bookSelected?.addEventListener('click',openBookingSheet);
+  bookSelected?.addEventListener('click',()=>{
+    const intent=new CustomEvent('korual:booking-intent',{cancelable:true,detail:{openBookingSheet}});
+    if(bookSelected.dispatchEvent(intent))openBookingSheet();
+  });
   closeBookingSheet?.addEventListener('click',closeSheet);
   cancelBookingSheet?.addEventListener('click',closeSheet);
   bookingSheet?.addEventListener('click',e=>{if(e.target===bookingSheet)closeSheet()});
@@ -834,21 +854,38 @@
   renderState();
   syncPreferenceUI();
 
+  async function fetchHealthWithTimeout(){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),9000);
+    try{
+      const r=await fetch('/healthz',{signal:controller.signal});
+      if(!r.ok)throw Error('WEB_HEALTH_FAILED');
+      const data=await r.json().catch(()=>null);
+      if(!data?.ok)throw Error('WEB_HEALTH_INVALID');
+      return data;
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+
   async function checkPlatform(){
     const panel=$('#platformPanel');
     if(panel)panel.hidden=false;
     const status=$('.status-ok');
-    status.textContent='확인 중';
-    $('#apiHealth').textContent='확인 중';
-    $('#webHealth').textContent='확인 중';
+    const apiHealth=$('#apiHealth');
+    const webHealth=$('#webHealth');
+    const checked=$('#healthChecked');
+    if(status)status.textContent='확인 중';
+    if(apiHealth)apiHealth.textContent='확인 중';
+    if(webHealth)webHealth.textContent='확인 중';
     const results=await Promise.allSettled([
-      fetch('/healthz',{signal:AbortSignal.timeout(9000)}).then(async r=>{if(!r.ok||!(await r.json()).ok)throw Error();}),
+      fetchHealthWithTimeout(),
       fetchApi('health')
     ]);
-    $('#webHealth').textContent=results[0].status==='fulfilled'?'정상':'연결 확인 필요';
-    $('#apiHealth').textContent=results[1].status==='fulfilled'?'정상':'연결 확인 필요';
-    status.textContent=results.every(x=>x.status==='fulfilled')?'정상':'일부 연결 확인 필요';
-    $('#healthChecked').textContent=new Date().toLocaleTimeString('ko-KR');
+    if(webHealth)webHealth.textContent=results[0].status==='fulfilled'?'정상':'연결 확인 필요';
+    if(apiHealth)apiHealth.textContent=results[1].status==='fulfilled'?'정상':'연결 확인 필요';
+    if(status)status.textContent=results.every(x=>x.status==='fulfilled')?'정상':'일부 연결 확인 필요';
+    if(checked)checked.textContent=new Date().toLocaleTimeString('ko-KR');
   }
   statusButton?.addEventListener('click',()=>{showScreen('profile');checkPlatform();});
   $('#showPlatformStatus')?.addEventListener('click',checkPlatform);
