@@ -361,8 +361,10 @@
           <label><span>이름</span><input id="customerName" name="name" autocomplete="name" maxlength="40" placeholder="예약자 이름" required /></label>
           <label><span>연락처</span><input id="customerPhone" name="phone" autocomplete="tel" inputmode="tel" maxlength="13" placeholder="01012345678" required /></label>
           <label class="field-wide"><span>서비스 지역</span><input id="customerRegion" name="region" maxlength="80" placeholder="예: 인천 영종도" required /></label>
-          <label class="field-wide"><span>희망일</span><input id="desiredDate" name="desired_date" type="date" required /></label>
+          <label><span>희망일</span><input id="desiredDate" name="desired_date" type="date" required /></label>
+          <label><span>가능 시간</span><select id="desiredTime" name="desired_time" required disabled><option value="">날짜를 먼저 선택</option></select></label>
         </div>
+        <p id="slotStatus" class="sheet-note" role="status" aria-live="polite">날짜를 선택하면 실제 가능한 시간을 확인합니다.</p>
         <p class="sheet-note">베타 예약 정보는 KORUAL Supabase에 저장됩니다. 결제는 아직 발생하지 않습니다.</p>
         <div class="sheet-actions">
           <button id="cancelBookingSheet" type="button">취소</button>
