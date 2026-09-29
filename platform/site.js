@@ -251,18 +251,25 @@
       const data=await fetchApi('quotes',{request:requestForApi});
       if(version!==quoteRequestVersion)return;
       if(Array.isArray(data.quotes)&&data.quotes.length){
-        for(const q of data.quotes){
-          if(!Object.hasOwn(sampleQuotes,q.key)||!q.provider_key||!Number.isFinite(Number(q.amount))||Number(q.amount)<0)continue;
-          q.decision_context=data.decision_context||null;
-          q.recommendation_run_id=data.recommendation_run_id||null;
-          liveQuoteKeys.add(q.key);
-          quoteCatalog[q.key]={
-            id:q.key,
+        const slots=['best','value','premium'];
+        data.quotes.slice(0,slots.length).forEach((serverQuote,index)=>{
+          if(!serverQuote?.provider_key||!Number.isFinite(Number(serverQuote.amount))||Number(serverQuote.amount)<0)return;
+          const slot=slots[index];
+          const q={
+            ...serverQuote,
+            key:slot,
+            decision_context:data.decision_context||null,
+            recommendation_run_id:data.recommendation_run_id||null
+          };
+          liveQuoteKeys.add(slot);
+          quoteCatalog[slot]={
+            id:slot,
             name:q.provider_name,
             price:Number(q.amount)||0,
             trust:Number(q.trust)||0,
             label:q.label||'견적',
             provider_key:q.provider_key,
+            quoteToken:typeof q.quote_token==='string'?q.quote_token:null,
             verified:Boolean(q.verified),
             rating:Number(q.rating)||0,
             reviews:Number(q.review_count)||0,
@@ -280,10 +287,12 @@
             decisionContext:data?.decision_context||null,
             recommendationRunId:data?.recommendation_run_id||null,
             enginePriority:data?.request?.priority_mode||null,
-            engineVersion:data?.engine_version||null
+            engineVersion:data?.engine_version||null,
+            pricingBasis:data?.pricing_basis||null,
+            quoteExpiresIn:Number(data?.quote_expires_in_seconds)||null
           };
           updateQuoteCard(q);
-        }
+        });
         quoteMode=liveQuoteKeys.size?'live':'sample';
       }else{
         quoteMode='sample';
@@ -728,6 +737,7 @@
     try{
       const data=await fetchApi('book',{
         request:state.currentRequest,
+        quote_token:state.selectedQuote.quoteToken||null,
         quote_key:state.selectedQuote.id,
         customer,
         idempotency_key:pendingIdempotency||makeIdempotency()
@@ -761,6 +771,9 @@
         PROVIDER_NOT_VERIFIED:'검증 상태가 확인되지 않아 예약할 수 없습니다.',
         SERVICE_NOT_SUPPORTED:'선택한 업체의 제공 서비스 범위를 다시 확인해주세요.',
         REGION_NOT_SUPPORTED:'선택한 업체가 해당 지역을 지원하지 않습니다.',
+        QUOTE_TOKEN_INVALID:'견적 유효시간이 지났거나 견적 정보가 변경되었습니다. 견적을 다시 불러와주세요.',
+        QUOTE_SERVICE_MISMATCH:'선택한 견적과 현재 요청 서비스가 일치하지 않습니다. 다시 비교해주세요.',
+        QUOTE_TOKEN_REQUIRED:'최신 견적 확인이 필요합니다. 견적을 다시 불러와주세요.',
         RATE_LIMITED:'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
         ORIGIN_NOT_ALLOWED:'현재 접속 주소에서는 예약 저장을 사용할 수 없습니다.'
       };
