@@ -399,6 +399,9 @@
     card.dataset.evidence=q.evidence_score==null?'':String(q.evidence_score);
     card.dataset.coverage=q.coverage_score==null?'':String(q.coverage_score);
     card.dataset.budgetScore=q.budget_score==null?'':String(q.budget_score);
+    card.dataset.sensitivityLevel=q.decision_context?.sensitivity?.level||'';
+    card.dataset.sensitivityStability=q.decision_context?.sensitivity?.stability==null?'':String(q.decision_context.sensitivity.stability);
+    card.dataset.sensitivityWinners=q.decision_context?.sensitivity?.winners?JSON.stringify(q.decision_context.sensitivity.winners):'';
     const providerName=$('.provider-row strong',card);
     const providerMeta=$('.provider-row small',card);
     const price=$('.price-row strong',card);
