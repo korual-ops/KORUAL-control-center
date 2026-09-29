@@ -7,7 +7,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-const ENGINE_VERSION = "8.1";
+const ENGINE_VERSION = "8.2";
 const TRANSACTION_VERSION = "3.3";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
@@ -152,6 +152,62 @@ function priorityWeights(mode: PriorityMode) {
   }[mode];
 }
 
+function operationalReliabilityWeight(mode: PriorityMode, attemptCount: number) {
+  if (!Number.isFinite(attemptCount) || attemptCount < 20) return 0;
+  const maxWeight = {
+    balanced: 0.06,
+    price: 0.03,
+    trust: 0.10,
+    speed: 0.08
+  }[mode];
+  const maturity = clamp((attemptCount - 20) / 80, 0, 1) / 100;
+  return Number((maxWeight * (0.25 + 0.75 * maturity)).toFixed(4));
+}
+
+function operationalReliabilityScore(metric: any) {
+  const attempts = Math.max(0, Number(metric?.attempt_count) || 0);
+  const eligible = metric?.ranking_eligible === true && attempts >= 20;
+  if (!eligible) {
+    return {
+      eligible: false,
+      attempt_count: attempts,
+      score: null,
+      confirmation_rate: null,
+      expiry_rate: null,
+      observed_response_minutes: null
+    };
+  }
+
+  const confirmationRate = clamp((Number(metric?.shrunk_confirmation_rate) || 0) * 100);
+  const expiryRate = clamp((Number(metric?.observed_expiry_rate) || 0) * 100);
+  const observedResponse = metric?.observed_response_minutes == null
+    ? null
+    : Math.max(0, Number(metric.observed_response_minutes));
+  const response = responseScore(observedResponse);
+  const score = clamp(
+    confirmationRate * 0.70 +
+    (100 - expiryRate) * 0.15 +
+    response * 0.15
+  );
+
+  return {
+    eligible: true,
+    attempt_count: attempts,
+    score: Number(score.toFixed(2)),
+    confirmation_rate: Number(confirmationRate.toFixed(2)),
+    expiry_rate: Number(expiryRate.toFixed(2)),
+    observed_response_minutes: observedResponse
+  };
+}
+
+function blendOperationalReliability(baseScore: number, candidate: any, mode: PriorityMode) {
+  const operational = candidate?.operational_reliability;
+  if (!operational?.eligible || !Number.isFinite(Number(operational.score))) return baseScore;
+  const weight = operationalReliabilityWeight(mode, Number(operational.attempt_count));
+  if (weight <= 0) return baseScore;
+  return baseScore * (1 - weight) + Number(operational.score) * weight;
+}
+
 function decisionScoreForMode(candidate: any, mode: PriorityMode) {
   const b = candidate?.score_breakdown;
   if (!b) return Number(candidate?.decision_score ?? candidate?.ranking_score ?? 0);
@@ -170,8 +226,9 @@ function decisionScoreForMode(candidate: any, mode: PriorityMode) {
   const confidenceMultiplier =
     0.94 + 0.06 * (clamp(Number(candidate?.confidence_score) || 0) / 100);
   const raw = clamp(weighted * confidenceMultiplier);
+  const blended = blendOperationalReliability(raw, candidate, mode);
   const penalty = clamp(Number(candidate?.uncertainty_penalty) || 0, 0, 8);
-  return Number(clamp(raw - penalty).toFixed(2));
+  return Number(clamp(blended - penalty).toFixed(2));
 }
 
 function rankingSensitivity(candidates: any[]) {
@@ -345,6 +402,9 @@ function buildReasons(candidate: any, candidates: any[]) {
   if (candidate.evidence_score >= 75) reasons.push("가격 근거 데이터 양호");
   if (candidate.evidence_score < 70) reasons.push("가격 근거가 아직 제한적");
   if (candidate.confidence_score < 70) reasons.push("데이터 신뢰도 추가 확인");
+  if (candidate.operational_reliability?.eligible && Number(candidate.operational_reliability.score) >= 85) {
+    reasons.push("업체 확인 실적 강점");
+  }
   if (Number(candidate.uncertainty_penalty) >= 4) reasons.push("불확실성 보수 적용");
   if (!reasons.length) reasons.push("다중 기준 균형 후보");
   return reasons.slice(0, 3);
@@ -616,6 +676,7 @@ Deno.serve(async (req: Request) => {
         service: "korual-public-api",
         version: 12,
         engine_version: ENGINE_VERSION,
+        operational_reliability_gate: 20,
         transaction_version: TRANSACTION_VERSION,
         pricing: "database_profiles",
         quote_tokens: true,
@@ -685,12 +746,22 @@ Deno.serve(async (req: Request) => {
       }
 
       const providerIds = eligibleProviders.map((p: any) => p.id);
-      const { data: profiles, error: profileError } = await db
-        .from("provider_pricing_profiles")
-        .select("provider_id,service_category,multiplier,confidence_score,source")
-        .in("provider_id", providerIds);
+      const [profileResult, confirmationMetricResult] = await Promise.all([
+        db.from("provider_pricing_profiles")
+          .select("provider_id,service_category,multiplier,confidence_score,source")
+          .in("provider_id", providerIds),
+        db.from("provider_confirmation_metrics")
+          .select("provider_id,provider_key,attempt_count,confirmed_count,expired_count,declined_count,observed_response_minutes,ranking_eligible,observed_confirmation_rate,observed_expiry_rate,shrunk_confirmation_rate")
+          .in("provider_id", providerIds)
+      ]);
 
-      if (profileError) throw profileError;
+      if (profileResult.error) throw profileResult.error;
+      if (confirmationMetricResult.error) throw confirmationMetricResult.error;
+
+      const profiles = profileResult.data ?? [];
+      const confirmationMetricByProvider = new Map(
+        (confirmationMetricResult.data ?? []).map((m: any) => [m.provider_id, m])
+      );
 
       const benchmarks = services.map((s) =>
         benchmarkFor(s, region, benchmarkResult.data ?? [])
@@ -698,7 +769,7 @@ Deno.serve(async (req: Request) => {
 
       const candidates = eligibleProviders.map((p: any) => {
         const lineItems = benchmarks.map((benchmark) => {
-          const profile = pricingProfile(p.id, benchmark.service, profiles ?? []);
+          const profile = pricingProfile(p.id, benchmark.service, profiles);
           return {
             service: benchmark.service,
             benchmark_region: benchmark.region,
@@ -729,6 +800,9 @@ Deno.serve(async (req: Request) => {
           providerConfidence * 0.55 +
           evidenceScore * 0.45
         ));
+        const operationalReliability = operationalReliabilityScore(
+          confirmationMetricByProvider.get(p.id)
+        );
 
         return {
           key: p.provider_key || p.id,
@@ -749,6 +823,7 @@ Deno.serve(async (req: Request) => {
           line_items: lineItems,
           budget_fit: budgetCap == null ? true : amount <= budgetCap,
           budget_score: budgetFitScore(amount, budgetCap),
+          operational_reliability: operationalReliability,
           demo: Boolean(p.is_demo)
         };
       });
@@ -775,7 +850,10 @@ Deno.serve(async (req: Request) => {
           verification: c.verified ? 100 : 40,
           coverage: Math.round(clamp(c.coverage_score)),
           budget: Math.round(clamp(c.budget_score)),
-          evidence: Math.round(clamp(c.evidence_score))
+          evidence: Math.round(clamp(c.evidence_score)),
+          operational: c.operational_reliability?.eligible
+            ? Math.round(clamp(Number(c.operational_reliability.score)))
+            : null
         };
 
         const weighted =
@@ -790,7 +868,15 @@ Deno.serve(async (req: Request) => {
           breakdown.evidence * weights.evidence;
 
         const confidenceMultiplier = 0.94 + 0.06 * (c.confidence_score / 100);
-        c.ranking_score = Number(clamp(weighted * confidenceMultiplier).toFixed(2));
+        const baseRankingScore = clamp(weighted * confidenceMultiplier);
+        const reliabilityWeight = operationalReliabilityWeight(
+          priorityMode,
+          Number(c.operational_reliability?.attempt_count || 0)
+        );
+        c.operational_reliability_weight = reliabilityWeight;
+        c.ranking_score = Number(clamp(
+          blendOperationalReliability(baseRankingScore, c, priorityMode)
+        ).toFixed(2));
 
         // Conservative decision score: do not let sparse evidence look as certain as dense evidence.
         // This is an uncertainty penalty, not a statistical confidence interval.
@@ -842,7 +928,9 @@ Deno.serve(async (req: Request) => {
         evidence: {
           top_confidence: Number(topCandidate?.confidence_score ?? 0),
           top_evidence: Number(topCandidate?.evidence_score ?? 0),
-          fallback_pricing_used: usesFallbackPricing
+          fallback_pricing_used: usesFallbackPricing,
+          operational_reliability_active: Boolean(topCandidate?.operational_reliability?.eligible),
+          operational_attempt_count: Number(topCandidate?.operational_reliability?.attempt_count ?? 0)
         },
         hard_constraints: {
           verified: true,
@@ -889,6 +977,8 @@ Deno.serve(async (req: Request) => {
               uncertainty_penalty: c.uncertainty_penalty,
               confidence_score: c.confidence_score,
               evidence_score: c.evidence_score,
+              operational_reliability: c.operational_reliability,
+              operational_reliability_weight: c.operational_reliability_weight,
               pareto_efficient: c.pareto_efficient,
               roles: c.roles,
               score_breakdown: c.score_breakdown
