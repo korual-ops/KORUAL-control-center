@@ -106,6 +106,7 @@
     if(updateHash && location.hash!=='#'+name) history.pushState(null,'','#'+name);
     tabs.forEach(tab=>tab.setAttribute('aria-current',tab.dataset.tab===name?'page':'false'));
     window.scrollTo({top:0,behavior:'auto'});
+    if(name==='bookings') queueMicrotask(()=>syncBookingStatus({silent:true}));
   }
 
   tabs.forEach(tab=>tab.addEventListener('click',()=>showScreen(tab.dataset.tab)));
@@ -830,14 +831,17 @@
         id:b.request_code||b.booking_id||('KR-'+Date.now().toString(36).toUpperCase()),
         backend_id:b.booking_id||null,
         request_id:b.request_id||null,
-        status:'REQUESTED',
+        status:String(b.status||'pending').toUpperCase(),
         service:state.currentRequest.service,
         quote:{
           id:state.selectedQuote.id,
+          backend_id:b.quote_id||null,
           name:b.provider_name||state.selectedQuote.name,
           price:Number(b.amount??state.selectedQuote.price)
         },
-        createdAt:Date.now()
+        requestStatus:'BOOKED',
+        createdAt:Date.now(),
+        serverUpdatedAt:Date.now()
       };
       save();
       closeSheet();
@@ -868,6 +872,63 @@
     }
   });
 
+  function normalizeBookingStatus(value){
+    const v=String(value||'').toUpperCase();
+    if(v==='REQUESTED')return 'PENDING';
+    if(['PENDING','CONFIRMED','COMPLETED','CANCELLED'].includes(v))return v;
+    return 'PENDING';
+  }
+
+  let bookingStatusVersion=0;
+  let bookingStatusInFlight=false;
+
+  async function syncBookingStatus({silent=false}={}){
+    const booking=state.booking;
+    if(!booking?.backend_id||bookingStatusInFlight)return;
+    const version=++bookingStatusVersion;
+    bookingStatusInFlight=true;
+    const meta=$('#bookingSyncMeta');
+    if(meta&&!silent)meta.textContent='서버 상태 확인 중…';
+
+    try{
+      const data=await fetchApi('booking_status',{booking_id:booking.backend_id});
+      if(version!==bookingStatusVersion)return;
+      const server=data?.booking;
+      if(!server)return;
+
+      const nextStatus=normalizeBookingStatus(server.status);
+      const previousStatus=normalizeBookingStatus(state.booking?.status);
+      const quoteAmount=Number(server.quote?.amount);
+      const services=Array.isArray(server.request?.services)?server.request.services.filter(Boolean):[];
+
+      state.booking={
+        ...state.booking,
+        status:nextStatus,
+        requestStatus:String(server.request?.status||state.booking.requestStatus||'').toUpperCase(),
+        scheduledAt:server.scheduled_at||state.booking.scheduledAt||null,
+        recommendationRunId:server.recommendation_run_id||state.booking.recommendationRunId||null,
+        events:Array.isArray(server.events)?server.events.slice(0,20):[],
+        serverUpdatedAt:Date.now(),
+        service:services.length?services.join(' · '):state.booking.service,
+        quote:{
+          ...state.booking.quote,
+          backend_id:server.quote?.id||state.booking.quote?.backend_id||null,
+          name:server.provider?.name||state.booking.quote?.name||'Partner',
+          price:Number.isFinite(quoteAmount)?quoteAmount:state.booking.quote?.price
+        }
+      };
+
+      if(previousStatus!=='COMPLETED'&&nextStatus==='COMPLETED'){
+        state.completes=(Number(state.completes)||0)+1;
+      }
+      save();
+    }catch(err){
+      if(!silent&&meta)meta.textContent='서버 상태 확인 실패 · 기존 표시 유지';
+    }finally{
+      bookingStatusInFlight=false;
+    }
+  }
+
   function renderBooking(){
     const empty=$('#emptyBooking');
     const card=$('#bookingCard');
@@ -876,23 +937,60 @@
       if(card) card.hidden=true;
       return;
     }
+
     if(empty) empty.hidden=true;
     if(card) card.hidden=false;
-    $('#bookingId').textContent=state.booking.id||'—';
-    $('#bookingServiceLabel').textContent=state.booking.service||'서비스';
-    $('#bookingProviderLabel').textContent=state.booking.quote?.name||'Partner';
-    $('#bookingPriceLabel').textContent=state.booking.quote?.price?'₩'+Number(state.booking.quote.price).toLocaleString('ko-KR'):'—';
+
+    const status=normalizeBookingStatus(state.booking.status);
+    const labels={
+      PENDING:{eyebrow:'REQUESTED',badge:'접수됨'},
+      CONFIRMED:{eyebrow:'CONFIRMED',badge:'업체 확인'},
+      COMPLETED:{eyebrow:'COMPLETED',badge:'완료'},
+      CANCELLED:{eyebrow:'CANCELLED',badge:'취소됨'}
+    }[status];
+
+    const bookingId=$('#bookingId');
+    const serviceLabel=$('#bookingServiceLabel');
+    const providerLabel=$('#bookingProviderLabel');
+    const priceLabel=$('#bookingPriceLabel');
+    const eyebrow=$('#bookingStatusEyebrow');
+    const badge=$('#bookingStatusBadge');
+    const syncMeta=$('#bookingSyncMeta');
+
+    if(bookingId)bookingId.textContent=state.booking.id||'—';
+    if(serviceLabel)serviceLabel.textContent=state.booking.service||'서비스';
+    if(providerLabel)providerLabel.textContent=state.booking.quote?.name||'Partner';
+    if(priceLabel)priceLabel.textContent=state.booking.quote?.price?'₩'+Number(state.booking.quote.price).toLocaleString('ko-KR'):'—';
+    if(eyebrow)eyebrow.textContent=labels.eyebrow;
+    if(badge){badge.textContent=labels.badge;badge.dataset.status=status.toLowerCase()}
+
+    if(syncMeta){
+      const updated=Number(state.booking.serverUpdatedAt);
+      const time=Number.isFinite(updated)?new Date(updated).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'—';
+      const requestStatus=state.booking.requestStatus||'—';
+      syncMeta.textContent='서버 '+requestStatus+' · 마지막 동기화 '+time;
+    }
 
     const timeline=$$('.timeline-item');
-    if(state.booking.status==='COMPLETED'){
-      timeline.forEach(x=>x.classList.add('done'));
-      const repeat=$('#repeatMessage');
-      if(repeat) repeat.textContent='완료 데이터가 DB에 기록되었습니다. 후기와 다음 연관 서비스 추천 단계로 연결됩니다.';
-      const complete=$('#completeDemo');
+    const doneCount=status==='COMPLETED'?3:status==='CONFIRMED'?2:1;
+    timeline.forEach((x,i)=>{
+      x.classList.toggle('done',i<doneCount);
+      x.classList.toggle('cancelled',status==='CANCELLED'&&i>0);
+    });
+
+    const repeat=$('#repeatMessage');
+    const complete=$('#completeDemo');
+
+    if(status==='COMPLETED'){
+      if(repeat)repeat.textContent='완료 데이터가 서버에 기록되었습니다. 후기와 다음 연관 서비스 추천 단계로 연결됩니다.';
       if(complete){complete.textContent='완료됨';complete.disabled=true}
+    }else if(status==='CANCELLED'){
+      if(repeat)repeat.textContent='취소된 예약입니다. 필요하면 조건을 다시 비교해 새 요청을 시작할 수 있습니다.';
+      if(complete){complete.textContent='취소됨';complete.disabled=true}
     }else{
-      timeline.forEach((x,i)=>x.classList.toggle('done',i===0));
-      const complete=$('#completeDemo');
+      if(repeat)repeat.textContent=status==='CONFIRMED'
+        ?'업체 확인이 완료되었습니다. 서비스 완료 후 다음 추천 흐름으로 연결됩니다.'
+        :'예약 요청이 접수되었습니다. 업체 확인 상태는 서버에서 동기화됩니다.';
       if(complete){complete.textContent='완료 시뮬레이션';complete.disabled=false}
     }
   }
@@ -907,11 +1005,7 @@
     if(button){button.disabled=true;button.textContent='처리 중…'}
     try{
       await fetchApi('complete_demo',{booking_id:state.booking.backend_id});
-      if(state.booking.status!=='COMPLETED'){
-        state.booking.status='COMPLETED';
-        state.completes=(Number(state.completes)||0)+1;
-        save();
-      }
+      await syncBookingStatus({silent:true});
       showToast('완료 상태를 Supabase에 기록했습니다.');
     }catch(err){
       showToast('완료 처리에 실패했습니다.');
@@ -951,6 +1045,7 @@
   }
   renderState();
   syncPreferenceUI();
+  if(state.booking?.backend_id)queueMicrotask(()=>syncBookingStatus({silent:true}));
 
   async function fetchHealthWithTimeout(){
     const controller=new AbortController();
