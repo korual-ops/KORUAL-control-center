@@ -7,7 +7,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-const ENGINE_VERSION = "8.0";
+const ENGINE_VERSION = "8.1";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
 const allowedOrigins = new Set([
@@ -149,6 +149,61 @@ function priorityWeights(mode: PriorityMode) {
     trust:    { price: 0.10, trust: 0.34, rating: 0.17, response: 0.07, experience: 0.10, verification: 0.05, coverage: 0.04, budget: 0.06, evidence: 0.07 },
     speed:    { price: 0.12, trust: 0.18, rating: 0.10, response: 0.27, experience: 0.08, verification: 0.04, coverage: 0.04, budget: 0.08, evidence: 0.09 }
   }[mode];
+}
+
+function decisionScoreForMode(candidate: any, mode: PriorityMode) {
+  const b = candidate?.score_breakdown;
+  if (!b) return Number(candidate?.decision_score ?? candidate?.ranking_score ?? 0);
+  const weights = priorityWeights(mode);
+  const weighted =
+    Number(b.price || 0) * weights.price +
+    Number(b.trust || 0) * weights.trust +
+    Number(b.rating || 0) * weights.rating +
+    Number(b.response || 0) * weights.response +
+    Number(b.experience || 0) * weights.experience +
+    Number(b.verification || 0) * weights.verification +
+    Number(b.coverage || 0) * weights.coverage +
+    Number(b.budget || 0) * weights.budget +
+    Number(b.evidence || 0) * weights.evidence;
+
+  const confidenceMultiplier =
+    0.94 + 0.06 * (clamp(Number(candidate?.confidence_score) || 0) / 100);
+  const raw = clamp(weighted * confidenceMultiplier);
+  const penalty = clamp(Number(candidate?.uncertainty_penalty) || 0, 0, 8);
+  return Number(clamp(raw - penalty).toFixed(2));
+}
+
+function rankingSensitivity(candidates: any[]) {
+  const modes: PriorityMode[] = ["balanced", "price", "trust", "speed"];
+  const winners: Record<string, string | null> = {};
+  const margins: Record<string, number | null> = {};
+
+  for (const mode of modes) {
+    const ranked = candidates
+      .map((c) => ({
+        provider_key: c.provider_key,
+        score: decisionScoreForMode(c, mode)
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    winners[mode] = ranked[0]?.provider_key ?? null;
+    margins[mode] = ranked.length > 1
+      ? Number(Math.max(0, ranked[0].score - ranked[1].score).toFixed(2))
+      : null;
+  }
+
+  const currentTop = candidates[0]?.provider_key ?? null;
+  const sameAsCurrent = modes.filter((mode) => winners[mode] === currentTop).length;
+  const stability = modes.length ? sameAsCurrent / modes.length : 0;
+  const uniqueWinners = new Set(Object.values(winners).filter(Boolean)).size;
+
+  return {
+    stability: Number(stability.toFixed(2)),
+    level: stability === 1 ? "robust" : stability >= 0.75 ? "stable" : stability >= 0.5 ? "sensitive" : "highly_sensitive",
+    unique_winners: uniqueWinners,
+    winners,
+    margins
+  };
 }
 
 function providerCoverage(provider: any, services: string[]) {
@@ -733,6 +788,7 @@ Deno.serve(async (req: Request) => {
       });
 
       const decision = decisionConfidence(candidates);
+      const sensitivity = rankingSensitivity(candidates);
       const budgetFitCount = candidates.filter((c: any) => c.budget_fit).length;
       const topCandidate = candidates[0];
       const usesFallbackPricing = Boolean(topCandidate?.line_items?.some((x: any) =>
@@ -747,6 +803,7 @@ Deno.serve(async (req: Request) => {
       const decisionContext = {
         ...decision,
         status: decisionStatus,
+        sensitivity,
         budget: {
           cap: budgetCap,
           fit_count: budgetFitCount,
@@ -818,6 +875,9 @@ Deno.serve(async (req: Request) => {
               top_ranking_score: Number(topCandidate?.ranking_score ?? 0),
               top_decision_score: Number(topCandidate?.decision_score ?? 0),
               top_uncertainty_penalty: Number(topCandidate?.uncertainty_penalty ?? 0),
+              recommendation_stability: sensitivity.stability,
+              sensitivity_level: sensitivity.level,
+              winner_by_mode: sensitivity.winners,
               fallback_pricing_used: usesFallbackPricing,
               shortlist_provider_keys: shortlist.map((x: any) => x.provider_key)
             }
