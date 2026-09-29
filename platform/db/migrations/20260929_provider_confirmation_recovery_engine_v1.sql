@@ -698,3 +698,49 @@ revoke all on function private.sweep_expired_booking_confirmations_v1(integer)
 -- Recovery swap function and cancel/reschedule functions are kept in the
 -- existing booking lifecycle migration and are upgraded in production.
 -- This migration records the new confirmation/recovery schema and SLA policy.
+
+
+-- Operational reliability metrics v2: explicit no-data state and ranking gate.
+drop view if exists public.provider_confirmation_metrics;
+
+create view public.provider_confirmation_metrics
+with (security_invoker = true)
+as
+with agg as (
+  select
+    p.id as provider_id,
+    p.provider_key,
+    count(a.id)::int as attempt_count,
+    count(*) filter (where a.status='confirmed')::int as confirmed_count,
+    count(*) filter (where a.status='expired')::int as expired_count,
+    count(*) filter (where a.status='declined')::int as declined_count,
+    round(avg(a.response_minutes) filter (where a.responded_at is not null),2) as observed_response_minutes
+  from public.providers p
+  left join public.booking_provider_attempts a on a.provider_id=p.id
+  group by p.id,p.provider_key
+)
+select
+  provider_id,
+  provider_key,
+  attempt_count,
+  confirmed_count,
+  expired_count,
+  declined_count,
+  observed_response_minutes,
+  (attempt_count >= 20) as ranking_eligible,
+  case when attempt_count > 0
+    then round(confirmed_count::numeric / attempt_count,4)
+    else null
+  end as observed_confirmation_rate,
+  case when attempt_count > 0
+    then round(expired_count::numeric / attempt_count,4)
+    else null
+  end as observed_expiry_rate,
+  case when attempt_count > 0
+    then round((confirmed_count::numeric + 4) / (attempt_count::numeric + 5),4)
+    else null
+  end as shrunk_confirmation_rate
+from agg;
+
+revoke all on public.provider_confirmation_metrics from public,anon,authenticated;
+grant select on public.provider_confirmation_metrics to service_role;
