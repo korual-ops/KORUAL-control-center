@@ -83,3 +83,29 @@ html[data-theme="dark"] #bookingStatusBadge[data-status="cancelled"]{background:
 }
 .booking-actions-danger button:first-child:hover:not(:disabled){background:color-mix(in srgb,var(--surface) 82%,#edd0cc 18%)}
 html[data-theme="dark"] .booking-actions-danger button:first-child{color:#e6aaa3;background:#2e2020;border-color:#69413d}
+
+
+/* Provider Confirmation & Recovery Engine */
+.booking-confirmation-notice{
+  margin:10px 0 0;padding:12px 13px;border:1px solid var(--line);border-radius:14px;
+  background:var(--surface2);display:grid;gap:3px
+}
+.booking-confirmation-notice small{
+  color:var(--muted);font-size:7px;font-weight:900;letter-spacing:.12em
+}
+.booking-confirmation-notice strong{font-size:10px}
+.booking-confirmation-notice span{color:var(--muted);font-size:8px;line-height:1.45}
+.booking-confirmation-notice[data-state="confirmed"]{
+  border-color:color-mix(in srgb,#4f8b68 42%,var(--line));
+  background:color-mix(in srgb,var(--surface) 92%,#dfeee4 8%)
+}
+.booking-confirmation-notice[data-state="expired"],
+.booking-confirmation-notice[data-state="declined"]{
+  border-color:color-mix(in srgb,#b45d55 48%,var(--line));
+  background:color-mix(in srgb,var(--surface) 90%,#f0d9d6 10%)
+}
+.booking-confirmation-notice[data-state="expired"] strong,
+.booking-confirmation-notice[data-state="declined"] strong{color:#9b4c45}
+html[data-theme="dark"] .booking-confirmation-notice[data-state="confirmed"]{background:#182b21}
+html[data-theme="dark"] .booking-confirmation-notice[data-state="expired"],
+html[data-theme="dark"] .booking-confirmation-notice[data-state="declined"]{background:#30201f}
