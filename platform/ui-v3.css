@@ -1,0 +1,226 @@
+/* KORUAL UI/UX v3 — conversion-first service OS */
+:root{
+  --v3-ink:#071a33;
+  --v3-blue:#123d67;
+  --v3-gold:#d9b97d;
+  --v3-gold-soft:#f4e3bf;
+  --v3-line:color-mix(in srgb,var(--line) 86%,transparent);
+  --v3-shadow:0 22px 70px rgba(7,26,51,.12);
+  --v3-ease:cubic-bezier(.2,.78,.2,1);
+}
+
+.new-home-hero{min-height:550px}
+.hero-quick{display:none!important}
+.new-hero-foot{opacity:.72}
+
+.uxv3-hero-proof{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:17px
+}
+.uxv3-hero-proof span{
+  display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:0 11px;
+  border:1px solid rgba(255,255,255,.15);border-radius:999px;
+  background:rgba(6,24,45,.38);backdrop-filter:blur(10px);
+  color:#e5edf6;font-size:9px;font-weight:760;letter-spacing:.02em
+}
+.uxv3-hero-proof i{width:5px;height:5px;border-radius:50%;background:#e1bf81;box-shadow:0 0 0 4px rgba(225,191,129,.12)}
+
+.uxv3-ai-dock{
+  position:relative;z-index:8;margin:-48px 0 20px;padding:16px;
+  border:1px solid rgba(26,50,80,.11);border-radius:28px;
+  background:color-mix(in srgb,var(--surface) 94%,transparent);
+  box-shadow:0 28px 80px rgba(5,25,49,.19);
+  backdrop-filter:blur(24px) saturate(150%)
+}
+.uxv3-dock-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:2px 4px 12px}
+.uxv3-dock-brand{display:flex;align-items:center;gap:10px}
+.uxv3-dock-orb{
+  display:grid;place-items:center;width:34px;height:34px;border-radius:12px;
+  background:linear-gradient(145deg,#173f69,#071a33);color:#f1d59d;
+  box-shadow:inset 0 1px rgba(255,255,255,.16),0 8px 20px rgba(7,26,51,.16);
+  font-size:13px
+}
+.uxv3-dock-brand small,.uxv3-dock-brand strong{display:block}
+.uxv3-dock-brand small{font-size:8px;letter-spacing:.16em;color:var(--muted);font-weight:850}
+.uxv3-dock-brand strong{font-size:15px;letter-spacing:-.025em;margin-top:2px}
+.uxv3-dock-hint{font-size:10px;color:var(--muted)}
+
+.uxv3-dock-form{
+  display:grid;grid-template-columns:1fr auto;gap:9px;padding:7px;
+  border:1px solid var(--v3-line);border-radius:20px;background:var(--surface2);
+  transition:border-color .2s var(--v3-ease),box-shadow .2s var(--v3-ease)
+}
+.uxv3-dock-form:focus-within{
+  border-color:#c7a364;box-shadow:0 0 0 4px rgba(211,175,110,.10),0 14px 36px rgba(7,26,51,.06)
+}
+.uxv3-dock-form textarea{
+  width:100%;min-height:49px;max-height:120px;resize:none;border:0;outline:0;background:transparent;
+  color:var(--text);padding:14px 13px 10px;font:inherit;font-size:14px;line-height:1.45
+}
+.uxv3-dock-form textarea::placeholder{color:color-mix(in srgb,var(--muted) 78%,transparent)}
+.uxv3-dock-form button{
+  align-self:stretch;min-width:124px;border:0;border-radius:15px;padding:0 17px;
+  background:linear-gradient(135deg,#071a33,#164b79);color:#fff;font-weight:820;
+  letter-spacing:-.02em;cursor:pointer;box-shadow:0 9px 24px rgba(7,26,51,.18);
+  transition:transform .18s var(--v3-ease),box-shadow .18s var(--v3-ease)
+}
+.uxv3-dock-form button:hover{transform:translateY(-1px);box-shadow:0 13px 28px rgba(7,26,51,.23)}
+.uxv3-dock-form button span{color:#efd39b;margin-left:7px}
+
+.uxv3-prompt-row{display:flex;gap:7px;overflow-x:auto;padding:10px 2px 1px;scrollbar-width:none}
+.uxv3-prompt-row::-webkit-scrollbar{display:none}
+.uxv3-prompt-row button{
+  flex:0 0 auto;min-height:34px;padding:0 11px;border:1px solid var(--v3-line);border-radius:999px;
+  background:var(--surface);color:var(--muted);font-size:9px;font-weight:760;cursor:pointer
+}
+.uxv3-prompt-row button:hover{border-color:#c7a66d;color:var(--text)}
+.uxv3-resume{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:11px;padding:12px 14px;
+  border-radius:15px;background:color-mix(in srgb,var(--surface2) 80%,#e9c889 20%)
+}
+.uxv3-resume small,.uxv3-resume strong{display:block}
+.uxv3-resume small{font-size:8px;color:var(--muted);letter-spacing:.12em;font-weight:850}
+.uxv3-resume strong{font-size:12px;margin-top:3px}
+.uxv3-resume button{border:0;background:transparent;color:var(--v3-blue);font-size:11px;font-weight:850;cursor:pointer}
+
+/* Existing quick start becomes a quiet secondary layer */
+.korual-command{margin:12px 0 30px;padding:0;border:0;background:transparent;box-shadow:none;backdrop-filter:none}
+.korual-command-head{display:none}
+.korual-command-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+.korual-command-action,.korual-command-action.primary{
+  min-height:78px;padding:14px 15px;border:1px solid var(--v3-line);border-radius:17px;
+  background:var(--surface);color:var(--text);box-shadow:none
+}
+.korual-command-action.primary{background:color-mix(in srgb,var(--surface2) 78%,#d8bd8b 22%)}
+.korual-command-action:after,.korual-command-action.primary:before{display:none}
+.korual-command-action small{font-size:8px;color:#96723c;opacity:1}
+.korual-command-action strong{font-size:14px;margin:5px 0 0}
+.korual-command-action em{display:none}
+.korual-command-action b{top:15px;right:14px;color:#a7844c;font-size:14px}
+
+.uxv3-moments{margin:4px 0 38px}
+.uxv3-section-kicker{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:14px}
+.uxv3-section-kicker small{display:block;font-size:8px;letter-spacing:.17em;color:#9b7843;font-weight:900}
+.uxv3-section-kicker strong{display:block;font-size:23px;letter-spacing:-.04em;margin-top:4px}
+.uxv3-section-kicker span{font-size:10px;color:var(--muted)}
+.uxv3-moment-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.uxv3-moment{
+  position:relative;min-height:160px;padding:17px;border:1px solid var(--v3-line);border-radius:21px;
+  background:var(--surface);text-align:left;color:var(--text);cursor:pointer;overflow:hidden;
+  transition:transform .22s var(--v3-ease),box-shadow .22s var(--v3-ease),border-color .22s var(--v3-ease)
+}
+.uxv3-moment:hover{transform:translateY(-4px);border-color:#d2b173;box-shadow:0 18px 36px rgba(7,26,51,.08)}
+.uxv3-moment:before{
+  content:"";position:absolute;width:120px;height:120px;right:-58px;bottom:-62px;border-radius:50%;
+  background:radial-gradient(circle,rgba(211,177,113,.22),transparent 66%)
+}
+.uxv3-moment b{display:grid;place-items:center;width:30px;height:30px;border-radius:11px;background:var(--surface2);font-size:10px;color:#9b7741}
+.uxv3-moment small,.uxv3-moment strong,.uxv3-moment em{display:block;position:relative}
+.uxv3-moment small{margin-top:25px;font-size:8px;letter-spacing:.13em;color:var(--muted);font-weight:850}
+.uxv3-moment strong{font-size:16px;margin-top:5px;letter-spacing:-.035em}
+.uxv3-moment em{font-style:normal;font-size:10px;color:var(--muted);margin-top:5px;line-height:1.45}
+
+/* Journey awareness */
+.uxv3-journey{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 22px;padding:7px;
+  border:1px solid var(--v3-line);border-radius:17px;background:var(--surface2)
+}
+.uxv3-step{display:flex;align-items:center;gap:9px;min-height:48px;padding:8px 10px;border-radius:12px;color:var(--muted)}
+.uxv3-step i{display:grid;place-items:center;width:25px;height:25px;border-radius:9px;background:var(--surface);font-style:normal;font-size:9px;font-weight:900}
+.uxv3-step small,.uxv3-step strong{display:block}
+.uxv3-step small{font-size:7px;letter-spacing:.1em}
+.uxv3-step strong{font-size:11px;margin-top:2px}
+.uxv3-step.is-active{background:var(--surface);color:var(--text);box-shadow:0 7px 18px rgba(7,26,51,.06)}
+.uxv3-step.is-active i{background:#0d3156;color:#efd39b}
+.uxv3-step.is-done i{background:#e8d4ae;color:#17324f}
+
+/* AI match: less form-like, more assistant-like */
+.screen[data-screen="match"] .screen-heading{max-width:680px}
+.screen[data-screen="match"] .composer{border-radius:27px}
+.screen[data-screen="match"] .analysis-card{border-left:3px solid #d4b272}
+
+/* Quotes become a decision cockpit */
+.uxv3-quote-cockpit{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 11px;padding:15px 17px;
+  border:1px solid var(--v3-line);border-radius:18px;background:color-mix(in srgb,var(--surface2) 86%,#e8c988 14%)
+}
+.uxv3-quote-cockpit div{display:flex;align-items:center;gap:10px}
+.uxv3-quote-cockpit i{display:grid;place-items:center;width:31px;height:31px;border-radius:11px;background:#0c2e51;color:#edcf94;font-style:normal}
+.uxv3-quote-cockpit small,.uxv3-quote-cockpit strong{display:block}
+.uxv3-quote-cockpit small{font-size:8px;letter-spacing:.12em;color:var(--muted);font-weight:850}
+.uxv3-quote-cockpit strong{font-size:12px;margin-top:3px}
+.uxv3-quote-cockpit span{font-size:9px;color:var(--muted);text-align:right;max-width:240px}
+.filter-strip{position:sticky;top:72px;z-index:5;padding:5px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(18px);border-radius:16px}
+.quote-card[data-selected="true"]{border-color:#c8a462!important;box-shadow:0 22px 58px rgba(8,30,55,.13),0 0 0 3px rgba(204,167,99,.11)!important}
+.uxv3-reasons{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0 0}
+.uxv3-reasons span{
+  min-height:25px;display:inline-flex;align-items:center;padding:0 8px;border-radius:999px;
+  background:var(--surface2);color:var(--muted);font-size:8px;font-weight:800
+}
+.uxv3-reasons span.is-key{background:#efe2c5;color:#79592b}
+html[data-theme="dark"] .uxv3-reasons span.is-key{background:#44361f;color:#f1d59b}
+
+/* Mobile navigation: reduce competition with the primary flow */
+.ai-concierge{display:none!important}
+.tabbar{padding-bottom:max(7px,env(safe-area-inset-bottom))}
+.tab{min-height:48px}
+.tab small{font-weight:760}
+
+/* Subtle density reduction */
+.new-discover{margin-top:34px}
+.korual-loop{margin-top:30px}
+.korual-proof{margin-bottom:28px}
+.new-recommendation{border-radius:20px}
+
+html[data-theme="dark"] .uxv3-ai-dock{background:rgba(10,24,42,.94);border-color:#2a3d55}
+html[data-theme="dark"] .uxv3-dock-form{background:#10243b}
+html[data-theme="dark"] .uxv3-resume{background:#182b40}
+html[data-theme="dark"] .uxv3-moment{background:#0f2239}
+html[data-theme="dark"] .uxv3-journey{background:#0d2036}
+html[data-theme="dark"] .uxv3-quote-cockpit{background:#132940}
+
+@media(max-width:900px){
+  .uxv3-moment-grid{grid-template-columns:repeat(2,1fr)}
+  .uxv3-moment{min-height:138px}
+}
+@media(max-width:800px){
+  .new-home-hero{min-height:505px;padding-top:52px}
+  .uxv3-hero-proof{max-width:340px;gap:6px}
+  .uxv3-hero-proof span{font-size:8px;min-height:27px;padding:0 9px}
+  .uxv3-ai-dock{margin:-34px 0 14px;padding:12px;border-radius:23px}
+  .uxv3-dock-top{padding-bottom:9px}
+  .uxv3-dock-hint{display:none}
+  .uxv3-dock-form{grid-template-columns:1fr auto;border-radius:17px}
+  .uxv3-dock-form textarea{min-height:45px;padding:12px 10px 8px;font-size:13px}
+  .uxv3-dock-form button{min-width:70px;padding:0 13px;font-size:0;border-radius:13px}
+  .uxv3-dock-form button:after{content:"→";font-size:18px;color:#f0d39b}
+  .uxv3-dock-form button span{display:none}
+  .korual-command{margin:9px 0 26px;overflow:hidden}
+  .korual-command-grid{display:flex;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .korual-command-grid::-webkit-scrollbar{display:none}
+  .korual-command-action,.korual-command-action.primary{flex:0 0 152px;min-height:72px}
+  .uxv3-moments{margin-bottom:30px}
+  .uxv3-section-kicker{align-items:start}
+  .uxv3-section-kicker strong{font-size:21px}
+  .uxv3-section-kicker span{display:none}
+  .uxv3-moment-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:3px}
+  .uxv3-moment-grid::-webkit-scrollbar{display:none}
+  .uxv3-moment{flex:0 0 72%;min-height:134px;scroll-snap-align:start}
+  .uxv3-moment small{margin-top:18px}
+  .uxv3-journey{gap:4px;padding:5px;margin-bottom:18px}
+  .uxv3-step{min-height:43px;padding:7px;gap:6px}
+  .uxv3-step i{width:22px;height:22px}
+  .uxv3-step small{display:none}
+  .uxv3-step strong{font-size:9px;margin:0}
+  .uxv3-quote-cockpit{padding:12px 13px}
+  .uxv3-quote-cockpit span{display:none}
+  .filter-strip{top:61px}
+}
+@media(max-width:390px){
+  .uxv3-dock-brand strong{font-size:13px}
+  .uxv3-prompt-row button{font-size:8px}
+  .uxv3-moment{flex-basis:80%}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .uxv3-moment,.uxv3-dock-form button{transition:none}
+}
