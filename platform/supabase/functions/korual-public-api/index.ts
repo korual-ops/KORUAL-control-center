@@ -1197,6 +1197,10 @@ Deno.serve(async (req: Request) => {
 
       const payload = await verifyQuoteToken(token);
       if (!payload) return json(origin, { ok: false, error: "QUOTE_TOKEN_INVALID" }, 409);
+      const tokenDesiredDate = cleanText(payload.desired_date, 10);
+      if (tokenDesiredDate && tokenDesiredDate !== desiredDate) {
+        return json(origin, { ok: false, error: "QUOTE_DATE_MISMATCH" }, 409);
+      }
 
       const providerKey = cleanText(payload.provider_key, 120);
       const { data: provider, error: providerError } = await db
@@ -1247,6 +1251,10 @@ Deno.serve(async (req: Request) => {
 
       const payload = await verifyQuoteToken(token);
       if (!payload) return json(origin, { ok: false, error: "QUOTE_TOKEN_INVALID" }, 409);
+      const tokenDesiredDate = cleanText(payload.desired_date, 10);
+      if (tokenDesiredDate && seoulDateString(new Date(startsAt)) !== tokenDesiredDate) {
+        return json(origin, { ok: false, error: "QUOTE_DATE_MISMATCH" }, 409);
+      }
 
       const providerKey = cleanText(payload.provider_key, 120);
       const { data: provider, error: providerError } = await db
@@ -1357,6 +1365,10 @@ Deno.serve(async (req: Request) => {
         providerKey = cleanText(payload.provider_key, 120);
         amount = Math.round(Number(payload.amount));
         tokenServices = payload.services.map((x: unknown) => cleanText(x, 60));
+        const tokenDesiredDate = cleanText(payload.desired_date, 10);
+        if (tokenDesiredDate && tokenDesiredDate !== desiredDate) {
+          return json(origin, { ok: false, error: "QUOTE_DATE_MISMATCH" }, 409);
+        }
 
         if (!sameServices(tokenServices, requestServices)) {
           return json(origin, { ok: false, error: "QUOTE_SERVICE_MISMATCH" }, 409);
@@ -1519,7 +1531,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: requestRow, error: requestError } = await db
         .from("service_requests")
-        .select("id,session_id,services,region,status")
+.select("id,session_id,services,region,desired_date,status")
         .eq("id", oldBooking.request_id)
         .eq("session_id", sessionId)
         .single();
@@ -1546,6 +1558,11 @@ Deno.serve(async (req: Request) => {
       }
       if (!quoteRegionMatches(payload.region, cleanText(requestRow.region, 80))) {
         return json(origin, { ok: false, error: "QUOTE_REGION_MISMATCH" }, 409);
+      }
+      const tokenDesiredDate = cleanText(payload.desired_date, 10);
+      const requestDesiredDate = cleanText(requestRow.desired_date, 10);
+      if (tokenDesiredDate && requestDesiredDate && tokenDesiredDate !== requestDesiredDate) {
+        return json(origin, { ok: false, error: "QUOTE_DATE_MISMATCH" }, 409);
       }
 
       let ownedRunId: string | null = null;
