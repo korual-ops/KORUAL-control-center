@@ -451,11 +451,13 @@
           quoteMode='date-empty';
         }else if(notice==='BUNDLE_ORCHESTRATION_REQUIRED'){
           quoteMode='bundle-plan';
+          activeBundlePlan=null;
           if(state.currentRequest)state.currentRequest.bundleStrategy=data.bundle_strategy||null;
-          if(analysisTitle)analysisTitle.textContent='서비스별 여러 업체 조합이 필요합니다';
+          if(analysisTitle)analysisTitle.textContent='서비스별 최적 조합을 만들었습니다';
           if(analysisState){analysisState.textContent='BUNDLE';analysisState.classList.add('ready')}
-          if(analysisNext)analysisNext.textContent='조합 플랜 확인';
+          if(analysisNext)analysisNext.textContent='시간 선택 후 전체 확보';
           if(goQuotes)goQuotes.disabled=false;
+          queueMicrotask(()=>loadBundlePlan());
         }else if(notice==='NO_ELIGIBLE_PROVIDER'){
           quoteMode=requestForApi.exclude_provider_keys.length?'recovery-empty':'no-provider';
         }else{
@@ -897,6 +899,7 @@
       if(bookSelected) bookSelected.disabled=true;
     }
     applyDecisionLens();
+    renderBundlePlan();
   }
 
   document.addEventListener('click',e=>{
@@ -1014,7 +1017,10 @@
   let rescheduleHoldTicker=null;
   let bundlePlanVersion=0;
   let bundleOperationKey='';
+  let activeBundlePlan=null;
   let activeBundleHolds=[];
+  let bundleHoldTicker=null;
+  let bundleStatusInFlight=false;
 
   function localDateString(date){
     return new Intl.DateTimeFormat('en-CA',{
@@ -1035,6 +1041,377 @@
       minute:'2-digit',
       hour12:false
     }).format(d);
+  }
+
+
+  function setBundleStep(step){
+    $('.bundle-flow-steps span').forEach((el,index)=>{
+      const n=index+1;
+      el.classList.toggle('is-done',n<step);
+      el.classList.toggle('is-active',n===step);
+    });
+  }
+
+  function bundleRequestPayload(){
+    if(!state.currentRequest)return null;
+    return {
+      ...state.currentRequest,
+      priority_mode:state.preferences?.priority||state.currentRequest.priorityMode||'balanced',
+      budget_cap:state.preferences?.budgetCap||null,
+      desired_date:state.currentRequest.desiredDate||null
+    };
+  }
+
+  function stopBundleHoldTicker(){
+    if(bundleHoldTicker){
+      clearInterval(bundleHoldTicker);
+      bundleHoldTicker=null;
+    }
+  }
+
+  function updateBundleHoldStatus(){
+    if(!activeBundleHolds.length)return;
+    const times=activeBundleHolds
+      .map(x=>new Date(x.expires_at).getTime())
+      .filter(Number.isFinite);
+    if(!times.length)return;
+    const remain=Math.max(0,Math.floor((Math.min(...times)-Date.now())/1000));
+    if(remain<=0){
+      stopBundleHoldTicker();
+      activeBundleHolds=[];
+      if(submitBundleBooking)submitBundleBooking.disabled=true;
+      if(bundleBookingStatus)bundleBookingStatus.textContent='시간 확보가 만료되었습니다. 조합 플랜에서 시간을 다시 선택해주세요.';
+      setBundleStep(2);
+      return;
+    }
+    const min=Math.floor(remain/60);
+    const sec=String(remain%60).padStart(2,'0');
+    if(bundleBookingStatus)bundleBookingStatus.textContent='모든 시간이 '+min+':'+sec+' 동안 임시 확보됩니다. 확정 전까지 결제는 발생하지 않습니다.';
+  }
+
+  async function releaseActiveBundleHolds(){
+    const holds=[...activeBundleHolds];
+    activeBundleHolds=[];
+    stopBundleHoldTicker();
+    if(!holds.length)return;
+    await Promise.allSettled(holds.map(x=>fetchApi('release_slot',{hold_id:x.hold_id})));
+  }
+
+  function updateBundlePrepareButton(){
+    if(!prepareBundleBooking)return;
+    if(!activeBundlePlan?.ready_for_atomic_booking){
+      prepareBundleBooking.disabled=true;
+      return;
+    }
+    const selects=bundlePlanItems?$('select[data-bundle-slot]',bundlePlanItems):[];
+    const ready=selects.length>0&&selects.every(x=>Boolean(x.value));
+    prepareBundleBooking.disabled=!ready;
+    if(ready)setBundleStep(2);
+  }
+
+  function renderBundlePlan(){
+    if(!bundlePlanCard)return;
+    const active=quoteMode==='bundle-plan';
+    bundlePlanCard.hidden=!active;
+
+    const filterStrip=$('.filter-strip');
+    const quoteTools=$('.quote-tools');
+    const quoteSticky=$('#quoteSticky');
+    if(filterStrip)filterStrip.hidden=active;
+    if(quoteTools)quoteTools.hidden=active;
+    if(quoteList)quoteList.hidden=active;
+    if(quoteSticky)quoteSticky.hidden=active;
+    const empty=$('#quoteEmpty');
+    if(active&&empty)empty.hidden=true;
+
+    if(!active)return;
+    if(!bundlePlanItems)return;
+
+    bundlePlanItems.replaceChildren();
+    if(!activeBundlePlan){
+      bundlePlanCard.setAttribute('aria-busy','true');
+      if(bundlePlanStatus)bundlePlanStatus.textContent='PLANNING';
+      if(bundlePlanMessage)bundlePlanMessage.textContent=state.currentRequest?.desiredDate
+        ?'서비스별 검증 업체와 실제 가능한 시간을 계산하고 있습니다.'
+        :'희망일을 먼저 선택하면 서비스별 실제 가능 시간을 계산합니다.';
+      if(bundlePlanTotal)bundlePlanTotal.textContent='—';
+      if(prepareBundleBooking)prepareBundleBooking.disabled=true;
+      setBundleStep(1);
+      return;
+    }
+
+    bundlePlanCard.setAttribute('aria-busy','false');
+    if(bundlePlanStatus)bundlePlanStatus.textContent=activeBundlePlan.ready_for_atomic_booking?'READY':'CHECK';
+    if(bundlePlanMessage)bundlePlanMessage.textContent=activeBundlePlan.ready_for_atomic_booking
+      ?'서비스별 추천 업체와 시간을 확인하세요. 모든 슬롯이 함께 확보된 경우에만 최종 예약으로 넘어갑니다.'
+      :'일부 서비스는 현재 희망일에 실제 예약 가능한 시간이 부족합니다.';
+    if(bundlePlanTotal)bundlePlanTotal.textContent='₩'+Number(activeBundlePlan.total_amount||0).toLocaleString('ko-KR');
+    setBundleStep(activeBundlePlan.ready_for_atomic_booking?2:1);
+
+    (activeBundlePlan.items||[]).forEach(item=>{
+      const row=document.createElement('article');
+      row.className='bundle-plan-item';
+      row.dataset.service=item.service||'';
+      row.dataset.state=item.status||'';
+      const suggested=item.suggested;
+
+      const main=document.createElement('div');
+      main.className='bundle-plan-item-main';
+      const eyebrow=document.createElement('small');
+      eyebrow.textContent=item.service||'서비스';
+      const title=document.createElement('strong');
+      title.textContent=suggested?.provider_name||'예약 가능한 업체 없음';
+      const meta=document.createElement('span');
+      if(suggested){
+        const availability=suggested.availability?.status==='available'?'희망일 예약 가능':'일정 확인 필요';
+        meta.textContent='₩'+Number(suggested.amount||0).toLocaleString('ko-KR')+
+          ' · Match '+Math.round(Number(suggested.decision_score)||0)+
+          ' · Trust '+Math.round(Number(suggested.trust)||0)+
+          ' · '+availability;
+      }else{
+        meta.textContent='현재 희망일에는 이 서비스를 예약할 수 있는 검증 업체가 없습니다.';
+      }
+      main.append(eyebrow,title,meta);
+
+      const select=document.createElement('select');
+      select.dataset.bundleSlot=item.service||'';
+      select.setAttribute('aria-label',(item.service||'서비스')+' 시간 선택');
+      const first=document.createElement('option');
+      first.value='';
+      first.textContent=suggested?'시간 선택':'예약 가능 시간 없음';
+      select.append(first);
+
+      const slots=Array.isArray(suggested?.available_slots)?suggested.available_slots:[];
+      slots.forEach(slot=>{
+        const option=document.createElement('option');
+        option.value=slot.starts_at;
+        option.textContent=formatKstTime(slot.starts_at)+'–'+formatKstTime(slot.ends_at)+
+          (Number.isFinite(Number(slot.remaining))?' · '+Number(slot.remaining)+'자리':'');
+        select.append(option);
+      });
+      select.disabled=!suggested||!slots.length;
+      select.dataset.quoteToken=suggested?.quote_token||'';
+      select.dataset.providerName=suggested?.provider_name||'';
+      select.dataset.amount=String(Number(suggested?.amount)||0);
+      select.addEventListener('change',()=>{
+        row.classList.toggle('is-selected',Boolean(select.value));
+        updateBundlePrepareButton();
+      });
+
+      row.append(main,select);
+      bundlePlanItems.append(row);
+    });
+
+    updateBundlePrepareButton();
+  }
+
+  async function loadBundlePlan(){
+    const request=bundleRequestPayload();
+    const version=++bundlePlanVersion;
+    activeBundlePlan=null;
+    renderBundlePlan();
+    if(!request||!Array.isArray(request.bundle)||request.bundle.length<2)return;
+    if(!request.desired_date){
+      if(bundlePlanStatus)bundlePlanStatus.textContent='DATE';
+      if(bundlePlanMessage)bundlePlanMessage.textContent='희망일을 선택하면 서비스별 실제 가능시간을 계산합니다.';
+      return;
+    }
+
+    try{
+      const data=await fetchApi('bundle_plan',{request});
+      if(version!==bundlePlanVersion)return;
+      activeBundlePlan=data.bundle_plan||null;
+      if(state.currentRequest&&data.request){
+        state.currentRequest.region=data.request.region||state.currentRequest.region||'';
+        state.currentRequest.desiredDate=data.request.desired_date||state.currentRequest.desiredDate||null;
+      }
+      renderBundlePlan();
+    }catch(err){
+      if(version!==bundlePlanVersion)return;
+      activeBundlePlan=null;
+      if(bundlePlanCard)bundlePlanCard.setAttribute('aria-busy','false');
+      if(bundlePlanStatus)bundlePlanStatus.textContent='ERROR';
+      if(bundlePlanMessage)bundlePlanMessage.textContent=err?.code==='DATE_REQUIRED'
+        ?'희망일을 먼저 선택해주세요.'
+        :err?.code==='REGION_REQUIRED'
+          ?'요청에 서비스 지역을 포함해주세요. 예: “10월 5일 서울 이사 + 입주청소”.'
+          :'조합 플랜을 불러오지 못했습니다. 요청 조건을 확인해주세요.';
+      if(prepareBundleBooking)prepareBundleBooking.disabled=true;
+    }
+  }
+
+  async function prepareAtomicBundle(){
+    if(!activeBundlePlan?.ready_for_atomic_booking||!state.currentRequest)return;
+    const selects=bundlePlanItems?$('select[data-bundle-slot]',bundlePlanItems):[];
+    if(!selects.length||selects.some(x=>!x.value)){
+      showToast('각 서비스의 시간을 모두 선택해주세요.');
+      return;
+    }
+
+    if(prepareBundleBooking){
+      prepareBundleBooking.disabled=true;
+      prepareBundleBooking.textContent='전체 시간 확보 중…';
+    }
+    await releaseActiveBundleHolds();
+    bundleOperationKey=makeIdempotency();
+    const held=[];
+
+    try{
+      for(const select of selects){
+        const data=await fetchApi('hold_bundle_slot',{
+          quote_token:select.dataset.quoteToken,
+          starts_at:select.value,
+          operation_key:bundleOperationKey
+        });
+        if(!data?.hold?.hold_id)throw Error('BUNDLE_HOLD_INVALID');
+        held.push({
+          service:select.dataset.bundleSlot,
+          quote_token:select.dataset.quoteToken,
+          provider_name:select.dataset.providerName,
+          amount:Number(select.dataset.amount)||0,
+          starts_at:data.hold.starts_at,
+          ends_at:data.hold.ends_at,
+          expires_at:data.hold.expires_at,
+          hold_id:data.hold.hold_id
+        });
+        activeBundleHolds=[...held];
+      }
+
+      setBundleStep(3);
+      if(bundleCustomerRegion)bundleCustomerRegion.value=state.currentRequest.region||'';
+      if(bundleDesiredDate)bundleDesiredDate.value=state.currentRequest.desiredDate||'';
+      if(bundleSheetServices)bundleSheetServices.textContent=held.map(x=>x.service).join(' · ');
+      if(bundleSheetTotal)bundleSheetTotal.textContent='₩'+held.reduce((s,x)=>s+x.amount,0).toLocaleString('ko-KR');
+      if(bundleSheetSchedule){
+        bundleSheetSchedule.replaceChildren();
+        held.forEach(item=>{
+          const row=document.createElement('div');
+          row.className='bundle-sheet-row';
+          row.innerHTML='<div><strong>'+escapeHtml(item.service)+'</strong><small>'+
+            escapeHtml(item.provider_name||'Partner')+'</small></div><b>'+
+            escapeHtml(formatKstTime(item.starts_at))+'</b>';
+          bundleSheetSchedule.append(row);
+        });
+      }
+      if(bundleBookingStatus)bundleBookingStatus.textContent='모든 시간이 10분간 임시 확보되었습니다.';
+      if(submitBundleBooking)submitBundleBooking.disabled=false;
+      if(bundleBookingSheet){
+        bundleBookingSheet.hidden=false;
+        document.body.style.overflow='hidden';
+      }
+      updateBundleHoldStatus();
+      stopBundleHoldTicker();
+      bundleHoldTicker=setInterval(updateBundleHoldStatus,1000);
+    }catch(err){
+      activeBundleHolds=[...held];
+      await releaseActiveBundleHolds();
+      setBundleStep(2);
+      showToast('전체 시간을 확보하지 못했습니다. 이미 확보한 시간도 모두 해제했습니다.');
+    }finally{
+      if(prepareBundleBooking){
+        prepareBundleBooking.textContent='선택 시간 임시 확보 →';
+        updateBundlePrepareButton();
+      }
+    }
+  }
+
+  async function closeBundleSheet({release=true}={}){
+    if(release)await releaseActiveBundleHolds();
+    if(bundleBookingSheet)bundleBookingSheet.hidden=true;
+    document.body.style.overflow='';
+    if(release)setBundleStep(activeBundlePlan?.ready_for_atomic_booking?2:1);
+  }
+
+  async function syncBundleStatus({silent=false}={}){
+    const groupId=state.bundleBooking?.backend_id||state.bundleBooking?.id||state.bundleBooking?.group_id;
+    if(!groupId||bundleStatusInFlight)return;
+    bundleStatusInFlight=true;
+    try{
+      const data=await fetchApi('bundle_status',{group_id:groupId});
+      if(data?.bundle){
+        state.bundleBooking={
+          ...state.bundleBooking,
+          ...data.bundle,
+          backend_id:data.bundle.id,
+          serverUpdatedAt:Date.now()
+        };
+        try{localStorage.setItem(STATE_KEY,JSON.stringify(state))}catch(_){}
+        renderBundleBooking();
+        renderHome();
+        renderProfile();
+      }
+    }catch(err){
+      if(!silent){
+        const meta=$('#bundleBookingMeta');
+        if(meta)meta.textContent='묶음 예약 서버 상태 확인 실패 · 기존 표시 유지';
+      }
+    }finally{
+      bundleStatusInFlight=false;
+    }
+  }
+
+  function renderBundleBooking(){
+    const empty=$('#emptyBooking');
+    const card=$('#bundleBookingCard');
+    const bundle=state.bundleBooking;
+    if(!bundle){
+      if(card)card.hidden=true;
+      if(empty)empty.hidden=Boolean(state.booking);
+      return;
+    }
+    if(empty)empty.hidden=true;
+    if(card)card.hidden=false;
+
+    const id=$('#bundleBookingId');
+    const badge=$('#bundleBookingStatusBadge');
+    const services=$('#bundleBookingServices');
+    const total=$('#bundleBookingTotal');
+    const items=$('#bundleBookingItems');
+    const meta=$('#bundleBookingMeta');
+
+    if(id)id.textContent=bundle.id||bundle.backend_id||bundle.group_id||'—';
+    const status=String(bundle.status||'booked').toLowerCase();
+    if(badge){
+      badge.textContent=status==='completed'?'전체 완료':status==='cancelled'?'전체 취소':'진행 중';
+      badge.dataset.status=status;
+    }
+    const serviceList=Array.isArray(bundle.services)?bundle.services:[];
+    if(services)services.textContent=serviceList.join(' · ')||'복합 서비스';
+    if(total)total.textContent='₩'+Number(bundle.total_amount||0).toLocaleString('ko-KR');
+
+    if(items){
+      items.replaceChildren();
+      (bundle.items||[]).forEach(item=>{
+        const row=document.createElement('div');
+        row.className='bundle-booking-item';
+        const booking=item.booking||{};
+        const provider=item.provider||{};
+        const confirmation=String(booking.confirmation_status||'awaiting').toLowerCase();
+        const stateLabel=booking.status==='completed'
+          ?'완료'
+          :booking.status==='cancelled'
+            ?'취소'
+            :confirmation==='confirmed'
+              ?'업체 확인'
+              :confirmation==='declined'
+                ?'업체 거절'
+                :confirmation==='expired'
+                  ?'확인 지연'
+                  :'확인 대기';
+        row.innerHTML='<div><strong>'+escapeHtml(item.service||'서비스')+'</strong><small>'+
+          escapeHtml(provider.name||provider.provider_key||'Partner')+' · '+escapeHtml(stateLabel)+
+          '</small></div><b>'+escapeHtml(formatKstTime(booking.scheduled_at))+'</b>';
+        items.append(row);
+      });
+    }
+
+    if(meta){
+      const updated=Number(bundle.serverUpdatedAt);
+      const time=Number.isFinite(updated)
+        ?new Date(updated).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
+        :'—';
+      meta.textContent='서비스별 예약 '+Number(bundle.items?.length||0)+'건 · 마지막 동기화 '+time;
+    }
   }
 
   function stopSlotTicker(){
@@ -1499,6 +1876,70 @@
     }
   });
 
+  prepareBundleBooking?.addEventListener('click',prepareAtomicBundle);
+  closeBundleBookingSheet?.addEventListener('click',()=>closeBundleSheet({release:true}));
+  cancelBundleBookingSheet?.addEventListener('click',()=>closeBundleSheet({release:true}));
+  bundleBookingSheet?.addEventListener('click',e=>{if(e.target===bundleBookingSheet)closeBundleSheet({release:true})});
+
+  bundleBookingForm?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!activeBundleHolds.length||!bundleOperationKey||!state.currentRequest)return;
+    const name=String(bundleCustomerName?.value||'').trim();
+    const phone=String(bundleCustomerPhone?.value||'').replace(/[^0-9]/g,'');
+    const region=String(bundleCustomerRegion?.value||'').trim();
+    const date=String(bundleDesiredDate?.value||'').trim();
+    if(name.length<2){showToast('예약자 이름을 확인해주세요.');return}
+    if(phone.length<10||phone.length>11){showToast('연락처를 확인해주세요.');return}
+    if(region.length<2){showToast('서비스 지역을 확인해주세요.');return}
+
+    if(submitBundleBooking){submitBundleBooking.disabled=true;submitBundleBooking.textContent='전체 예약 확정 중…'}
+    try{
+      const data=await fetchApi('book_bundle',{
+        operation_key:bundleOperationKey,
+        request:bundleRequestPayload(),
+        customer:{name,phone,region,desired_date:date},
+        items:activeBundleHolds.map(x=>({quote_token:x.quote_token,slot_hold_id:x.hold_id}))
+      });
+      stopBundleHoldTicker();
+      activeBundleHolds=[];
+      const bundle=data.bundle||{};
+      state.bundleBooking={
+        ...bundle,
+        backend_id:bundle.group_id||bundle.id,
+        services:Array.isArray(state.currentRequest.bundle)?state.currentRequest.bundle.slice():[],
+        region,
+        desired_date:date,
+        serverUpdatedAt:Date.now()
+      };
+      bundleOperationKey='';
+      if(bundleBookingSheet)bundleBookingSheet.hidden=true;
+      document.body.style.overflow='';
+      setBundleStep(4);
+      save();
+      await syncBundleStatus({silent:true});
+      showScreen('bookings');
+      showToast('모든 서비스가 하나의 묶음 예약으로 확정되었습니다.');
+    }catch(err){
+      const code=err?.code||'API_ERROR';
+      await releaseActiveBundleHolds();
+      setBundleStep(2);
+      const messages={
+        SLOT_HOLD_EXPIRED:'확보 시간이 만료되었습니다. 시간을 다시 선택해주세요.',
+        SLOT_HOLD_INACTIVE:'일부 시간이 더 이상 확보되어 있지 않습니다.',
+        SLOT_HOLD_MISMATCH:'서비스와 확보 시간이 일치하지 않습니다.',
+        BUNDLE_SERVICE_MISMATCH:'서비스 조합이 변경되었습니다. 조합 플랜을 다시 확인해주세요.',
+        QUOTE_DATE_MISMATCH:'희망일이 변경되었습니다. 조합 플랜을 다시 계산해주세요.',
+        PROVIDER_UNAVAILABLE:'일부 업체 상태가 변경되었습니다. 조합 플랜을 다시 계산해주세요.'
+      };
+      showToast(messages[code]||'묶음 예약을 완료하지 못했습니다. 부분 예약은 생성되지 않았습니다.');
+      if(bundleBookingSheet)bundleBookingSheet.hidden=true;
+      document.body.style.overflow='';
+      loadBundlePlan();
+    }finally{
+      if(submitBundleBooking){submitBundleBooking.textContent='전체 예약 확정';submitBundleBooking.disabled=!activeBundleHolds.length}
+    }
+  });
+
   bookingForm?.addEventListener('submit',async e=>{
     e.preventDefault();
     if(!state.selectedQuote||!state.currentRequest||!isEligible(state.selectedQuote.id))return;
@@ -1706,6 +2147,9 @@
       if(bookingsScreen&&!bookingsScreen.hidden&&state.booking?.backend_id&&['','awaiting'].includes(confirmationState)){
         syncBookingStatus({silent:true});
       }
+      if(bookingsScreen&&!bookingsScreen.hidden&&state.bundleBooking?.backend_id){
+        syncBundleStatus({silent:true});
+      }
     },30000);
   }
   ensureBookingStatusPolling();
@@ -1714,7 +2158,7 @@
     const empty=$('#emptyBooking');
     const card=$('#bookingCard');
     if(!state.booking){
-      if(empty) empty.hidden=false;
+      if(empty) empty.hidden=Boolean(state.bundleBooking);
       if(card) card.hidden=true;
       return;
     }
@@ -1843,7 +2287,10 @@
   function renderHome(){
     const card=$('#homeRecommendation');
     if(!card)return;
-    if(state.booking?.status==='COMPLETED'){
+    if(state.bundleBooking){
+      const services=Array.isArray(state.bundleBooking.services)?state.bundleBooking.services.join(' · '):'복합 서비스';
+      card.innerHTML='<div class="recommend-badge">B+</div><div><small>ATOMIC BUNDLE</small><strong>묶음 예약 '+Number(state.bundleBooking.items?.length||0)+'건을 확인하세요.</strong><p>'+escapeHtml(services)+'</p></div><button type="button" data-open-screen="bookings">→</button>';
+    }else if(state.booking?.status==='COMPLETED'){
       card.innerHTML='<div class="recommend-badge">↻</div><div><small>REPEAT ENGINE</small><strong>다음 연관 서비스를 준비했어요.</strong><p>'+escapeHtml(state.booking.service)+' 완료 이력을 기반으로 후속 서비스를 추천합니다.</p></div><button type="button" data-open-screen="services">→</button>';
     }else if(state.booking){
       const recovery=state.booking.confirmation?.recovery_status==='action_required'||state.booking.confirmation?.action_required===true;
@@ -1861,14 +2308,19 @@
   function renderProfile(){
     const r=$('#requestCount'),b=$('#bookingCount'),c=$('#completeCount');
     if(r) r.textContent=String(Number(state.requests)||0);
-    if(b) b.textContent=state.booking?'1':'0';
-    if(c) c.textContent=String(Number(state.completes)||0);
+    const bundleCount=Array.isArray(state.bundleBooking?.items)?state.bundleBooking.items.length:0;
+    if(b) b.textContent=String((state.booking?1:0)+bundleCount);
+    const bundleCompleted=Array.isArray(state.bundleBooking?.items)
+      ?state.bundleBooking.items.filter(x=>x.booking?.status==='completed').length
+      :0;
+    if(c) c.textContent=String((Number(state.completes)||0)+bundleCompleted);
   }
 
   function renderState(){
     renderAnalysis(state.currentRequest);
     renderQuotesSelection();
     renderBooking();
+    renderBundleBooking();
     renderHome();
     renderProfile();
     renderHistory();
@@ -1876,6 +2328,7 @@
   renderState();
   syncPreferenceUI();
   if(state.booking?.backend_id)queueMicrotask(()=>syncBookingStatus({silent:true}));
+  if(state.bundleBooking?.backend_id)queueMicrotask(()=>syncBundleStatus({silent:true}));
 
   async function fetchHealthWithTimeout(){
     const controller=new AbortController();
@@ -1958,7 +2411,7 @@
   $('#resetDemo')?.addEventListener('click',()=>{
     if(!confirm('이 기기에 저장된 KORUAL 표시 상태를 초기화할까요? 서버 예약 기록은 삭제되지 않습니다.'))return;
     quoteRequestVersion++;quoteMode='sample';liveQuoteKeys.clear();quoteCatalog={...sampleQuotes};
-    state={history:[],requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null,preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}};
+    state={history:[],requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null,bundlePlan:null,bundleBooking:null,recoveryContext:null,preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}};
     try{localStorage.removeItem(STATE_KEY)}catch(_){}
     if(matchInput) matchInput.value='';
     if(analysisTitle) analysisTitle.textContent='요청을 기다리는 중';
