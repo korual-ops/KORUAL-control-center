@@ -34,6 +34,7 @@
   let quoteRequestVersion=0;
   let quoteAbortController=null;
   const quoteResponseCache=new Map();
+  const trackedRecommendationEvents=new Set();
   let sortMode='recommended';
 
   let state={
@@ -153,6 +154,24 @@
       clearTimeout(timer);
       externalSignal?.removeEventListener?.('abort',forwardAbort);
     }
+  }
+
+  function bestEffortTrack(eventType,quote={},extra={}){
+    const runId=quote?.recommendationRunId||extra?.recommendationRunId||null;
+    if(!runId)return;
+    const providerKey=quote?.provider_key||extra?.provider_key||null;
+    const position=Number(quote?.position||extra?.position)||null;
+    const dedupeKey=[eventType,runId,providerKey||'',position||''].join('|');
+    if((eventType==='impression'||eventType==='select')&&trackedRecommendationEvents.has(dedupeKey))return;
+    if(eventType==='impression'||eventType==='select')trackedRecommendationEvents.add(dedupeKey);
+    fetchApi('track',{
+      event_type:eventType,
+      recommendation_run_id:runId,
+      provider_key:providerKey,
+      position,
+      page:'quotes',
+      decision_status:quote?.decisionContext?.status||extra?.decision_status||null
+    }).catch(()=>{});
   }
 
   function quoteCacheKey(request){
@@ -309,6 +328,8 @@
             response:q.response_minutes==null?null:Number(q.response_minutes),
             jobs:Number(q.completed_jobs)||0,
             rankingScore:Number.isFinite(Number(q.ranking_score))?Number(q.ranking_score):null,
+            decisionScore:Number.isFinite(Number(q.decision_score))?Number(q.decision_score):null,
+            uncertaintyPenalty:Number.isFinite(Number(q.uncertainty_penalty))?Number(q.uncertainty_penalty):null,
             confidence:Number.isFinite(Number(q.confidence_score))?Number(q.confidence_score):null,
             evidence:Number.isFinite(Number(q.evidence_score))?Number(q.evidence_score):null,
             coverage:Number.isFinite(Number(q.coverage_score))?Number(q.coverage_score):null,
@@ -325,11 +346,20 @@
             enginePriority:data?.request?.priority_mode||null,
             engineVersion:data?.engine_version||null,
             pricingBasis:data?.pricing_basis||null,
-            quoteExpiresIn:Number(data?.quote_expires_in_seconds)||null
+            quoteExpiresIn:Number(data?.quote_expires_in_seconds)||null,
+            position:Number(q.presentation_order)||index+1
           };
           updateQuoteCard(q);
         });
         quoteMode=liveQuoteKeys.size?'live':'sample';
+        if(quoteMode==='live'){
+          queueMicrotask(()=>{
+            for(const key of liveQuoteKeys){
+              const quote=quoteCatalog[key];
+              if(quote)bestEffortTrack('impression',quote);
+            }
+          });
+        }
       }else{
         quoteMode='sample';
       }
@@ -350,7 +380,10 @@
     if(!card)return;
     card.dataset.price=String(q.amount||0);
     card.dataset.trust=String(q.trust||0);
-    card.dataset.matchScore=Number.isFinite(Number(q.ranking_score))?String(q.ranking_score):'';
+    const effectiveScore=Number.isFinite(Number(q.decision_score))?Number(q.decision_score):Number(q.ranking_score);
+    card.dataset.matchScore=Number.isFinite(effectiveScore)?String(effectiveScore):'';
+    card.dataset.rawRankingScore=Number.isFinite(Number(q.ranking_score))?String(q.ranking_score):'';
+    card.dataset.uncertaintyPenalty=Number.isFinite(Number(q.uncertainty_penalty))?String(q.uncertainty_penalty):'';
     card.dataset.confidence=Number.isFinite(Number(q.confidence_score))?String(q.confidence_score):'';
     card.dataset.pareto=q.pareto_efficient===true?'true':'false';
     card.dataset.roles=Array.isArray(q.roles)?q.roles.join('|'):'';
@@ -674,6 +707,7 @@
     }
     state.selectedQuote={...quote};
     save();
+    bestEffortTrack('select',quote);
     showToast(quote.name+' 견적을 선택했습니다.');
   });
 
@@ -761,6 +795,7 @@
   }
 
   bookSelected?.addEventListener('click',()=>{
+    if(state.selectedQuote)bestEffortTrack('booking_intent',state.selectedQuote);
     const intent=new CustomEvent('korual:booking-intent',{cancelable:true,detail:{openBookingSheet}});
     if(bookSelected.dispatchEvent(intent))openBookingSheet();
   });
@@ -783,6 +818,7 @@
         request:state.currentRequest,
         quote_token:state.selectedQuote.quoteToken||null,
         quote_key:state.selectedQuote.id,
+        recommendation_run_id:state.selectedQuote.recommendationRunId||null,
         customer,
         idempotency_key:pendingIdempotency||makeIdempotency()
       });
@@ -822,6 +858,7 @@
         RATE_LIMITED:'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
         ORIGIN_NOT_ALLOWED:'현재 접속 주소에서는 예약 저장을 사용할 수 없습니다.'
       };
+      if(state.selectedQuote)bestEffortTrack('booking_failure',state.selectedQuote);
       showToast(messages[code]||'예약 저장에 실패했습니다. 다시 시도해주세요.');
     }finally{
       if(submitBooking){submitBooking.disabled=false;submitBooking.textContent='예약 요청 저장'}
