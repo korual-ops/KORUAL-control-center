@@ -13,7 +13,8 @@
       if(!card||!card.matches('[data-quote-card]'))return;
       const signature=[
         card.dataset.matchScore||'',card.dataset.confidence||'',card.dataset.pareto||'',
-        card.dataset.roles||'',card.dataset.scoreBreakdown||''
+        card.dataset.roles||'',card.dataset.scoreBreakdown||'',
+        card.dataset.budgetStatus||'',card.dataset.budgetFitCount||'',card.dataset.budgetCap||''
       ].join('::');
       if(card.dataset.v5Signature===signature)return;
       card.dataset.v5Signature=signature;
@@ -76,8 +77,18 @@
         separated:['현재 기준에서 점수 차이가 있습니다.','점수 차이는 참고값입니다. 예약 전 포함 범위·추가비용·취소·보증 조건을 확인하세요.'],
         single_candidate:['비교 가능한 후보가 1개입니다.','선택지가 부족하므로 추천 점수보다 실제 제공 조건 확인이 더 중요합니다.']
       }[level]||['의사결정 보조 모드','가격·신뢰·응답·이력과 데이터 완성도를 함께 비교합니다.'];
+      const budgetStatus=first.dataset.budgetStatus||'';
+      const fitCount=Number(first.dataset.budgetFitCount);
+      const budgetCap=Number(first.dataset.budgetCap);
+      let budgetText='';
+      if(budgetStatus==='matched'&&Number.isFinite(fitCount)&&Number.isFinite(budgetCap)){
+        budgetText=' · 예산 '+budgetCap.toLocaleString('ko-KR')+'원 내 후보 '+fitCount+'개';
+      }
+      if(budgetStatus==='no_match'&&Number.isFinite(budgetCap)){
+        budgetText=' · 입력 예산 '+budgetCap.toLocaleString('ko-KR')+'원 내 후보 없음';
+      }
       box.dataset.level=level;
-      box.innerHTML='<div><small>DECISION CONFIDENCE</small><strong>'+copy[0]+'</strong></div><span>'+copy[1]+(Number.isFinite(gap)?' · 상위 점수 차이 '+gap.toFixed(1):'')+'</span>';
+      box.innerHTML='<div><small>DECISION CONFIDENCE</small><strong>'+copy[0]+'</strong></div><span>'+copy[1]+(Number.isFinite(gap)?' · 상위 점수 차이 '+gap.toFixed(1):'')+budgetText+'</span>';
     };
 
     const syncAll=()=>{
@@ -101,7 +112,7 @@
     if('MutationObserver' in window){
       new MutationObserver(()=>syncAll()).observe(quoteList,{
         childList:true,subtree:true,attributes:true,
-        attributeFilter:['data-match-score','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','hidden']
+        attributeFilter:['data-match-score','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','data-budget-status','data-budget-fit-count','data-budget-cap','hidden']
       });
     }
   });
