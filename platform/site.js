@@ -64,8 +64,37 @@
 
   state.history=Array.isArray(state.history)?state.history.filter(x=>x&&typeof x.raw==='string'&&Array.isArray(x.bundle)).slice(0,20):[];
 
+  // Keep customer contact details in server-backed booking records, not long-lived browser storage.
+  // Existing v3 local state is sanitized immediately on boot so older cached PII is removed too.
+  function stateForLocalStorage(){
+    const persisted={...state};
+    if(state.booking){
+      persisted.booking={...state.booking};
+      delete persisted.booking.customer;
+    }
+    if(state.bundleBooking){
+      persisted.bundleBooking={...state.bundleBooking};
+      delete persisted.bundleBooking.customer;
+      delete persisted.bundleBooking.customer_name;
+      delete persisted.bundleBooking.phone;
+    }
+    return persisted;
+  }
+
+  function persistState(){
+    try{localStorage.setItem(STATE_KEY,JSON.stringify(stateForLocalStorage()))}catch(_){}
+  }
+
+  if(state.booking?.customer)delete state.booking.customer;
+  if(state.bundleBooking){
+    delete state.bundleBooking.customer;
+    delete state.bundleBooking.customer_name;
+    delete state.bundleBooking.phone;
+  }
+  persistState();
+
   function save(){
-    try{localStorage.setItem(STATE_KEY,JSON.stringify(state))}catch(_){}
+    persistState();
     renderState();
   }
 
