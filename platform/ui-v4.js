@@ -117,17 +117,28 @@
       const backdrop=document.createElement('div');
       backdrop.className='uxv4-backdrop';
       backdrop.setAttribute('role','presentation');
-      backdrop.innerHTML='<section class="uxv4-sheet" role="dialog" aria-modal="true" aria-label="'+label+'"><div class="uxv4-handle"></div>'+inner+'</section>';
+      backdrop.innerHTML='<section class="uxv4-sheet" role="dialog" aria-modal="true" aria-label="'+label+'" tabindex="-1"><div class="uxv4-handle"></div>'+inner+'</section>';
+      const previousFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+      const previousOverflow=document.body.style.overflow;
       document.body.appendChild(backdrop);
       document.body.style.overflow='hidden';
+      let closed=false;
+      const esc=e=>{if(e.key==='Escape')close()};
       const close=()=>{
+        if(closed)return;
+        closed=true;
+        document.removeEventListener('keydown',esc);
         backdrop.remove();
-        document.body.style.overflow='';
+        document.body.style.overflow=previousOverflow;
+        previousFocus?.focus?.();
       };
       backdrop.addEventListener('click',e=>{if(e.target===backdrop)close()});
       backdrop.querySelectorAll('[data-v4-close]').forEach(b=>b.addEventListener('click',close));
-      const esc=e=>{if(e.key==='Escape'){document.removeEventListener('keydown',esc);close()}};
       document.addEventListener('keydown',esc);
+      requestAnimationFrame(()=>{
+        const focusTarget=backdrop.querySelector('[data-v4-close],button,[tabindex]');
+        focusTarget?.focus?.();
+      });
       return {backdrop,close};
     }
 
@@ -208,8 +219,7 @@
       trustSheet.querySelector('[data-v4-trust-grade]').textContent=trustGrade;
     }
 
-    let bypassBooking=false;
-    function reviewBeforeBooking(){
+    function reviewBeforeBooking(openBookingSheet){
       const selected=allCards().find(c=>c.matches('.selected,[data-selected="true"]'));
       if(!selected)return;
       const q=quoteData(selected);
@@ -232,8 +242,7 @@
       `,'예약 요청 전 마지막 확인');
       backdrop.querySelector('[data-v4-confirm]').addEventListener('click',()=>{
         close();
-        bypassBooking=true;
-        bookSelected?.click();
+        if(typeof openBookingSheet==='function')openBookingSheet();
       });
     }
 
@@ -251,14 +260,11 @@
     updateMarket();
 
     if(bookSelected){
-      document.addEventListener('click',(e)=>{
-        const target=e.target.closest?.('#bookSelected');
-        if(!target||target.disabled)return;
-        if(bypassBooking){bypassBooking=false;return}
+      bookSelected.addEventListener('korual:booking-intent',(e)=>{
+        if(bookSelected.disabled)return;
         e.preventDefault();
-        e.stopImmediatePropagation();
-        reviewBeforeBooking();
-      },true);
+        reviewBeforeBooking(e.detail?.openBookingSheet);
+      });
     }
 
     document.addEventListener('click',(e)=>{
