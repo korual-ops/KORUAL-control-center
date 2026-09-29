@@ -744,3 +744,80 @@ from agg;
 
 revoke all on public.provider_confirmation_metrics from public,anon,authenticated;
 grant select on public.provider_confirmation_metrics to service_role;
+
+
+-- Marketplace exposure monitoring v1: observe concentration before applying fairness re-ranking.
+drop view if exists public.provider_exposure_metrics;
+create view public.provider_exposure_metrics
+with (security_invoker = true)
+as
+with provider_events as (
+  select
+    p.provider_key,
+    count(*) filter (where e.event_type='impression')::int as impression_count,
+    count(*) filter (where e.event_type='select')::int as select_count,
+    count(*) filter (where e.event_type='booking_success')::int as booking_success_count
+  from public.providers p
+  left join public.recommendation_events e on e.provider_key=p.provider_key
+  group by p.provider_key
+),
+totals as (
+  select sum(impression_count)::numeric as total_impressions
+  from provider_events
+)
+select
+  pe.provider_key,
+  pe.impression_count,
+  pe.select_count,
+  pe.booking_success_count,
+  case when pe.impression_count>0
+    then round(pe.select_count::numeric/pe.impression_count,4)
+    else null
+  end as selection_rate,
+  case when pe.impression_count>0
+    then round(pe.booking_success_count::numeric/pe.impression_count,4)
+    else null
+  end as booking_rate_per_impression,
+  case when t.total_impressions>0
+    then round(pe.impression_count::numeric/t.total_impressions,4)
+    else null
+  end as exposure_share
+from provider_events pe
+cross join totals t;
+
+revoke all on public.provider_exposure_metrics from public,anon,authenticated;
+grant select on public.provider_exposure_metrics to service_role;
+
+drop view if exists public.marketplace_exposure_health;
+create view public.marketplace_exposure_health
+with (security_invoker = true)
+as
+with x as (
+  select *
+  from public.provider_exposure_metrics
+  where impression_count>0
+),
+agg as (
+  select
+    coalesce(sum(impression_count),0)::int as total_impressions,
+    count(*)::int as exposed_provider_count,
+    max(exposure_share) as top_provider_share,
+    sum(power(exposure_share,2)) as exposure_hhi
+  from x
+)
+select
+  total_impressions,
+  exposed_provider_count,
+  top_provider_share,
+  exposure_hhi,
+  (total_impressions >= 100) as monitoring_mature,
+  case
+    when total_impressions < 100 then 'insufficient_data'
+    when top_provider_share >= 0.70 then 'high_concentration'
+    when top_provider_share >= 0.50 then 'watch'
+    else 'balanced'
+  end as concentration_state
+from agg;
+
+revoke all on public.marketplace_exposure_health from public,anon,authenticated;
+grant select on public.marketplace_exposure_health to service_role;
