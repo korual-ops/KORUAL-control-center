@@ -7,7 +7,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-const ENGINE_VERSION = "8.4";
+const ENGINE_VERSION = "8.5";
 const TRANSACTION_VERSION = "3.3";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
@@ -324,6 +324,27 @@ function providerCoverage(provider: any, services: string[]) {
 
 function providerSupports(provider: any, services: string[]) {
   return providerCoverage(provider, services).all_supported;
+}
+
+function bundleCoveragePlan(providers: any[], services: string[], region: string) {
+  const tasks = services.map((service) => {
+    const candidates = providers.filter((p: any) =>
+      providerSupports(p, [service]) && providerCoversRegion(p, region)
+    );
+    return {
+      service,
+      candidate_count: candidates.length,
+      provider_keys: candidates.slice(0,5).map((p: any) => cleanText(p.provider_key,120))
+    };
+  });
+
+  const fullyCovered = tasks.length > 0 && tasks.every((task) => task.candidate_count > 0);
+  return {
+    mode: fullyCovered ? "multi_provider" : "partial_coverage",
+    fully_covered: fullyCovered,
+    task_count: tasks.length,
+    tasks
+  };
 }
 
 function budgetFitScore(amount: number, budgetCap: number | null) {
@@ -706,7 +727,7 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 14,
+        version: 15,
         engine_version: ENGINE_VERSION,
         operational_reliability_gate: 20,
         transaction_version: TRANSACTION_VERSION,
@@ -725,7 +746,8 @@ Deno.serve(async (req: Request) => {
         provider_metrics_min_samples: 20,
         date_aware_ranking: true,
         availability_states: ["available","unavailable","unknown"],
-        intent_quality_gate: true
+        intent_quality_gate: true,
+        bundle_strategy_engine: true
       });
     }
 
@@ -800,17 +822,31 @@ Deno.serve(async (req: Request) => {
       );
 
       if (!eligibleProviders.length) {
+        const regionalProviders = (providerResult.data ?? []).filter((p: any) =>
+          !excludedProviderKeys.has(cleanText(p.provider_key,120)) &&
+          providerCoversRegion(p, region)
+        );
+        const bundleStrategy = services.length > 1
+          ? bundleCoveragePlan(regionalProviders, services, region)
+          : null;
+        const bundleOrchestrationRequired = Boolean(
+          bundleStrategy?.mode === "multi_provider" && bundleStrategy?.fully_covered
+        );
+
         return json(origin, {
           ok: true,
           request: { service, services, region, priority_mode: priorityMode, budget_cap: budgetCap, excluded_provider_keys: [...excludedProviderKeys] },
           engine_version: ENGINE_VERSION,
           quotes: [],
-          notice: "NO_ELIGIBLE_PROVIDER",
+          notice: bundleOrchestrationRequired
+            ? "BUNDLE_ORCHESTRATION_REQUIRED"
+            : "NO_ELIGIBLE_PROVIDER",
           intent_quality: {
             status: "ready",
             confidence: intent.confidence,
             signals: intent.signals
-          }
+          },
+          bundle_strategy: bundleStrategy
         });
       }
 
@@ -1180,6 +1216,12 @@ Deno.serve(async (req: Request) => {
           confidence: intent.confidence,
           signals: intent.signals,
           generic_only: intent.generic_only
+        },
+        bundle_strategy: {
+          mode: services.length > 1 ? "single_provider" : "single_service",
+          fully_covered: true,
+          task_count: services.length,
+          tasks: services.map((serviceName) => ({ service: serviceName }))
         },
         engine_version: ENGINE_VERSION,
         recommendation_run_id: recommendationRunId,
