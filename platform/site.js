@@ -152,39 +152,52 @@
     const raw=String(text||'').trim();
     const q=raw.toLowerCase();
     const bundle=[];
-    const add=x=>{if(!bundle.includes(x))bundle.push(x)};
+    const add=x=>{if(x&&!bundle.includes(x))bundle.push(x)};
 
-    let service='일반 서비스';
-    let priority='가격 + 신뢰';
+    if(/입주\s*청소/.test(q)) add('입주청소');
+    if(/이사/.test(q)) add('이사');
+    if(/인터넷|와이파이|wifi/i.test(q)) add('인터넷 설치');
+    if(/에어컨/.test(q)) add('에어컨');
+    if(/인테리어|리모델링/.test(q)) add('인테리어');
+    if(/수리|시공|설비|커튼/.test(q)) add('수리·시공');
+    if(/여행|항공|호텔|숙박/.test(q)) add('여행');
+    if(/웰니스|운동|마사지|케어/.test(q)) add('웰니스');
+    if(/커머스|상품|주문|배송/.test(q)) add('커머스 운영');
+    if(/청소/.test(q)&&!bundle.includes('입주청소')) add('청소');
+    if(!bundle.length&&/생활\s*서비스/.test(q)) add('생활 서비스');
 
-    if(q.includes('이사')||(q.includes('입주')&&!q.includes('청소'))){
-      service='이사';
-      add('이사');add('입주청소');add('인터넷 설치');
-      if(q.includes('에어컨')) add('에어컨');
+    let priorityMode='balanced';
+    let preferenceExplicit=false;
+    if(/가격\s*우선|저렴|싼|가성비|예산\s*우선/.test(q)){priorityMode='price';preferenceExplicit=true}
+    if(/신뢰\s*우선|검증\s*우선|후기\s*우선|안전\s*우선/.test(q)){priorityMode='trust';preferenceExplicit=true}
+    if(/속도\s*우선|빠른|급해|긴급|오늘|내일/.test(q)){priorityMode='speed';preferenceExplicit=true}
+    if(/균형|가격\s*\+\s*신뢰/.test(q)){priorityMode='balanced';preferenceExplicit=true}
+
+    const priorityLabels={balanced:'가격 + 신뢰',price:'가격 우선',trust:'신뢰 우선',speed:'속도 우선'};
+
+    let budgetCap=null;
+    const man=q.match(/(?:예산[^0-9]{0,12})?(\d+(?:\.\d+)?)\s*만\s*원?/);
+    const won=q.match(/(?:예산[^0-9]{0,12})?(\d{4,})\s*원/);
+    if(man){
+      const value=Math.round(Number(man[1])*10000);
+      if(Number.isFinite(value)&&value>0&&value<=100000000) budgetCap=value;
+    }else if(won){
+      const value=Math.round(Number(won[1]));
+      if(Number.isFinite(value)&&value>0&&value<=100000000) budgetCap=value;
     }
-    if(q.includes('청소')&&!bundle.includes('입주청소')){service=service==='일반 서비스'?'청소':service;add('청소')}
-    if(q.includes('인터넷')){service=service==='일반 서비스'?'인터넷 설치':service;add('인터넷 설치')}
-    if(q.includes('에어컨')){service=service==='일반 서비스'?'에어컨':service;add('에어컨');add('설치/세척')}
-    if(q.includes('여행')||q.includes('항공')||q.includes('호텔')){
-      service='여행';
-      add('항공/숙박');add('공항 이동');add('여행자 서비스');
-    }
-    if(q.includes('인테리어')||q.includes('시공')){service='인테리어';add('공간 상담');add('수리/시공')}
-    if(q.includes('웰니스')||q.includes('운동')){service='웰니스';add('휴식/운동');add('생활 케어')}
-    if(q.includes('커머스')||q.includes('상품')||q.includes('배송')){
-      service='커머스 운영';
-      add('상품');add('주문');add('배송/정산');
-    }
-    if(q.includes('ai')||q.includes('추천')){
-      service=service==='일반 서비스'?'AI 추천':service;
-      add('조건 분석');add('추천');
-    }
-    if(q.includes('저렴')||q.includes('싼')||q.includes('가격')) priority='가격 우선';
-    if(q.includes('후기')||q.includes('안전')||q.includes('신뢰')) priority='신뢰 우선';
-    if(q.includes('빠른')||q.includes('급해')||q.includes('오늘')) priority='속도 우선';
+
+    const service=bundle.length===1?bundle[0]:bundle.length>1?bundle[0]:'일반 서비스';
     if(!bundle.length)add(raw||'서비스');
 
-    return {raw,service,bundle:bundle.slice(0,4),priority};
+    return {
+      raw,
+      service,
+      bundle:bundle.slice(0,6),
+      priority:priorityLabels[priorityMode],
+      priorityMode,
+      preferenceExplicit,
+      budgetCap
+    };
   }
 
   const matchForm=$('#matchForm');
@@ -246,7 +259,14 @@
             rating:Number(q.rating)||0,
             reviews:Number(q.review_count)||0,
             response:q.response_minutes==null?null:Number(q.response_minutes),
-            jobs:Number(q.completed_jobs)||0
+            jobs:Number(q.completed_jobs)||0,
+            rankingScore:Number.isFinite(Number(q.ranking_score))?Number(q.ranking_score):null,
+            confidence:Number.isFinite(Number(q.confidence_score))?Number(q.confidence_score):null,
+            reasons:Array.isArray(q.reasons)?q.reasons.slice(0,3):[],
+            breakdown:q.score_breakdown&&typeof q.score_breakdown==='object'?q.score_breakdown:null,
+            lineItems:Array.isArray(q.line_items)?q.line_items.slice(0,8):[],
+            enginePriority:data?.request?.priority_mode||null,
+            engineVersion:data?.engine_version||null
           };
           updateQuoteCard(q);
         }
@@ -288,6 +308,13 @@
   function analyze(text,{count=true}={}){
     const request=inferRequest(text);
     if(!request.raw){showToast('필요한 서비스를 입력해주세요.');matchInput?.focus();return}
+    normalizePreferences();
+    if(request.preferenceExplicit&&['balanced','price','trust','speed'].includes(request.priorityMode)){
+      state.preferences.priority=request.priorityMode;
+    }
+    if(Number.isFinite(Number(request.budgetCap))&&Number(request.budgetCap)>0){
+      state.preferences.budgetCap=Number(request.budgetCap);
+    }
     state.currentRequest=request;
     state.selectedQuote=null;
     quoteMode='loading';
@@ -295,9 +322,10 @@
     state.history=[{...request,createdAt:Date.now()},...state.history.filter(x=>x.raw!==request.raw)].slice(0,20);
     save();
     renderAnalysis(request);
+    syncPreferenceUI();
     renderQuotesSelection();
     loadQuotes(request);
-    showToast('요청을 분석했습니다.');
+    showToast(request.budgetCap?'요청과 예산을 함께 분석했습니다.':'요청을 분석했습니다.');
   }
 
   matchForm?.addEventListener('submit',e=>{e.preventDefault();analyze(matchInput?.value)});
@@ -350,16 +378,53 @@
   }
 
   function scoreQuote(q){
-    const prices=Object.entries(quoteCatalog).filter(([key])=>quoteMode!=='live'||liveQuoteKeys.has(key)).map(([,x])=>Number(x.price)||0).filter(Boolean);
-    const min=Math.min(...prices),max=Math.max(...prices);
-    const priceScore=max===min?100:100-((q.price-min)/(max-min))*35;
-    const trustScore=Math.max(0,Math.min(100,Number(q.trust)||0));
-    const speed=Number(q.response);
-    const speedScore=Number.isFinite(speed)?Math.max(45,100-Math.min(speed,60)*.8):70;
-    if(state.preferences.priority==='price') return priceScore*.62+trustScore*.25+speedScore*.13;
-    if(state.preferences.priority==='trust') return trustScore*.65+priceScore*.2+speedScore*.15;
-    if(state.preferences.priority==='speed') return speedScore*.6+trustScore*.25+priceScore*.15;
-    return trustScore*.45+priceScore*.35+speedScore*.2;
+    if(!q)return -1;
+    const prices=Object.entries(quoteCatalog)
+      .filter(([key])=>quoteMode!=='live'||liveQuoteKeys.has(key))
+      .map(([,x])=>Number(x.price)||0)
+      .filter(Boolean);
+    const min=prices.length?Math.min(...prices):Number(q.price)||0;
+    const max=prices.length?Math.max(...prices):Number(q.price)||0;
+    const price=max===min?85:100-(((Number(q.price)||0)-min)/(max-min))*35;
+    const trust=Math.max(0,Math.min(100,Number(q.trust)||0));
+    const reviewCount=Math.max(0,Number(q.reviews)||0);
+    const rating=Math.max(0,Math.min(5,Number(q.rating)||0));
+    const adjustedRating=(reviewCount*rating+40*4.5)/(reviewCount+40);
+    const ratingScore=Math.max(0,Math.min(100,adjustedRating/5*100));
+    const response=Number(q.response);
+    const responseScore=!Number.isFinite(response)?55:response<=10?100:response<=20?90:response<=45?78:response<=90?65:response<=180?50:38;
+    const jobs=Math.max(0,Number(q.jobs)||0);
+    const experience=Math.max(0,Math.min(100,45+55*(1-Math.exp(-jobs/250))));
+    const verification=q.verified?100:40;
+    const confidence=Number.isFinite(Number(q.confidence))?Number(q.confidence):Math.max(0,Math.min(100,
+      (q.verified?25:0)+Math.min(25,reviewCount/200*25)+Math.min(20,jobs/300*20)+(Number.isFinite(response)?15:0)+(rating>0?15:0)
+    ));
+    const weights={
+      balanced:{price:.30,trust:.30,rating:.15,response:.10,experience:.10,verification:.05},
+      price:{price:.50,trust:.20,rating:.10,response:.08,experience:.07,verification:.05},
+      trust:{price:.15,trust:.40,rating:.20,response:.08,experience:.12,verification:.05},
+      speed:{price:.15,trust:.25,rating:.15,response:.30,experience:.10,verification:.05}
+    }[state.preferences.priority]||{price:.30,trust:.30,rating:.15,response:.10,experience:.10,verification:.05};
+    const weighted=price*weights.price+trust*weights.trust+ratingScore*weights.rating+responseScore*weights.response+experience*weights.experience+verification*weights.verification;
+    return Math.max(0,Math.min(100,weighted*(.92+.08*(confidence/100))));
+  }
+
+  function decisionReasons(q){
+    if(!q)return [];
+    const prices=Object.entries(quoteCatalog)
+      .filter(([key])=>quoteMode!=='live'||liveQuoteKeys.has(key))
+      .map(([,x])=>Number(x.price)||0).filter(Boolean);
+    const low=prices.length?Math.min(...prices):Number(q.price)||0;
+    const reasons=[];
+    if((Number(q.price)||0)<=low*1.03)reasons.push('표시 견적 중 가격 경쟁력');
+    if(Number(q.trust)>=94)reasons.push('높은 Trust Score');
+    if(Number.isFinite(Number(q.response))&&Number(q.response)<=10)reasons.push('빠른 평균 응답');
+    if(Number(q.jobs)>=300)reasons.push('완료 이력 풍부');
+    if(Number(q.rating)>=4.9&&Number(q.reviews)>=100)reasons.push('평점·리뷰 표본 강점');
+    const confidence=Number(q.confidence);
+    if(Number.isFinite(confidence)&&confidence<80)reasons.push('데이터 표본 추가 확인');
+    if(!reasons.length)reasons.push('가격·신뢰·응답의 균형 후보');
+    return reasons.slice(0,3);
   }
 
   function preferenceLabel(){
@@ -393,7 +458,17 @@
       const badge=$('.verified',card);
       if(badge) badge.textContent=quoteMode==='live'&&!unavailable?(q.verified?'✓ 검증':'미검증'):'예시';
       card.classList.remove('is-top-choice','featured');
-      return {card,q,score:q?scoreQuote(q):-1,hidden:Boolean(overBudget||unverified||unavailable)};
+      const decisionScore=q?scoreQuote(q):-1;
+      const providerMeta=$('.provider-row small',card);
+      if(providerMeta&&q){
+        if(quoteMode==='live'&&!unavailable){
+          const confidence=Number.isFinite(Number(q.confidence))?' · Confidence '+Math.round(Number(q.confidence))+'%':'';
+          providerMeta.textContent='서버 베타 · Match '+Math.round(decisionScore)+confidence;
+        }else{
+          providerMeta.textContent='예시 데이터 · 예약 불가';
+        }
+      }
+      return {card,q,score:decisionScore,hidden:Boolean(overBudget||unverified||unavailable)};
     });
     entries.sort((a,b)=>sortMode==='price'?a.q.price-b.q.price:sortMode==='trust'?b.q.trust-a.q.trust:b.score-a.score);
     entries.forEach(x=>list.appendChild(x.card));
@@ -440,10 +515,14 @@
 
   function recommendationReason(q){
     if(!q)return '추천 근거를 확인할 수 없습니다.';
-    if(state.preferences.priority==='price') return '현재 설정에서 가격 비중을 가장 높게 반영했습니다. Trust Score와 응답성은 보조 기준으로 사용했습니다.';
-    if(state.preferences.priority==='trust') return '검증 상태와 KORUAL Trust Score를 가장 크게 반영했습니다. 평점·리뷰·완료 이력도 함께 확인합니다.';
-    if(state.preferences.priority==='speed') return '평균 응답 속도를 우선 반영하고, 신뢰와 가격이 지나치게 불리하지 않은 후보를 함께 비교합니다.';
-    return '가격·신뢰·응답성을 함께 본 균형 추천입니다. 한 가지 지표만으로 자동 결정하지 않습니다.';
+    const reasons=decisionReasons(q);
+    const basis={
+      balanced:'가격·신뢰·평점·응답·완료이력을 함께 본 균형 기준',
+      price:'가격 비중을 높이되 신뢰·응답·이력을 함께 본 기준',
+      trust:'Trust·평점·리뷰·완료이력을 더 크게 반영한 기준',
+      speed:'응답속도를 우선하되 가격·신뢰가 과도하게 불리하지 않은 기준'
+    }[state.preferences.priority]||'다중 기준';
+    return basis+'입니다. '+reasons.join(' · ')+'. 데이터 신뢰도를 함께 반영하며 최종 선택은 사용자가 합니다.';
   }
 
   function openTrust(id){
@@ -626,6 +705,10 @@
         PHONE_INVALID:'연락처를 확인해주세요.',
         REGION_REQUIRED:'서비스 지역을 입력해주세요.',
         DATE_INVALID:'희망일을 확인해주세요.',
+        PROVIDER_UNAVAILABLE:'선택한 업체가 현재 이용 불가 상태입니다.',
+        PROVIDER_NOT_VERIFIED:'검증 상태가 확인되지 않아 예약할 수 없습니다.',
+        SERVICE_NOT_SUPPORTED:'선택한 업체의 제공 서비스 범위를 다시 확인해주세요.',
+        REGION_NOT_SUPPORTED:'선택한 업체가 해당 지역을 지원하지 않습니다.',
         RATE_LIMITED:'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
         ORIGIN_NOT_ALLOWED:'현재 접속 주소에서는 예약 저장을 사용할 수 없습니다.'
       };
