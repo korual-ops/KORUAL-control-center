@@ -308,6 +308,8 @@
   const goQuotes=$('#goQuotes');
   const quoteContext=$('#quoteContext');
   const quoteInsight=$('#quoteInsight');
+  const quoteEmptyTitle=$('#quoteEmptyTitle');
+  const quoteEmptyMessage=$('#quoteEmptyMessage');
   const quoteDesiredDate=$('#quoteDesiredDate');
   const verifiedOnly=$('#verifiedOnly');
   const budgetCap=$('#budgetCap');
@@ -414,8 +416,9 @@
         });
         quoteMode=liveQuoteKeys.size
           ?'live'
-          :(requestForApi.exclude_provider_keys.length?'recovery-empty':'sample');
+          :(requestForApi.exclude_provider_keys.length?'recovery-empty':'no-provider');
         if(quoteMode==='live'){
+          if(data.intent_quality)state.currentRequest.intentQuality=data.intent_quality;
           queueMicrotask(()=>{
             for(const key of liveQuoteKeys){
               const quote=quoteCatalog[key];
@@ -424,12 +427,26 @@
           });
         }
       }else{
-        quoteMode=requestForApi.exclude_provider_keys.length?'recovery-empty':'sample';
+        const notice=String(data?.notice||'');
+        if(notice==='NEEDS_SERVICE_CLARIFICATION'){
+          quoteMode='clarification';
+          if(state.currentRequest)state.currentRequest.intentQuality=data.intent_quality||null;
+          if(analysisTitle)analysisTitle.textContent='서비스를 더 구체적으로 입력해주세요';
+          if(analysisState){analysisState.textContent='NEEDS INFO';analysisState.classList.remove('ready')}
+          if(analysisNext)analysisNext.textContent='요청 보완';
+          if(goQuotes)goQuotes.disabled=true;
+        }else if(notice==='NO_AVAILABLE_PROVIDER_FOR_DATE'){
+          quoteMode='date-empty';
+        }else if(notice==='NO_ELIGIBLE_PROVIDER'){
+          quoteMode=requestForApi.exclude_provider_keys.length?'recovery-empty':'no-provider';
+        }else{
+          quoteMode=requestForApi.exclude_provider_keys.length?'recovery-empty':'no-provider';
+        }
       }
     }catch(err){
       if(version!==quoteRequestVersion||requestSignal.aborted||err?.name==='AbortError')return;
-      quoteMode='sample';
-      showToast('견적 서버 연결이 불안정해 샘플 모드로 표시합니다.');
+      quoteMode='error';
+      showToast('견적 서버 연결을 확인해주세요.');
     }finally{
       if(version===quoteRequestVersion&&quoteAbortController?.signal===requestSignal){
         quoteAbortController=null;
@@ -652,7 +669,8 @@
       const q=quoteCatalog[card.dataset.quoteCard];
       const overBudget=state.preferences.budgetCap && q && Number(q.price)>state.preferences.budgetCap;
       const unverified=state.preferences.verifiedOnly && q && !q.verified;
-      const unavailable=(quoteMode==='live'&&!liveQuoteKeys.has(card.dataset.quoteCard))||quoteMode==='recovery-empty';
+      const unavailable=(quoteMode==='live'&&!liveQuoteKeys.has(card.dataset.quoteCard))||
+        ['loading','clarification','no-provider','date-empty','recovery-empty','error'].includes(quoteMode);
       card.classList.toggle('is-filtered',Boolean(overBudget||unverified||unavailable));
       card.hidden=Boolean(overBudget||unverified||unavailable);
       const select=$('[data-quote]',card);
@@ -707,10 +725,18 @@
       const mode=quoteMode==='live'
         ?liveQuoteKeys.size+'개 서버 베타 견적'
         :quoteMode==='loading'
-          ?'서버 확인 중 · 예시 표시'
-          :quoteMode==='recovery-empty'
-            ?'대체 가능한 다른 업체 없음'
-            :'예시 견적 · 예약 불가';
+          ?'서버 확인 중'
+          :quoteMode==='clarification'
+            ?'서비스 정보 보완 필요'
+            :quoteMode==='date-empty'
+              ?'희망일 예약 가능 업체 없음'
+              :quoteMode==='recovery-empty'
+                ?'대체 가능한 다른 업체 없음'
+                :quoteMode==='no-provider'
+                  ?'현재 지원 업체 없음'
+                  :quoteMode==='error'
+                    ?'서버 연결 확인 필요'
+                    :'견적 없음';
       const date=state.currentRequest.desiredDate?' · '+state.currentRequest.desiredDate:'';
       quoteContext.textContent=state.currentRequest.service+' · '+mode+' · '+preferenceLabel()+' 우선'+cap+date;
     }
@@ -727,10 +753,47 @@
         quoteInsight.textContent='서버 베타 견적 '+amounts.length+'개'+availabilityText+' · 표시 가격 '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 실제 제공 범위와 추가 비용을 확인하세요.';
       }else{
         quoteInsight.textContent=quoteMode==='loading'
-          ?'파트너 연결을 확인하는 동안 예시 카드를 보여드립니다.'
-          :quoteMode==='recovery-empty'
-            ?'현재 조건에서 기존 업체를 제외한 대체 후보가 없습니다. 기존 예약 상태를 유지하거나 조건을 수정해주세요.'
-            :'예시 금액과 평점은 실제 견적이 아닙니다. 예약 전 서비스 범위와 최종 금액을 확인하세요.';
+          ?'검증된 파트너와 조건을 확인하고 있습니다.'
+          :quoteMode==='clarification'
+            ?'서비스 종류를 구체적으로 입력하면 실제 지원 업체만 비교합니다.'
+            :quoteMode==='date-empty'
+              ?'선택한 희망일에는 예약 가능한 검증 업체가 없습니다. 다른 날짜를 선택해주세요.'
+              :quoteMode==='recovery-empty'
+                ?'현재 조건에서 기존 업체를 제외한 대체 후보가 없습니다. 기존 예약 상태를 유지하거나 조건을 수정해주세요.'
+                :quoteMode==='no-provider'
+                  ?'서비스는 이해했지만 현재 조건을 모두 충족하는 검증 업체가 없습니다.'
+                  :quoteMode==='error'
+                    ?'서버 응답을 확인하지 못했습니다. 예시 견적 대신 실제 연결 상태를 그대로 표시합니다.'
+                    :'현재 표시할 실제 견적이 없습니다.';
+      }
+    }
+
+    if(quoteEmptyTitle&&quoteEmptyMessage){
+      const emptyCopy={
+        clarification:['어떤 서비스가 필요한지 더 구체적으로 알려주세요.','예: “10월 5일 서울 이사”, “입주청소 견적”, “에어컨 청소가 필요해”.'],
+        'date-empty':['선택한 날짜에 예약 가능한 업체가 없습니다.','희망일을 바꾸면 실제 가용시간을 기준으로 다시 비교합니다.'],
+        'no-provider':['현재 조건을 모두 충족하는 업체가 없습니다.','서비스·지역·예산 조건을 조정해 다시 확인해주세요.'],
+        'recovery-empty':['현재 대체 가능한 다른 업체가 없습니다.','기존 예약은 유지됩니다. 조건을 수정하거나 기존 예약 상태를 확인해주세요.'],
+        error:['견적 서버 연결을 확인하지 못했습니다.','예시 데이터로 대체하지 않았습니다. 잠시 후 실제 견적을 다시 조회해주세요.']
+      }[quoteMode];
+      if(emptyCopy){
+        quoteEmptyTitle.textContent=emptyCopy[0];
+        quoteEmptyMessage.textContent=emptyCopy[1];
+      }else{
+        quoteEmptyTitle.textContent='현재 조건에 맞는 견적이 없습니다.';
+        quoteEmptyMessage.textContent='예산 또는 검증 조건을 변경해 다시 비교해보세요.';
+      }
+      const action=$('#clearQuoteFilters');
+      if(action){
+        action.textContent=quoteMode==='clarification'||quoteMode==='no-provider'
+          ?'요청 수정'
+          :quoteMode==='date-empty'
+            ?'날짜 변경'
+            :quoteMode==='recovery-empty'
+              ?'예약 상태 보기'
+              :quoteMode==='error'
+                ?'다시 조회'
+                :'필터 해제';
       }
     }
   }
@@ -1824,6 +1887,23 @@
   }
   $('#retryQuotes')?.addEventListener('click',()=>loadQuotes(state.currentRequest));
   $('#clearQuoteFilters')?.addEventListener('click',()=>{
+    if(quoteMode==='clarification'||quoteMode==='no-provider'){
+      showScreen('match');
+      matchInput?.focus();
+      return;
+    }
+    if(quoteMode==='date-empty'){
+      quoteDesiredDate?.focus();
+      return;
+    }
+    if(quoteMode==='recovery-empty'){
+      showScreen('bookings');
+      return;
+    }
+    if(quoteMode==='error'){
+      if(state.currentRequest)loadQuotes(state.currentRequest);
+      return;
+    }
     state.preferences.budgetCap=null;
     state.preferences.verifiedOnly=false;
     save();syncPreferenceUI();
