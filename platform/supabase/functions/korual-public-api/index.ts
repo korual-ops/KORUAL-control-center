@@ -8,6 +8,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 const ENGINE_VERSION = "8.1";
+const TRANSACTION_VERSION = "2.0";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
 const allowedOrigins = new Set([
@@ -604,10 +605,12 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 8,
+        version: 9,
         engine_version: ENGINE_VERSION,
+        transaction_version: TRANSACTION_VERSION,
         pricing: "database_profiles",
-        quote_tokens: true
+        quote_tokens: true,
+        server_booking_state: true
       });
     }
 
@@ -1069,6 +1072,16 @@ Deno.serve(async (req: Request) => {
             .single();
 
           if (ownedRun) {
+            if (data?.booking_id) {
+              await db.from("bookings")
+                .update({ recommendation_run_id: ownedRun.id })
+                .eq("id", data.booking_id);
+            }
+            if (data?.quote_id) {
+              await db.from("provider_quotes")
+                .update({ recommendation_run_id: ownedRun.id })
+                .eq("id", data.quote_id);
+            }
             await db.from("recommendation_events").insert({
               run_id: ownedRun.id,
               session_hash: sessionHash,
@@ -1076,7 +1089,11 @@ Deno.serve(async (req: Request) => {
               provider_key: providerKey,
               position: null,
               policy_version: ownedRun.engine_version || ENGINE_VERSION,
-              metadata: { booking_id: data?.booking_id || null }
+              metadata: {
+                booking_id: data?.booking_id || null,
+                quote_id: data?.quote_id || null,
+                transaction_version: TRANSACTION_VERSION
+              }
             });
           }
         } catch (trackingError) {
@@ -1091,6 +1108,81 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (action === "booking_status") {
+      const bookingId = cleanText(body?.booking_id, 80);
+      if (!/^[0-9a-f-]{36}$/i.test(bookingId)) {
+        return json(origin, { ok: false, error: "BOOKING_ID_INVALID" }, 400);
+      }
+
+      const { data: booking, error: bookingError } = await db
+        .from("bookings")
+        .select("id,request_id,quote_id,provider_id,status,scheduled_at,recommendation_run_id,created_at,updated_at")
+        .eq("id", bookingId)
+        .single();
+
+      if (bookingError || !booking) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_FOUND" }, 404);
+      }
+
+      const { data: requestRow, error: requestError } = await db
+        .from("service_requests")
+        .select("id,request_code,services,region,desired_date,status,session_id,matching_mode,created_at,updated_at")
+        .eq("id", booking.request_id)
+        .eq("session_id", sessionId)
+        .single();
+
+      if (requestError || !requestRow) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_OWNED" }, 403);
+      }
+
+      const [providerResult, quoteResult, eventsResult] = await Promise.all([
+        db.from("providers")
+          .select("id,provider_key,name")
+          .eq("id", booking.provider_id)
+          .single(),
+        booking.quote_id
+          ? db.from("provider_quotes")
+              .select("id,amount,status,quote_expires_at,accepted_at,recommendation_run_id")
+              .eq("id", booking.quote_id)
+              .single()
+          : Promise.resolve({ data: null, error: null }),
+        db.from("service_request_events")
+          .select("event_type,from_status,to_status,actor_type,created_at")
+          .eq("request_id", booking.request_id)
+          .order("created_at", { ascending: false })
+          .limit(20)
+      ]);
+
+      if (providerResult.error) throw providerResult.error;
+      if (quoteResult.error) throw quoteResult.error;
+      if (eventsResult.error) throw eventsResult.error;
+
+      return json(origin, {
+        ok: true,
+        transaction_version: TRANSACTION_VERSION,
+        booking: {
+          id: booking.id,
+          status: booking.status,
+          scheduled_at: booking.scheduled_at,
+          created_at: booking.created_at,
+          updated_at: booking.updated_at,
+          recommendation_run_id: booking.recommendation_run_id,
+          request: {
+            id: requestRow.id,
+            code: requestRow.request_code,
+            services: requestRow.services,
+            region: requestRow.region,
+            desired_date: requestRow.desired_date,
+            status: requestRow.status,
+            matching_mode: requestRow.matching_mode
+          },
+          provider: providerResult.data,
+          quote: quoteResult.data,
+          events: eventsResult.data ?? []
+        }
+      });
+    }
+
     if (action === "complete_demo") {
       const bookingId = cleanText(body?.booking_id, 80);
       if (!/^[0-9a-f-]{36}$/i.test(bookingId)) {
@@ -1099,7 +1191,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: booking, error: bookingError } = await db
         .from("bookings")
-        .select("id,request_id,provider_id,status")
+        .select("id,request_id,provider_id,status,recommendation_run_id")
         .eq("id", bookingId)
         .single();
 
@@ -1116,6 +1208,15 @@ Deno.serve(async (req: Request) => {
 
       if (requestError || !requestRow) {
         return json(origin, { ok: false, error: "BOOKING_NOT_OWNED" }, 403);
+      }
+
+      if (booking.status === "completed" && requestRow.status === "COMPLETED") {
+        return json(origin, {
+          ok: true,
+          engine_version: ENGINE_VERSION,
+          transaction_version: TRANSACTION_VERSION,
+          booking: { id: booking.id, status: "completed", idempotent: true }
+        });
       }
 
       const { data: provider, error: providerError } = await db
@@ -1149,13 +1250,50 @@ Deno.serve(async (req: Request) => {
         from_status: requestRow.status,
         to_status: "COMPLETED",
         actor_type: "customer",
-        metadata: { source: "platform_beta", engine_version: ENGINE_VERSION }
+        metadata: {
+          source: "platform_beta",
+          engine_version: ENGINE_VERSION,
+          transaction_version: TRANSACTION_VERSION
+        }
       });
+
+      if (booking.recommendation_run_id) {
+        try {
+          const sessionHash = await hashValue(sessionId);
+          const { data: run } = await db
+            .from("recommendation_runs")
+            .select("id,engine_version,session_hash")
+            .eq("id", booking.recommendation_run_id)
+            .eq("session_hash", sessionHash)
+            .single();
+
+          if (run) {
+            const { data: providerRow } = await db
+              .from("providers")
+              .select("provider_key")
+              .eq("id", booking.provider_id)
+              .single();
+
+            await db.from("recommendation_events").insert({
+              run_id: run.id,
+              session_hash: sessionHash,
+              event_type: "complete",
+              provider_key: providerRow?.provider_key || null,
+              position: null,
+              policy_version: run.engine_version || ENGINE_VERSION,
+              metadata: { booking_id: booking.id }
+            });
+          }
+        } catch (trackingError) {
+          console.warn("complete_tracking_failed", trackingError);
+        }
+      }
 
       return json(origin, {
         ok: true,
         engine_version: ENGINE_VERSION,
-        booking: { id: booking.id, status: "completed" }
+        transaction_version: TRANSACTION_VERSION,
+        booking: { id: booking.id, status: "completed", idempotent: false }
       });
     }
 
