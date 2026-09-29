@@ -767,13 +767,165 @@
   const cancelBookingSheet=$('#cancelBookingSheet');
   const submitBooking=$('#submitBooking');
   const desiredDate=$('#desiredDate');
+  const desiredTime=$('#desiredTime');
+  const slotStatus=$('#slotStatus');
   let pendingIdempotency='';
+  let activeSlotHold=null;
+  let availabilityVersion=0;
+  let slotHoldVersion=0;
+  let slotHoldTicker=null;
 
   function localDateString(date){
     const y=date.getFullYear();
     const m=String(date.getMonth()+1).padStart(2,'0');
     const d=String(date.getDate()).padStart(2,'0');
     return y+'-'+m+'-'+d;
+  }
+
+  function formatKstTime(value){
+    if(!value)return '—';
+    const d=new Date(value);
+    if(Number.isNaN(d.getTime()))return '—';
+    return new Intl.DateTimeFormat('ko-KR',{
+      timeZone:'Asia/Seoul',
+      hour:'2-digit',
+      minute:'2-digit',
+      hour12:false
+    }).format(d);
+  }
+
+  function stopSlotTicker(){
+    if(slotHoldTicker){
+      clearInterval(slotHoldTicker);
+      slotHoldTicker=null;
+    }
+  }
+
+  function clearActiveSlotHoldLocal(){
+    stopSlotTicker();
+    activeSlotHold=null;
+  }
+
+  function updateSlotHoldStatus(){
+    if(!activeSlotHold)return;
+    const remain=Math.max(0,Math.floor((new Date(activeSlotHold.expires_at).getTime()-Date.now())/1000));
+    if(remain<=0){
+      clearActiveSlotHoldLocal();
+      if(submitBooking)submitBooking.disabled=true;
+      if(slotStatus)slotStatus.textContent='선택 시간 hold가 만료되었습니다. 시간을 다시 선택해주세요.';
+      if(desiredTime){
+        desiredTime.value='';
+        desiredTime.disabled=false;
+      }
+      return;
+    }
+    const min=Math.floor(remain/60);
+    const sec=String(remain%60).padStart(2,'0');
+    if(slotStatus)slotStatus.textContent='선택 시간이 '+min+':'+sec+' 동안 임시 확보되었습니다. 이 시간 안에 예약을 저장해주세요.';
+  }
+
+  async function releaseActiveSlotHold(){
+    const hold=activeSlotHold;
+    clearActiveSlotHoldLocal();
+    if(submitBooking)submitBooking.disabled=true;
+    if(!hold?.hold_id)return;
+    try{await fetchApi('release_slot',{hold_id:hold.hold_id})}catch(_){}
+  }
+
+  async function loadAvailability(){
+    const version=++availabilityVersion;
+    ++slotHoldVersion;
+    await releaseActiveSlotHold();
+
+    if(!desiredDate?.value||!state.selectedQuote?.quoteToken){
+      if(desiredTime){
+        desiredTime.innerHTML='<option value="">날짜를 먼저 선택</option>';
+        desiredTime.disabled=true;
+      }
+      if(slotStatus)slotStatus.textContent='날짜를 선택하면 실제 가능한 시간을 확인합니다.';
+      return;
+    }
+
+    if(desiredTime){
+      desiredTime.innerHTML='<option value="">가능 시간 확인 중…</option>';
+      desiredTime.disabled=true;
+    }
+    if(slotStatus)slotStatus.textContent='서버에서 업체 가능 시간을 확인하고 있습니다.';
+    if(submitBooking)submitBooking.disabled=true;
+
+    try{
+      const data=await fetchApi('availability',{
+        quote_token:state.selectedQuote.quoteToken,
+        desired_date:desiredDate.value
+      });
+      if(version!==availabilityVersion)return;
+
+      const slots=Array.isArray(data?.slots)?data.slots:[];
+      if(!slots.length){
+        if(desiredTime){
+          desiredTime.innerHTML='<option value="">가능한 시간 없음</option>';
+          desiredTime.disabled=true;
+        }
+        if(slotStatus)slotStatus.textContent='선택한 날짜에는 예약 가능한 시간이 없습니다. 다른 날짜를 선택해주세요.';
+        return;
+      }
+
+      if(desiredTime){
+        desiredTime.innerHTML='<option value="">시간 선택</option>'+slots.map(slot=>{
+          const start=formatKstTime(slot.starts_at);
+          const end=formatKstTime(slot.ends_at);
+          const remaining=Number(slot.remaining);
+          return '<option value="'+escapeHtml(slot.starts_at)+'">'+start+'–'+end+(Number.isFinite(remaining)?' · '+remaining+'자리':'')+'</option>';
+        }).join('');
+        desiredTime.disabled=false;
+      }
+      if(slotStatus)slotStatus.textContent='실시간 가능한 시간 '+slots.length+'개 · 시간을 선택하면 10분간 임시 확보합니다.';
+    }catch(err){
+      if(version!==availabilityVersion)return;
+      if(desiredTime){
+        desiredTime.innerHTML='<option value="">시간 조회 실패</option>';
+        desiredTime.disabled=true;
+      }
+      if(slotStatus)slotStatus.textContent='가능 시간을 불러오지 못했습니다. 날짜를 다시 선택해주세요.';
+    }
+  }
+
+  async function holdSelectedSlot(){
+    const startsAt=desiredTime?.value||'';
+    const version=++slotHoldVersion;
+    await releaseActiveSlotHold();
+
+    if(!startsAt||!state.selectedQuote?.quoteToken)return;
+
+    if(slotStatus)slotStatus.textContent='선택 시간을 임시 확보하는 중입니다.';
+    if(submitBooking)submitBooking.disabled=true;
+
+    try{
+      const data=await fetchApi('hold_slot',{
+        quote_token:state.selectedQuote.quoteToken,
+        starts_at:startsAt
+      });
+      const hold=data?.hold;
+      if(!hold?.hold_id)throw Error('HOLD_INVALID');
+
+      if(version!==slotHoldVersion){
+        try{await fetchApi('release_slot',{hold_id:hold.hold_id})}catch(_){}
+        return;
+      }
+
+      activeSlotHold=hold;
+      updateSlotHoldStatus();
+      stopSlotTicker();
+      slotHoldTicker=setInterval(updateSlotHoldStatus,1000);
+      if(submitBooking)submitBooking.disabled=false;
+    }catch(err){
+      if(version!==slotHoldVersion)return;
+      clearActiveSlotHoldLocal();
+      if(submitBooking)submitBooking.disabled=true;
+      if(desiredTime)desiredTime.value='';
+      if(slotStatus)slotStatus.textContent='방금 다른 예약이 먼저 확정했거나 hold에 실패했습니다. 다른 시간을 선택해주세요.';
+      loadAvailability();
+    }
   }
 
   function openBookingSheet(){
@@ -791,9 +943,17 @@
     pendingIdempotency=makeIdempotency();
     bookingSheet.hidden=false;
     document.body.style.overflow='hidden';
+    loadAvailability();
   }
 
   function closeSheet(){
+    ++availabilityVersion;
+    ++slotHoldVersion;
+    releaseActiveSlotHold();
+    if(desiredTime){
+      desiredTime.innerHTML='<option value="">날짜를 먼저 선택</option>';
+      desiredTime.disabled=true;
+    }
     bookingSheet.hidden=true;
     document.body.style.overflow='';
   }
@@ -806,10 +966,22 @@
   closeBookingSheet?.addEventListener('click',closeSheet);
   cancelBookingSheet?.addEventListener('click',closeSheet);
   bookingSheet?.addEventListener('click',e=>{if(e.target===bookingSheet)closeSheet()});
+  desiredDate?.addEventListener('change',loadAvailability);
+  desiredTime?.addEventListener('change',holdSelectedSlot);
 
   bookingForm?.addEventListener('submit',async e=>{
     e.preventDefault();
     if(!state.selectedQuote||!state.currentRequest||!isEligible(state.selectedQuote.id))return;
+    if(!activeSlotHold?.hold_id){
+      showToast('예약 시간을 먼저 선택해주세요.');
+      return;
+    }
+    if(new Date(activeSlotHold.expires_at).getTime()<=Date.now()){
+      clearActiveSlotHoldLocal();
+      if(submitBooking)submitBooking.disabled=true;
+      showToast('시간 hold가 만료되었습니다. 시간을 다시 선택해주세요.');
+      return;
+    }
     const customer={
       name:$('#customerName')?.value||'',
       phone:$('#customerPhone')?.value||'',
@@ -824,6 +996,7 @@
         quote_key:state.selectedQuote.id,
         recommendation_run_id:state.selectedQuote.recommendationRunId||null,
         customer,
+        slot_hold_id:activeSlotHold.hold_id,
         idempotency_key:pendingIdempotency||makeIdempotency()
       });
       const b=data.booking||{};
@@ -840,9 +1013,11 @@
           price:Number(b.amount??state.selectedQuote.price)
         },
         requestStatus:'BOOKED',
+        scheduledAt:b.scheduled_at||activeSlotHold?.starts_at||null,
         createdAt:Date.now(),
         serverUpdatedAt:Date.now()
       };
+      clearActiveSlotHoldLocal();
       save();
       closeSheet();
       showScreen('bookings');
@@ -862,13 +1037,21 @@
         QUOTE_SERVICE_MISMATCH:'선택한 견적과 현재 요청 서비스가 일치하지 않습니다. 다시 비교해주세요.',
         QUOTE_REGION_MISMATCH:'견적을 받은 지역과 예약 지역이 다릅니다. 지역 조건으로 다시 비교해주세요.',
         QUOTE_TOKEN_REQUIRED:'최신 견적 확인이 필요합니다. 견적을 다시 불러와주세요.',
+        SLOT_HOLD_REQUIRED:'예약 시간을 다시 선택해주세요.',
+        SLOT_HOLD_EXPIRED:'선택한 시간 hold가 만료되었습니다. 시간을 다시 선택해주세요.',
+        SLOT_HOLD_INACTIVE:'선택한 시간이 더 이상 확보되어 있지 않습니다.',
+        SLOT_HOLD_MISMATCH:'선택한 시간과 현재 예약 조건이 일치하지 않습니다.',
+        SLOT_UNAVAILABLE:'선택한 시간이 방금 마감되었습니다. 다른 시간을 선택해주세요.',
         RATE_LIMITED:'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
         ORIGIN_NOT_ALLOWED:'현재 접속 주소에서는 예약 저장을 사용할 수 없습니다.'
       };
       if(state.selectedQuote)bestEffortTrack('booking_failure',state.selectedQuote);
       showToast(messages[code]||'예약 저장에 실패했습니다. 다시 시도해주세요.');
     }finally{
-      if(submitBooking){submitBooking.disabled=false;submitBooking.textContent='예약 요청 저장'}
+      if(submitBooking){
+        submitBooking.textContent='예약 요청 저장';
+        submitBooking.disabled=!activeSlotHold?.hold_id;
+      }
     }
   });
 
@@ -968,7 +1151,10 @@
       const updated=Number(state.booking.serverUpdatedAt);
       const time=Number.isFinite(updated)?new Date(updated).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'—';
       const requestStatus=state.booking.requestStatus||'—';
-      syncMeta.textContent='서버 '+requestStatus+' · 마지막 동기화 '+time;
+      const scheduled=state.booking.scheduledAt?new Intl.DateTimeFormat('ko-KR',{
+        timeZone:'Asia/Seoul',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false
+      }).format(new Date(state.booking.scheduledAt)):'일정 미정';
+      syncMeta.textContent='서버 '+requestStatus+' · '+scheduled+' · 마지막 동기화 '+time;
     }
 
     const timeline=$$('.timeline-item');
