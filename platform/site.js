@@ -776,10 +776,12 @@
   let slotHoldTicker=null;
 
   function localDateString(date){
-    const y=date.getFullYear();
-    const m=String(date.getMonth()+1).padStart(2,'0');
-    const d=String(date.getDate()).padStart(2,'0');
-    return y+'-'+m+'-'+d;
+    return new Intl.DateTimeFormat('en-CA',{
+      timeZone:'Asia/Seoul',
+      year:'numeric',
+      month:'2-digit',
+      day:'2-digit'
+    }).format(date);
   }
 
   function formatKstTime(value){
@@ -935,7 +937,7 @@
     $('#sheetService').textContent=state.currentRequest.service;
     $('#sheetQuote').textContent=state.selectedQuote.name+' · ₩'+Number(state.selectedQuote.price).toLocaleString('ko-KR');
     const todayDate=new Date();
-    const tomorrow=new Date(todayDate.getFullYear(),todayDate.getMonth(),todayDate.getDate()+1);
+    const tomorrow=new Date(todayDate.getTime()+24*60*60*1000);
     if(desiredDate){
       desiredDate.min=localDateString(todayDate);
       if(!desiredDate.value) desiredDate.value=localDateString(tomorrow);
@@ -1046,11 +1048,17 @@
         ORIGIN_NOT_ALLOWED:'현재 접속 주소에서는 예약 저장을 사용할 수 없습니다.'
       };
       if(state.selectedQuote)bestEffortTrack('booking_failure',state.selectedQuote);
+      if(['SLOT_HOLD_REQUIRED','SLOT_HOLD_EXPIRED','SLOT_HOLD_INACTIVE','SLOT_HOLD_MISMATCH','SLOT_UNAVAILABLE'].includes(code)){
+        clearActiveSlotHoldLocal();
+        if(desiredTime)desiredTime.value='';
+        loadAvailability();
+      }
       showToast(messages[code]||'예약 저장에 실패했습니다. 다시 시도해주세요.');
     }finally{
       if(submitBooking){
         submitBooking.textContent='예약 요청 저장';
-        submitBooking.disabled=!activeSlotHold?.hold_id;
+        const validHold=activeSlotHold?.hold_id&&new Date(activeSlotHold.expires_at).getTime()>Date.now();
+        submitBooking.disabled=!validHold;
       }
     }
   });
