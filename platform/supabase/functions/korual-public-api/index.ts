@@ -7,7 +7,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-const ENGINE_VERSION = "8.2";
+const ENGINE_VERSION = "8.3";
 const TRANSACTION_VERSION = "3.3";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
@@ -160,7 +160,7 @@ function operationalReliabilityWeight(mode: PriorityMode, attemptCount: number) 
     trust: 0.10,
     speed: 0.08
   }[mode];
-  const maturity = clamp((attemptCount - 20) / 80, 0, 1) / 100;
+  const maturity = clamp((attemptCount - 20) / 80, 0, 1);
   return Number((maxWeight * (0.25 + 0.75 * maturity)).toFixed(4));
 }
 
@@ -208,6 +208,16 @@ function blendOperationalReliability(baseScore: number, candidate: any, mode: Pr
   return baseScore * (1 - weight) + Number(operational.score) * weight;
 }
 
+function availabilityAdjustment(candidate: any, mode: PriorityMode) {
+  if (candidate?.availability?.status !== "available") return 0;
+  return {
+    balanced: 2.5,
+    price: 1.25,
+    trust: 2.0,
+    speed: 4.5
+  }[mode];
+}
+
 function decisionScoreForMode(candidate: any, mode: PriorityMode) {
   const b = candidate?.score_breakdown;
   if (!b) return Number(candidate?.decision_score ?? candidate?.ranking_score ?? 0);
@@ -227,8 +237,9 @@ function decisionScoreForMode(candidate: any, mode: PriorityMode) {
     0.94 + 0.06 * (clamp(Number(candidate?.confidence_score) || 0) / 100);
   const raw = clamp(weighted * confidenceMultiplier);
   const blended = blendOperationalReliability(raw, candidate, mode);
+  const availabilityAdjusted = blended + availabilityAdjustment(candidate, mode);
   const penalty = clamp(Number(candidate?.uncertainty_penalty) || 0, 0, 8);
-  return Number(clamp(blended - penalty).toFixed(2));
+  return Number(clamp(availabilityAdjusted - penalty).toFixed(2));
 }
 
 function rankingSensitivity(candidates: any[]) {
@@ -405,6 +416,8 @@ function buildReasons(candidate: any, candidates: any[]) {
   if (candidate.operational_reliability?.eligible && Number(candidate.operational_reliability.score) >= 85) {
     reasons.push("업체 확인 실적 강점");
   }
+  if (candidate.availability?.status === "available") reasons.push("희망일 예약 가능");
+  if (candidate.availability?.status === "unknown") reasons.push("희망일 일정 확인 필요");
   if (Number(candidate.uncertainty_penalty) >= 4) reasons.push("불확실성 보수 적용");
   if (!reasons.length) reasons.push("다중 기준 균형 후보");
   return reasons.slice(0, 3);
@@ -674,7 +687,7 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 12,
+        version: 13,
         engine_version: ENGINE_VERSION,
         operational_reliability_gate: 20,
         transaction_version: TRANSACTION_VERSION,
@@ -690,7 +703,9 @@ Deno.serve(async (req: Request) => {
         background_sla_sweeper: true,
         recovery_engine: true,
         atomic_recovery_swap: true,
-        provider_metrics_min_samples: 20
+        provider_metrics_min_samples: 20,
+        date_aware_ranking: true,
+        availability_states: ["available","unavailable","unknown"]
       });
     }
 
@@ -703,6 +718,11 @@ Deno.serve(async (req: Request) => {
       const region = detectRegion(request);
       const priorityMode = normalizePriority(request);
       const weights = priorityWeights(priorityMode);
+      const desiredDateRaw = cleanText(request?.desired_date || request?.desiredDate, 10);
+      const desiredDate = desiredDateRaw && validateDate(desiredDateRaw) ? desiredDateRaw : null;
+      if (desiredDateRaw && !desiredDate) {
+        return json(origin, { ok: false, error: "DATE_INVALID" }, 400);
+      }
 
       const rawBudgetCap = Number(request?.budget_cap ?? request?.budgetCap);
       const budgetCap = Number.isFinite(rawBudgetCap) && rawBudgetCap > 0
@@ -746,28 +766,38 @@ Deno.serve(async (req: Request) => {
       }
 
       const providerIds = eligibleProviders.map((p: any) => p.id);
-      const [profileResult, confirmationMetricResult] = await Promise.all([
+      const [profileResult, confirmationMetricResult, availabilityResult] = await Promise.all([
         db.from("provider_pricing_profiles")
           .select("provider_id,service_category,multiplier,confidence_score,source")
           .in("provider_id", providerIds),
         db.from("provider_confirmation_metrics")
           .select("provider_id,provider_key,attempt_count,confirmed_count,expired_count,declined_count,observed_response_minutes,ranking_eligible,observed_confirmation_rate,observed_expiry_rate,shrunk_confirmation_rate")
-          .in("provider_id", providerIds)
+          .in("provider_id", providerIds),
+        desiredDate
+          ? db.rpc("get_provider_date_availability_v1", {
+              p_provider_ids: providerIds,
+              p_date: desiredDate
+            })
+          : Promise.resolve({ data: [], error: null })
       ]);
 
       if (profileResult.error) throw profileResult.error;
       if (confirmationMetricResult.error) throw confirmationMetricResult.error;
+      if (availabilityResult.error) throw availabilityResult.error;
 
       const profiles = profileResult.data ?? [];
       const confirmationMetricByProvider = new Map(
         (confirmationMetricResult.data ?? []).map((m: any) => [m.provider_id, m])
+      );
+      const availabilityByProvider = new Map(
+        (availabilityResult.data ?? []).map((a: any) => [a.provider_id, a])
       );
 
       const benchmarks = services.map((s) =>
         benchmarkFor(s, region, benchmarkResult.data ?? [])
       );
 
-      const candidates = eligibleProviders.map((p: any) => {
+      let candidates = eligibleProviders.map((p: any) => {
         const lineItems = benchmarks.map((benchmark) => {
           const profile = pricingProfile(p.id, benchmark.service, profiles);
           return {
@@ -803,6 +833,22 @@ Deno.serve(async (req: Request) => {
         const operationalReliability = operationalReliabilityScore(
           confirmationMetricByProvider.get(p.id)
         );
+        const availabilityRow = availabilityByProvider.get(p.id);
+        const availability = desiredDate
+          ? {
+              desired_date: desiredDate,
+              status: cleanText(availabilityRow?.availability_status || "unknown", 20),
+              slot_count: Math.max(0, Number(availabilityRow?.slot_count) || 0),
+              total_remaining: Math.max(0, Number(availabilityRow?.total_remaining) || 0),
+              earliest_start: availabilityRow?.earliest_start || null
+            }
+          : {
+              desired_date: null,
+              status: "not_requested",
+              slot_count: 0,
+              total_remaining: 0,
+              earliest_start: null
+            };
 
         return {
           key: p.provider_key || p.id,
@@ -824,9 +870,43 @@ Deno.serve(async (req: Request) => {
           budget_fit: budgetCap == null ? true : amount <= budgetCap,
           budget_score: budgetFitScore(amount, budgetCap),
           operational_reliability: operationalReliability,
+          availability,
           demo: Boolean(p.is_demo)
         };
       });
+
+      const availabilitySummary = {
+        desired_date: desiredDate,
+        available_count: candidates.filter((c: any) => c.availability?.status === "available").length,
+        unknown_count: candidates.filter((c: any) => c.availability?.status === "unknown").length,
+        unavailable_count: candidates.filter((c: any) => c.availability?.status === "unavailable").length
+      };
+
+      if (desiredDate) {
+        candidates = candidates.filter((c: any) => c.availability?.status !== "unavailable");
+        if (!candidates.length) {
+          return json(origin, {
+            ok: true,
+            request: {
+              service,
+              services,
+              region,
+              priority_mode: priorityMode,
+              budget_cap: budgetCap,
+              desired_date: desiredDate,
+              excluded_provider_keys: [...excludedProviderKeys]
+            },
+            engine_version: ENGINE_VERSION,
+            quotes: [],
+            decision_context: {
+              status: "no_available_provider",
+              availability: availabilitySummary,
+              pool_size: 0
+            },
+            notice: "NO_AVAILABLE_PROVIDER_FOR_DATE"
+          });
+        }
+      }
 
       const prices = candidates.map((c: any) => c.amount);
       const minPrice = Math.min(...prices);
@@ -874,8 +954,10 @@ Deno.serve(async (req: Request) => {
           Number(c.operational_reliability?.attempt_count || 0)
         );
         c.operational_reliability_weight = reliabilityWeight;
+        c.availability_adjustment = availabilityAdjustment(c, priorityMode);
         c.ranking_score = Number(clamp(
-          blendOperationalReliability(baseRankingScore, c, priorityMode)
+          blendOperationalReliability(baseRankingScore, c, priorityMode) +
+          c.availability_adjustment
         ).toFixed(2));
 
         // Conservative decision score: do not let sparse evidence look as certain as dense evidence.
@@ -935,12 +1017,29 @@ Deno.serve(async (req: Request) => {
         hard_constraints: {
           verified: true,
           full_service_coverage: true,
-          region_match: Boolean(region)
+          region_match: Boolean(region),
+          date_availability_checked: Boolean(desiredDate)
         },
+        availability: availabilitySummary,
         pool_size: candidates.length
       };
 
-      const shortlist = selectDiverseShortlist(candidates, 3);
+      let shortlist: any[] = [];
+      if (desiredDate) {
+        const availableCandidates = candidates.filter((c: any) => c.availability?.status === "available");
+        const unknownCandidates = candidates.filter((c: any) => c.availability?.status === "unknown");
+        for (const candidate of selectDiverseShortlist(availableCandidates, 3)) {
+          if (!shortlist.some((x: any) => x.provider_key === candidate.provider_key)) shortlist.push(candidate);
+        }
+        if (shortlist.length < 3) {
+          for (const candidate of selectDiverseShortlist(unknownCandidates, 3)) {
+            if (shortlist.length >= 3) break;
+            if (!shortlist.some((x: any) => x.provider_key === candidate.provider_key)) shortlist.push(candidate);
+          }
+        }
+      } else {
+        shortlist = selectDiverseShortlist(candidates, 3);
+      }
       for (let i = 0; i < shortlist.length; i++) {
         const c = shortlist[i];
         c.presentation_order = i + 1;
@@ -951,6 +1050,7 @@ Deno.serve(async (req: Request) => {
           services,
           region: region || null,
           priority_mode: priorityMode,
+          desired_date: desiredDate,
           engine_version: ENGINE_VERSION,
           exp: Date.now() + QUOTE_TTL_MS
         });
@@ -979,6 +1079,8 @@ Deno.serve(async (req: Request) => {
               evidence_score: c.evidence_score,
               operational_reliability: c.operational_reliability,
               operational_reliability_weight: c.operational_reliability_weight,
+              availability: c.availability,
+              availability_adjustment: c.availability_adjustment,
               pareto_efficient: c.pareto_efficient,
               roles: c.roles,
               score_breakdown: c.score_breakdown
@@ -987,6 +1089,8 @@ Deno.serve(async (req: Request) => {
               source: "korual-public-api",
               pricing_basis: "database_benchmark_profiles",
               region: region || null,
+              desired_date: desiredDate,
+              availability_summary: availabilitySummary,
               budget_cap: budgetCap,
               budget_fit_count: budgetFitCount,
               decision_status: decisionStatus,
@@ -1018,6 +1122,7 @@ Deno.serve(async (req: Request) => {
           priority_mode: priorityMode,
           priority: cleanText(request.priority, 40),
           budget_cap: budgetCap,
+          desired_date: desiredDate,
           bundle: normalizeBundle(request.bundle, service),
           excluded_provider_keys: [...excludedProviderKeys]
         },
