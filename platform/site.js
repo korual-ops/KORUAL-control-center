@@ -1383,6 +1383,20 @@
     }
   }
 
+  let bookingStatusPollTimer=null;
+  function ensureBookingStatusPolling(){
+    if(bookingStatusPollTimer)return;
+    bookingStatusPollTimer=setInterval(()=>{
+      if(document.hidden)return;
+      const bookingsScreen=document.querySelector('.screen[data-screen="bookings"]');
+      const confirmationState=String(state.booking?.confirmation?.status||'').toLowerCase();
+      if(bookingsScreen&&!bookingsScreen.hidden&&state.booking?.backend_id&&['','awaiting'].includes(confirmationState)){
+        syncBookingStatus({silent:true});
+      }
+    },30000);
+  }
+  ensureBookingStatusPolling();
+
   function renderBooking(){
     const empty=$('#emptyBooking');
     const card=$('#bookingCard');
