@@ -1569,7 +1569,7 @@
       compareAlternatives.textContent=recoveryRequired?'대안 다시 비교':'견적 다시 보기';
     }
 
-    const timeline=$('.timeline-item');
+    const timeline=Array.from(document.querySelectorAll('.timeline-item'));
     const doneCount=status==='COMPLETED'?3:status==='CONFIRMED'?2:1;
     timeline.forEach((x,i)=>{
       x.classList.toggle('done',i<doneCount);
