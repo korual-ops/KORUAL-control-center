@@ -109,6 +109,106 @@ create trigger bookings_validate_transition_trg
 before update of status on public.bookings
 for each row execute function public.validate_booking_transition();
 
+create or replace function public.match_service_providers(
+  p_request_id uuid,
+  p_limit integer default 5
+)
+returns table(
+  provider_id uuid,
+  provider_name text,
+  score integer,
+  rating numeric,
+  review_count integer,
+  verified boolean
+)
+language sql
+security definer
+set search_path = pg_catalog, public
+as $
+with req as (
+  select id, services, region
+  from public.service_requests
+  where id=p_request_id
+),
+scored as (
+  select
+    p.id,
+    p.name,
+    p.rating,
+    p.review_count,
+    p.verified,
+    p.korual_score,
+    p.avg_response_minutes,
+    p.completed_jobs,
+    cardinality(r.services) as requested_count,
+    (
+      select count(*)
+      from unnest(r.services) s
+      where
+        s = any(coalesce(p.service_categories,'{}'::text[]))
+        or (
+          '생활 서비스' = any(coalesce(p.service_categories,'{}'::text[]))
+          and s = any(array[
+            '이사','입주청소','청소','인터넷 설치','에어컨',
+            '인테리어','수리·시공','생활 서비스'
+          ]::text[])
+        )
+    ) as supported_count,
+    exists(
+      select 1
+      from unnest(coalesce(p.regions,'{}'::text[])) rg
+      where
+        rg='전국'
+        or r.region ilike '%' || rg || '%'
+        or rg ilike '%' || r.region || '%'
+    ) as region_match
+  from req r
+  cross join public.providers p
+  where p.active=true
+    and p.verified=true
+)
+select
+  id,
+  name,
+  least(
+    100,
+    round(
+      35 * (coalesce(korual_score,0)::numeric / 100) +
+      20 * (coalesce(rating,0)::numeric / 5) +
+      15 * (
+        case
+          when avg_response_minutes is null then 0.55
+          when avg_response_minutes <= 10 then 1.00
+          when avg_response_minutes <= 20 then 0.90
+          when avg_response_minutes <= 45 then 0.78
+          when avg_response_minutes <= 90 then 0.65
+          else 0.45
+        end
+      ) +
+      15 * least(1.0, ln(greatest(1,coalesce(completed_jobs,0)+1)) / ln(501)) +
+      10 * least(1.0, ln(greatest(1,coalesce(review_count,0)+1)) / ln(301)) +
+      5 * (
+        case when requested_count > 0
+          then supported_count::numeric / requested_count
+          else 0
+        end
+      )
+    )::integer
+  ) as score,
+  rating,
+  review_count,
+  verified
+from scored
+where requested_count > 0
+  and supported_count = requested_count
+  and region_match
+order by score desc, rating desc, review_count desc
+limit greatest(1,least(p_limit,20));
+$;
+
+revoke all on function public.match_service_providers(uuid,integer) from public, anon, authenticated;
+grant execute on function public.match_service_providers(uuid,integer) to service_role;
+
 create or replace function public.auto_dispatch_service_request_matches()
 returns trigger
 language plpgsql
