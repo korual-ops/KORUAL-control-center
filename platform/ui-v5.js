@@ -15,7 +15,8 @@
         card.dataset.matchScore||'',card.dataset.confidence||'',card.dataset.pareto||'',
         card.dataset.roles||'',card.dataset.scoreBreakdown||'',
         card.dataset.budgetStatus||'',card.dataset.budgetFitCount||'',card.dataset.budgetCap||'',
-        card.dataset.decisionStatus||'',card.dataset.evidence||'',card.dataset.coverage||'',card.dataset.budgetScore||''
+        card.dataset.decisionStatus||'',card.dataset.evidence||'',card.dataset.coverage||'',card.dataset.budgetScore||'',
+        card.dataset.rawRankingScore||'',card.dataset.uncertaintyPenalty||''
       ].join('::');
       if(card.dataset.v5Signature===signature)return;
       card.dataset.v5Signature=signature;
@@ -50,13 +51,15 @@
         ['서비스 일치',b.coverage],['가격 근거',b.evidence],['검증',b.verification]
       ].filter(([,v])=>Number.isFinite(Number(v)));
       const match=Number(card.dataset.matchScore);
+      const rawRanking=Number(card.dataset.rawRankingScore);
+      const uncertaintyPenalty=Number(card.dataset.uncertaintyPenalty);
       const confidence=Number(card.dataset.confidence);
       details.innerHTML='<summary>왜 이 점수인가?</summary>'+
         '<div class="uxv5-score-grid">'+metrics.map(([k,v])=>
           '<div><label><span>'+k+'</span><b>'+Math.round(Number(v))+'</b></label><div class="uxv5-bar"><i style="width:'+Math.max(0,Math.min(100,Number(v)))+'%"></i></div></div>'
         ).join('')+'</div>'+
-        '<div class="uxv5-score-meta"><span>Match <strong>'+(Number.isFinite(match)?Math.round(match):'—')+'</strong></span><span>Data confidence <strong>'+(Number.isFinite(confidence)?Math.round(confidence)+'%':'—')+'</strong></span></div>'+
-        '<p class="uxv5-explain-note">각 수치는 비교용 입력 점수입니다. 한 항목만으로 업체를 결정하지 않으며, 실제 서비스 범위·추가비용·취소 및 보증 조건을 별도로 확인하세요.</p>';
+        '<div class="uxv5-score-meta"><span>Decision <strong>'+(Number.isFinite(match)?match.toFixed(1):'—')+'</strong></span><span>Raw <strong>'+(Number.isFinite(rawRanking)?rawRanking.toFixed(1):'—')+'</strong></span><span>Uncertainty <strong>'+(Number.isFinite(uncertaintyPenalty)?'-'+uncertaintyPenalty.toFixed(1):'—')+'</strong></span><span>Data confidence <strong>'+(Number.isFinite(confidence)?Math.round(confidence)+'%':'—')+'</strong></span></div>'+
+        '<p class="uxv5-explain-note">Decision Score는 원점수에서 데이터 불확실성을 보수적으로 차감한 비교값입니다. 통계적 확률이나 품질 보증이 아니며, 실제 서비스 범위·추가비용·취소 및 보증 조건을 별도로 확인하세요.</p>';
     };
 
     const syncDecisionStatus=()=>{
@@ -121,7 +124,7 @@
     if('MutationObserver' in window){
       new MutationObserver(()=>syncAll()).observe(quoteList,{
         childList:true,subtree:true,attributes:true,
-        attributeFilter:['data-match-score','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','data-budget-status','data-budget-fit-count','data-budget-cap','data-decision-status','data-evidence','data-coverage','data-budget-score','hidden']
+        attributeFilter:['data-match-score','data-raw-ranking-score','data-uncertainty-penalty','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','data-budget-status','data-budget-fit-count','data-budget-cap','data-decision-status','data-evidence','data-coverage','data-budget-score','hidden']
       });
     }
   });
