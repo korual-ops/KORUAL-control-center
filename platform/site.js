@@ -32,6 +32,8 @@
   let quoteMode='sample';
   let liveQuoteKeys=new Set();
   let quoteRequestVersion=0;
+  let quoteAbortController=null;
+  const quoteResponseCache=new Map();
   let sortMode='recommended';
 
   let state={
@@ -126,8 +128,12 @@
     return ('kb_'+raw.replace(/-/g,'_')).slice(0,80);
   }
 
-  async function fetchApi(action,payload={}){
+  async function fetchApi(action,payload={},options={}){
     const controller=new AbortController();
+    const externalSignal=options?.signal;
+    const forwardAbort=()=>controller.abort();
+    if(externalSignal?.aborted)controller.abort();
+    else externalSignal?.addEventListener?.('abort',forwardAbort,{once:true});
     const timer=setTimeout(()=>controller.abort(),9000);
     try{
       const res=await fetch(API_URL,{
@@ -145,7 +151,31 @@
       return data;
     }finally{
       clearTimeout(timer);
+      externalSignal?.removeEventListener?.('abort',forwardAbort);
     }
+  }
+
+  function quoteCacheKey(request){
+    return JSON.stringify({
+      raw:String(request?.raw||'').trim(),
+      service:String(request?.service||'').trim(),
+      bundle:Array.isArray(request?.bundle)?request.bundle.slice(0,8):[],
+      priority_mode:String(request?.priority_mode||'balanced'),
+      budget_cap:Number(request?.budget_cap)||null
+    });
+  }
+
+  async function fetchQuotesStable(requestForApi,signal){
+    const key=quoteCacheKey(requestForApi);
+    const cached=quoteResponseCache.get(key);
+    if(cached&&Date.now()-cached.at<15000)return cached.data;
+    const data=await fetchApi('quotes',{request:requestForApi},{signal});
+    quoteResponseCache.set(key,{at:Date.now(),data});
+    if(quoteResponseCache.size>12){
+      const oldest=[...quoteResponseCache.entries()].sort((a,b)=>a[1].at-b[1].at)[0]?.[0];
+      if(oldest)quoteResponseCache.delete(oldest);
+    }
+    return data;
   }
 
   function inferRequest(text){
@@ -234,6 +264,9 @@
   async function loadQuotes(request){
     if(!request)return;
     const version=++quoteRequestVersion;
+    quoteAbortController?.abort();
+    quoteAbortController=new AbortController();
+    const requestSignal=quoteAbortController.signal;
     quoteMode='loading';
     liveQuoteKeys.clear();
     quoteCatalog={...sampleQuotes};
@@ -248,8 +281,8 @@
         priority_mode:state.preferences.priority,
         budget_cap:state.preferences.budgetCap||null
       };
-      const data=await fetchApi('quotes',{request:requestForApi});
-      if(version!==quoteRequestVersion)return;
+      const data=await fetchQuotesStable(requestForApi,requestSignal);
+      if(version!==quoteRequestVersion||requestSignal.aborted)return;
       if(Array.isArray(data.quotes)&&data.quotes.length){
         const slots=['best','value','premium'];
         data.quotes.slice(0,slots.length).forEach((serverQuote,index)=>{
@@ -277,6 +310,9 @@
             jobs:Number(q.completed_jobs)||0,
             rankingScore:Number.isFinite(Number(q.ranking_score))?Number(q.ranking_score):null,
             confidence:Number.isFinite(Number(q.confidence_score))?Number(q.confidence_score):null,
+            evidence:Number.isFinite(Number(q.evidence_score))?Number(q.evidence_score):null,
+            coverage:Number.isFinite(Number(q.coverage_score))?Number(q.coverage_score):null,
+            budgetScore:Number.isFinite(Number(q.budget_score))?Number(q.budget_score):null,
             reasons:Array.isArray(q.reasons)?q.reasons.slice(0,3):[],
             breakdown:q.score_breakdown&&typeof q.score_breakdown==='object'?q.score_breakdown:null,
             lineItems:Array.isArray(q.line_items)?q.line_items.slice(0,8):[],
@@ -298,11 +334,15 @@
         quoteMode='sample';
       }
     }catch(err){
-      if(version!==quoteRequestVersion)return;
+      if(version!==quoteRequestVersion||requestSignal.aborted||err?.name==='AbortError')return;
       quoteMode='sample';
       showToast('견적 서버 연결이 불안정해 샘플 모드로 표시합니다.');
+    }finally{
+      if(version===quoteRequestVersion&&quoteAbortController?.signal===requestSignal){
+        quoteAbortController=null;
+      }
     }
-    renderQuotesSelection();
+    if(version===quoteRequestVersion)renderQuotesSelection();
   }
 
   function updateQuoteCard(q){
@@ -322,6 +362,10 @@
     card.dataset.budgetFitCount=q.decision_context?.budget?.fit_count==null?'':String(q.decision_context.budget.fit_count);
     card.dataset.budgetCap=q.decision_context?.budget?.cap==null?'':String(q.decision_context.budget.cap);
     card.dataset.budgetFit=q.budget_fit===false?'false':'true';
+    card.dataset.decisionStatus=q.decision_context?.status||'';
+    card.dataset.evidence=q.evidence_score==null?'':String(q.evidence_score);
+    card.dataset.coverage=q.coverage_score==null?'':String(q.coverage_score);
+    card.dataset.budgetScore=q.budget_score==null?'':String(q.budget_score);
     const providerName=$('.provider-row strong',card);
     const providerMeta=$('.provider-row small',card);
     const price=$('.price-row strong',card);
