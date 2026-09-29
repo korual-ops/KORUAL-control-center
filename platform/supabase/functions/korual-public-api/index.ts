@@ -1619,6 +1619,80 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (action === "bundle_status") {
+      const groupId=cleanText(body?.group_id,80);
+      if (!/^[0-9a-f-]{36}$/i.test(groupId)) {
+        return json(origin,{ok:false,error:"BUNDLE_ID_INVALID"},400);
+      }
+
+      const { data:group,error:groupError }=await db.from("bundle_booking_groups")
+        .select("id,request_id,session_id,services,region,desired_date,status,total_amount,created_at,updated_at")
+        .eq("id",groupId)
+        .eq("session_id",sessionId)
+        .single();
+
+      if (groupError || !group) {
+        return json(origin,{ok:false,error:"BUNDLE_NOT_FOUND"},404);
+      }
+
+      const { data:items,error:itemError }=await db.from("bundle_booking_items")
+        .select("id,group_id,sequence_no,service,provider_id,child_request_id,quote_id,booking_id,slot_hold_id,amount,status")
+        .eq("group_id",group.id)
+        .order("sequence_no",{ascending:true});
+      if (itemError) throw itemError;
+
+      const bookingIds=(items ?? []).map((x:any)=>x.booking_id).filter(Boolean);
+      const providerIds=[...new Set((items ?? []).map((x:any)=>x.provider_id).filter(Boolean))];
+
+      const [bookingResult,providerResult]=await Promise.all([
+        bookingIds.length
+          ? db.from("bookings")
+              .select("id,status,scheduled_at,confirmation_status,confirmation_deadline,recovery_status,updated_at")
+              .in("id",bookingIds)
+          : Promise.resolve({data:[],error:null}),
+        providerIds.length
+          ? db.from("providers")
+              .select("id,provider_key,name")
+              .in("id",providerIds)
+          : Promise.resolve({data:[],error:null})
+      ]);
+      if (bookingResult.error) throw bookingResult.error;
+      if (providerResult.error) throw providerResult.error;
+
+      const bookingById=new Map((bookingResult.data ?? []).map((x:any)=>[x.id,x]));
+      const providerById=new Map((providerResult.data ?? []).map((x:any)=>[x.id,x]));
+      const resolvedItems=(items ?? []).map((item:any)=>({
+        ...item,
+        booking:bookingById.get(item.booking_id)||null,
+        provider:providerById.get(item.provider_id)||null
+      }));
+
+      const childStatuses=resolvedItems.map((x:any)=>x.booking?.status).filter(Boolean);
+      const derivedStatus=childStatuses.length && childStatuses.every((s:string)=>s==="completed")
+        ?"completed"
+        :childStatuses.length && childStatuses.every((s:string)=>s==="cancelled")
+          ?"cancelled"
+          :"booked";
+
+      return json(origin,{
+        ok:true,
+        transaction_version:TRANSACTION_VERSION,
+        bundle:{
+          id:group.id,
+          request_id:group.request_id,
+          services:group.services,
+          region:group.region,
+          desired_date:group.desired_date,
+          status:derivedStatus,
+          stored_status:group.status,
+          total_amount:Number(group.total_amount)||0,
+          created_at:group.created_at,
+          updated_at:group.updated_at,
+          items:resolvedItems
+        }
+      });
+    }
+
     if (action === "availability") {
       const desiredDate = cleanText(body?.desired_date, 10);
       if (!validateDate(desiredDate)) {
