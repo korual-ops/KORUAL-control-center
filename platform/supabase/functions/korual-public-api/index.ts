@@ -1062,6 +1062,39 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (action === "release_slot") {
+      const holdId = cleanText(body?.hold_id, 80);
+      if (!/^[0-9a-f-]{36}$/i.test(holdId)) {
+        return json(origin, { ok: false, error: "SLOT_HOLD_INVALID" }, 400);
+      }
+
+      const { data: hold, error: holdError } = await db
+        .from("provider_slot_holds")
+        .select("id,status,session_id")
+        .eq("id", holdId)
+        .eq("session_id", sessionId)
+        .single();
+
+      if (holdError || !hold) {
+        return json(origin, { ok: false, error: "SLOT_HOLD_NOT_FOUND" }, 404);
+      }
+
+      if (hold.status === "held") {
+        const { error: releaseError } = await db
+          .from("provider_slot_holds")
+          .update({ status: "released", updated_at: new Date().toISOString() })
+          .eq("id", hold.id)
+          .eq("status", "held");
+        if (releaseError) throw releaseError;
+      }
+
+      return json(origin, {
+        ok: true,
+        transaction_version: TRANSACTION_VERSION,
+        released: hold.status === "held"
+      });
+    }
+
     if (action === "book") {
       const request = body?.request ?? {};
       const customer = body?.customer ?? {};
