@@ -514,13 +514,12 @@
     syncPreferenceUI();
   });
 
-  budgetCap?.addEventListener('change',()=>{
+  budgetCap?.addEventListener('input',()=>{
     normalizePreferences();
     const cap=Number(budgetCap.value);
     state.preferences.budgetCap=Number.isFinite(cap)&&cap>0?cap:null;
     save();
-    syncPreferenceUI();
-    if(state.preferences.budgetCap)showToast('예산 상한을 적용했습니다.');
+    applyDecisionLens();
   });
 
   document.addEventListener('click',e=>{
