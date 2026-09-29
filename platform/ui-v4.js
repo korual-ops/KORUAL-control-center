@@ -272,8 +272,8 @@
 
     if('MutationObserver' in window){
       new MutationObserver(()=>updateMarket()).observe(quoteList,{
-        childList:true,subtree:true,attributes:true,
-        attributeFilter:['data-price','data-trust','hidden','class']
+        subtree:true,attributes:true,
+        attributeFilter:['data-price','data-trust','hidden']
       });
       if(trustSheet)new MutationObserver(syncTrustLens).observe(trustSheet,{attributes:true,attributeFilter:['hidden']});
     }
