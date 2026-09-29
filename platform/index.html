@@ -214,8 +214,9 @@
         </div>
 
         <article id="bookingCard" class="booking-card" hidden>
-          <div class="booking-card-head"><div><small>REQUESTED</small><strong id="bookingId">—</strong></div><span>접수됨</span></div>
+          <div class="booking-card-head"><div><small id="bookingStatusEyebrow">REQUESTED</small><strong id="bookingId">—</strong></div><span id="bookingStatusBadge">접수됨</span></div>
           <div class="booking-service"><span class="service-avatar">K</span><div><small id="bookingServiceLabel">서비스</small><strong id="bookingProviderLabel">Partner</strong></div><b id="bookingPriceLabel">—</b></div>
+          <p id="bookingSyncMeta" class="booking-sync-meta" aria-live="polite">서버 상태 동기화 대기</p>
           <div class="timeline">
             <div class="timeline-item done"><i></i><div><strong>예약 요청</strong><small>요청이 저장되었습니다.</small></div></div>
             <div class="timeline-item"><i></i><div><strong>업체 확인</strong><small>파트너 확인 단계</small></div></div>
