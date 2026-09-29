@@ -32,6 +32,7 @@
   let quoteMode='sample';
   let liveQuoteKeys=new Set();
   let quoteRequestVersion=0;
+  let sortMode='recommended';
 
   let state={
     requests:0,
@@ -54,6 +55,8 @@
     sessionId=('ks_'+raw.replace(/-/g,'_')).slice(0,80);
     try{localStorage.setItem(SESSION_KEY,sessionId)}catch(_){}
   }
+
+  state.history=Array.isArray(state.history)?state.history.filter(x=>x&&typeof x.raw==='string'&&Array.isArray(x.bundle)).slice(0,20):[];
 
   function save(){
     try{localStorage.setItem(STATE_KEY,JSON.stringify(state))}catch(_){}
@@ -97,7 +100,8 @@
     tabs.forEach(tab=>tab.classList.toggle('is-active',tab.dataset.tab===name));
     if(headerTitle) headerTitle.textContent=titles[name][0];
     if(headerSubtitle) headerSubtitle.textContent=titles[name][1];
-    if(updateHash && location.hash!=='#'+name) history.replaceState(null,'','#'+name);
+    if(updateHash && location.hash!=='#'+name) history.pushState(null,'','#'+name);
+    tabs.forEach(tab=>tab.setAttribute('aria-current',tab.dataset.tab===name?'page':'false'));
     window.scrollTo({top:0,behavior:'instant'});
   }
 
@@ -209,7 +213,7 @@
     if(detectedBundle) detectedBundle.innerHTML=request.bundle.map(x=>'<span class="detected">'+escapeHtml(x)+'</span>').join('');
     if(analysisService) analysisService.textContent=request.service;
     if(analysisPriority) analysisPriority.textContent=request.priority;
-    if(analysisNext) analysisNext.textContent='3개 견적 비교';
+    if(analysisNext) analysisNext.textContent='조건에 맞는 견적 확인';
     if(goQuotes) goQuotes.disabled=false;
     if(quoteContext) quoteContext.textContent=request.service+' · '+request.priority+' 기준의 베타 견적입니다.';
   }
@@ -229,7 +233,7 @@
       if(version!==quoteRequestVersion)return;
       if(Array.isArray(data.quotes)&&data.quotes.length){
         for(const q of data.quotes){
-          if(!Object.hasOwn(sampleQuotes,q.key)||!q.provider_key||!Number.isFinite(Number(q.amount)))continue;
+          if(!Object.hasOwn(sampleQuotes,q.key)||!q.provider_key||!Number.isFinite(Number(q.amount))||Number(q.amount)<0)continue;
           liveQuoteKeys.add(q.key);
           quoteCatalog[q.key]={
             id:q.key,
@@ -288,6 +292,7 @@
     state.selectedQuote=null;
     quoteMode='loading';
     if(count) state.requests=(Number(state.requests)||0)+1;
+    state.history=[{...request,createdAt:Date.now()},...state.history.filter(x=>x.raw!==request.raw)].slice(0,20);
     save();
     renderAnalysis(request);
     renderQuotesSelection();
@@ -362,6 +367,13 @@
     return map[state.preferences.priority]||'균형';
   }
 
+  function isEligible(id){
+    const q=quoteCatalog[id];
+    return Boolean(q && quoteMode==='live' && liveQuoteKeys.has(id) &&
+      (!state.preferences.verifiedOnly||q.verified) &&
+      (!state.preferences.budgetCap||q.price<=state.preferences.budgetCap));
+  }
+
   function applyDecisionLens(){
     normalizePreferences();
     const list=$('#quoteList');
@@ -372,19 +384,35 @@
       const unverified=state.preferences.verifiedOnly && q && !q.verified;
       const unavailable=quoteMode==='live'&&!liveQuoteKeys.has(card.dataset.quoteCard);
       card.classList.toggle('is-filtered',Boolean(overBudget||unverified||unavailable));
+      card.hidden=Boolean(overBudget||unverified||unavailable);
+      const select=$('[data-quote]',card);
+      if(select) select.disabled=!isEligible(card.dataset.quoteCard);
+      const rank=$('.quote-rank,.ai-pick,.value-pick,.premium-pick',card);
+      if(rank)rank.textContent=q?.label||'견적';
       card.classList.toggle('is-sample',quoteMode!=='live'||unavailable);
       const badge=$('.verified',card);
       if(badge) badge.textContent=quoteMode==='live'&&!unavailable?(q.verified?'✓ 검증':'미검증'):'예시';
       card.classList.remove('is-top-choice','featured');
       return {card,q,score:q?scoreQuote(q):-1,hidden:Boolean(overBudget||unverified||unavailable)};
     });
-    entries.sort((a,b)=>b.score-a.score);
+    entries.sort((a,b)=>sortMode==='price'?a.q.price-b.q.price:sortMode==='trust'?b.q.trust-a.q.trust:b.score-a.score);
     entries.forEach(x=>list.appendChild(x.card));
     const top=entries.find(x=>!x.hidden);
+    const empty=$('#quoteEmpty');
+    if(empty)empty.hidden=Boolean(top);
+    const retry=$('#retryQuotes');
+    if(retry){retry.disabled=quoteMode==='loading'||!state.currentRequest;retry.textContent=quoteMode==='loading'?'견적 확인 중…':'견적 다시 조회';}
+    if(state.selectedQuote&&!isEligible(state.selectedQuote.id)){
+      state.selectedQuote=null;
+      if(stickyQuoteName)stickyQuoteName.textContent='조건에 맞는 견적을 선택하세요';
+      if(stickyQuotePrice)stickyQuotePrice.textContent='—';
+      if(bookSelected)bookSelected.disabled=true;
+      $$('[data-quote-card]').forEach(card=>card.classList.remove('selected'));
+    }
     if(top){
       top.card.classList.add('is-top-choice','featured');
       const badge=$('.quote-rank,.ai-pick,.value-pick,.premium-pick',top.card);
-      if(badge) badge.textContent='AI PICK';
+      if(badge) badge.textContent=quoteMode==='live'?'조건별 추천':'비교 예시';
     }
     if(quoteContext&&state.currentRequest){
       const cap=state.preferences.budgetCap?' · '+Number(state.preferences.budgetCap).toLocaleString('ko-KR')+'원 이하':'';
@@ -421,10 +449,12 @@
   function openTrust(id){
     const q=quoteCatalog[id];
     if(!q||!trustSheet)return;
+    const isSample=quoteMode!=='live'||!liveQuoteKeys.has(id);
+    $('.trust-disclosure p').textContent=isSample?'예시 수치입니다. 실제 업체 검증·리뷰·보증을 의미하지 않습니다.':'서버에서 조회한 베타 데이터입니다. 업체의 실제 서비스 범위와 취소·보증 조건을 별도로 확인하세요.';
     $('#trustTitle').textContent=q.name||'파트너 신뢰 정보';
     $('#trustScoreLarge').textContent=String(Math.round(Number(q.trust)||0));
     $('#trustReason').textContent=recommendationReason(q);
-    $('#trustVerified').textContent=q.verified?'검증 완료':'미검증';
+    $('#trustVerified').textContent=isSample?'예시 데이터':q.verified?'서버 표시: 검증':'미검증';
     $('#trustRating').textContent=Number(q.rating||0).toFixed(1)+' / 5';
     $('#trustReviews').textContent=Number(q.reviews||0).toLocaleString('ko-KR')+'건';
     $('#trustResponse').textContent=q.response==null?'데이터 없음':q.response+'분';
@@ -458,7 +488,7 @@
     if(!btn)return;
     const quote=quoteCatalog[btn.dataset.quote];
     if(!quote)return;
-    if(quoteMode==='live'&&!liveQuoteKeys.has(quote.id)){showToast('이 카드는 예시입니다. 실제 견적을 선택해주세요.');return}
+    if(!isEligible(quote.id)){showToast('현재 조건에 맞는 서버 견적만 선택할 수 있습니다.');return}
     if(!state.currentRequest){
       state.currentRequest=inferRequest('생활 서비스');
       state.requests=(Number(state.requests)||0)+1;
@@ -509,15 +539,8 @@
 
     $$('.filter-strip [data-sort]').forEach(btn=>btn.addEventListener('click',()=>{
     $$('.filter-strip [data-sort]').forEach(x=>x.classList.toggle('is-active',x===btn));
-    if(!quoteList)return;
-    const cards=$$('[data-quote-card]',quoteList);
-    const mode=btn.dataset.sort;
-    cards.sort((a,b)=>{
-      if(mode==='price') return Number(a.dataset.price)-Number(b.dataset.price);
-      if(mode==='trust') return Number(b.dataset.trust)-Number(a.dataset.trust);
-      const rank={best:0,value:1,premium:2};
-      return rank[a.dataset.quoteCard]-rank[b.dataset.quoteCard];
-    }).forEach(card=>quoteList.appendChild(card));
+    sortMode=btn.dataset.sort;
+    applyDecisionLens();
   }));
 
   const bookingSheet=$('#bookingSheet');
@@ -536,7 +559,7 @@
   }
 
   function openBookingSheet(){
-    if(quoteMode!=='live'||!liveQuoteKeys.has(state.selectedQuote?.id)){showToast('예시 견적은 예약할 수 없습니다. 실제 견적 연결을 확인해주세요.');return}
+    if(!isEligible(state.selectedQuote?.id)){showToast('예시 견적은 예약할 수 없습니다. 실제 견적 연결을 확인해주세요.');return}
     if(!state.selectedQuote){showToast('먼저 견적을 선택해주세요.');return}
     if(!state.currentRequest){showToast('먼저 서비스 요청을 분석해주세요.');return}
     $('#sheetService').textContent=state.currentRequest.service;
@@ -564,7 +587,7 @@
 
   bookingForm?.addEventListener('submit',async e=>{
     e.preventDefault();
-    if(!state.selectedQuote||!state.currentRequest||quoteMode!=='live'||!liveQuoteKeys.has(state.selectedQuote.id))return;
+    if(!state.selectedQuote||!state.currentRequest||!isEligible(state.selectedQuote.id))return;
     const customer={
       name:$('#customerName')?.value||'',
       phone:$('#customerPhone')?.value||'',
@@ -692,38 +715,59 @@
     renderBooking();
     renderHome();
     renderProfile();
+    renderHistory();
   }
   renderState();
   syncPreferenceUI();
 
-  statusButton?.addEventListener('click',async()=>{
-    showScreen('profile');
+  async function checkPlatform(){
     const panel=$('#platformPanel');
-    if(panel) panel.hidden=false;
+    if(panel)panel.hidden=false;
     const status=$('.status-ok');
-    if(status){status.textContent='CHECKING';status.style.opacity='.65'}
-    try{
-      await fetchApi('health');
-      if(status){status.textContent='ONLINE';status.style.opacity='1'}
-      showToast('KORUAL API가 정상입니다.');
-    }catch(_){
-      if(status){status.textContent='DEGRADED';status.style.opacity='1'}
-      showToast('API 상태를 확인하지 못했습니다.');
-    }
-  });
+    status.textContent='확인 중';
+    $('#apiHealth').textContent='확인 중';
+    $('#webHealth').textContent='확인 중';
+    const results=await Promise.allSettled([
+      fetch('/healthz',{signal:AbortSignal.timeout(9000)}).then(async r=>{if(!r.ok||!(await r.json()).ok)throw Error();}),
+      fetchApi('health')
+    ]);
+    $('#webHealth').textContent=results[0].status==='fulfilled'?'정상':'연결 확인 필요';
+    $('#apiHealth').textContent=results[1].status==='fulfilled'?'정상':'연결 확인 필요';
+    status.textContent=results.every(x=>x.status==='fulfilled')?'정상':'일부 연결 확인 필요';
+    $('#healthChecked').textContent=new Date().toLocaleTimeString('ko-KR');
+  }
+  statusButton?.addEventListener('click',()=>{showScreen('profile');checkPlatform();});
+  $('#showPlatformStatus')?.addEventListener('click',checkPlatform);
 
-  $('#showPlatformStatus')?.addEventListener('click',async()=>{
-    const panel=$('#platformPanel');
-    if(panel) panel.hidden=!panel.hidden;
-    if(panel&&!panel.hidden){
-      try{await fetchApi('health');showToast('플랫폼 API 정상')}
-      catch(_){showToast('플랫폼 API 확인 실패')}
-    }
+  function renderHistory(){
+    const list=$('#requestHistory');
+    if(!list)return;
+    list.replaceChildren();
+    if(!state.history.length){list.textContent='아직 저장된 요청이 없습니다.';return;}
+    state.history.forEach(request=>{
+      const button=document.createElement('button');
+      button.type='button';button.className='history-item';
+      const title=document.createElement('strong');title.textContent=request.raw;
+      const meta=document.createElement('small');meta.textContent=request.service+' · 다시 비교';
+      button.append(title,meta);
+      button.addEventListener('click',()=>{matchInput.value=request.raw;showScreen('match');analyze(request.raw,{count:false});});
+      list.append(button);
+    });
+  }
+  $('#retryQuotes')?.addEventListener('click',()=>loadQuotes(state.currentRequest));
+  $('#clearQuoteFilters')?.addEventListener('click',()=>{
+    state.preferences.budgetCap=null;
+    state.preferences.verifiedOnly=false;
+    save();syncPreferenceUI();
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){closeTrust();closeSheet();}
   });
 
   $('#resetDemo')?.addEventListener('click',()=>{
     if(!confirm('이 기기에 저장된 KORUAL 표시 상태를 초기화할까요? 서버 예약 기록은 삭제되지 않습니다.'))return;
-    state={requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null,preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}};
+    quoteRequestVersion++;quoteMode='sample';liveQuoteKeys.clear();quoteCatalog={...sampleQuotes};
+    state={history:[],requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null,preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}};
     try{localStorage.removeItem(STATE_KEY)}catch(_){}
     if(matchInput) matchInput.value='';
     if(analysisTitle) analysisTitle.textContent='요청을 기다리는 중';

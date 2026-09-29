@@ -41,7 +41,7 @@
         </div>
       </div>
       <div class="header-right">
-        <button id="statusButton" class="header-chip" type="button" aria-label="플랫폼 상태"><span class="live-dot"></span><span>LIVE</span></button>
+        <button id="statusButton" class="header-chip" type="button" aria-label="플랫폼 상태"><span class="live-dot"></span><span>상태 확인</span></button>
         <button id="languageToggle" class="header-icon language-toggle" type="button" aria-label="언어 변경"><span id="languageCode">KO</span></button>
         <button id="themeToggle" class="header-icon" type="button" aria-label="테마 변경">◐</button>
       </div>
@@ -82,8 +82,8 @@
       <section class="screen" data-screen="match" aria-label="AI 매칭" hidden>
         <div class="screen-heading">
           <span class="eyebrow">AI MATCH</span>
-          <h2>조건을 말하면<br>AI가 정리합니다.</h2>
-          <p>복잡한 폼 대신 자연어로 입력하세요.</p>
+          <h2>조건을 말하면<br>조건을 정리합니다.</h2>
+          <p>필요한 서비스를 입력하세요. 키워드 기반으로 요청을 분류합니다.</p>
         </div>
 
         <form id="matchForm" class="composer">
@@ -157,13 +157,15 @@
           <button type="button" data-sort="trust">신뢰도</button>
         </div>
 
+        <div class="quote-tools"><p>제공 범위·추가 비용·취소 조건까지 확인하세요.</p><button id="retryQuotes" type="button">견적 다시 조회</button></div>
+        <div id="quoteEmpty" class="empty-card" hidden><strong>현재 조건에 맞는 견적이 없습니다.</strong><p>예산 또는 검증 조건을 변경해 다시 비교해보세요.</p><button id="clearQuoteFilters" type="button">필터 해제</button></div>
         <div id="quoteList" class="quote-list">
           <article class="quote-card featured" data-quote-card="best" data-price="142000" data-trust="96">
             <div class="quote-top"><span class="ai-pick">AI PICK</span><span class="verified">✓ 검증</span></div>
             <div class="provider-row"><span class="provider-avatar">B</span><div><strong>Partner B</strong><small>생활서비스 파트너 · 샘플</small></div><button type="button" class="trust-trigger" data-trust="best" aria-label="신뢰 정보 보기">검증</button></div>
             <div class="price-row"><div><small>예상 견적</small><strong>₩142,000</strong></div><span>추천</span></div>
             <div class="trust-row"><div><small>KORUAL Trust</small><strong>96</strong></div><div class="score"><i style="width:96%"></i></div></div>
-            <div class="fact-grid"><span><small>후기</small><b>4.9</b></span><span><small>응답</small><b>매우 빠름</b></span><span><small>취소</small><b>유연</b></span></div>
+            <div class="fact-grid"><span><small>후기</small><b>4.9</b></span><span><small>응답</small><b>매우 빠름</b></span><span><small>취소</small><b>별도 확인</b></span></div>
             <button class="select-quote" type="button" data-quote="best">이 견적 선택 <span>→</span></button>
           </article>
 
@@ -172,16 +174,16 @@
             <div class="provider-row"><span class="provider-avatar">A</span><div><strong>Partner A</strong><small>생활서비스 파트너 · 샘플</small></div><button type="button" class="trust-trigger" data-trust="value" aria-label="신뢰 정보 보기">검증</button></div>
             <div class="price-row"><div><small>예상 견적</small><strong>₩128,000</strong></div><span>가성비</span></div>
             <div class="trust-row"><div><small>KORUAL Trust</small><strong>91</strong></div><div class="score"><i style="width:91%"></i></div></div>
-            <div class="fact-grid"><span><small>후기</small><b>4.8</b></span><span><small>응답</small><b>빠름</b></span><span><small>취소</small><b>유연</b></span></div>
+            <div class="fact-grid"><span><small>후기</small><b>4.8</b></span><span><small>응답</small><b>빠름</b></span><span><small>취소</small><b>별도 확인</b></span></div>
             <button class="select-quote" type="button" data-quote="value">이 견적 선택 <span>→</span></button>
           </article>
 
           <article class="quote-card" data-quote-card="premium" data-price="169000" data-trust="94">
             <div class="quote-top"><span class="premium-pick">PREMIUM</span><span class="verified">✓ 검증</span></div>
             <div class="provider-row"><span class="provider-avatar">C</span><div><strong>Partner C</strong><small>생활서비스 파트너 · 샘플</small></div><button type="button" class="trust-trigger" data-trust="premium" aria-label="신뢰 정보 보기">검증</button></div>
-            <div class="price-row"><div><small>예상 견적</small><strong>₩169,000</strong></div><span>보증 강화</span></div>
+            <div class="price-row"><div><small>예상 견적</small><strong>₩169,000</strong></div><span>조건 확인</span></div>
             <div class="trust-row"><div><small>KORUAL Trust</small><strong>94</strong></div><div class="score"><i style="width:94%"></i></div></div>
-            <div class="fact-grid"><span><small>후기</small><b>5.0</b></span><span><small>응답</small><b>빠름</b></span><span><small>보증</small><b>확장</b></span></div>
+            <div class="fact-grid"><span><small>후기</small><b>5.0</b></span><span><small>응답</small><b>빠름</b></span><span><small>보증</small><b>별도 확인</b></span></div>
             <button class="select-quote" type="button" data-quote="premium">이 견적 선택 <span>→</span></button>
           </article>
         </div>
@@ -272,6 +274,7 @@
           <button id="openAgentControl" type="button">추천 기준 변경 <span>→</span></button>
         </article>
 
+        <section class="request-history" aria-labelledby="historyTitle"><h2 id="historyTitle">최근 요청 다시 비교</h2><p>이 기기에 최근 20개 요청이 저장됩니다.</p><div id="requestHistory"></div></section>
         <div class="settings-card">
           <button type="button" id="profileTheme"><span>◐</span><div><strong>화면 테마</strong><small>라이트 / 다크 모드</small></div><b>→</b></button>
           <button type="button" id="showPlatformStatus"><span>●</span><div><strong>플랫폼 상태</strong><small>Railway · GitHub · Health</small></div><b>→</b></button>
@@ -279,8 +282,8 @@
         </div>
 
         <article id="platformPanel" class="platform-panel" hidden>
-          <div class="platform-panel-head"><div><small>CONTROL CENTER</small><strong>Production Status</strong></div><span class="status-ok">ONLINE</span></div>
-          <div class="platform-grid"><div><small>Railway</small><strong>Online</strong></div><div><small>GitHub</small><strong>Connected</strong></div><div><small>UI</small><strong>Static-first</strong></div><div><small>Health</small><strong>200 OK</strong></div></div>
+          <div class="platform-panel-head"><div><small>CONTROL CENTER</small><strong>Production Status</strong></div><span class="status-ok">미확인</span></div>
+          <div class="platform-grid"><div><small>웹 서버</small><strong id="webHealth">미확인</strong></div><div><small>예약 API</small><strong id="apiHealth">미확인</strong></div><div><small>확인 시각</small><strong id="healthChecked">—</strong></div><div><small>서비스 단계</small><strong>베타</strong></div></div>
         </article>
       </section>
     </main>
