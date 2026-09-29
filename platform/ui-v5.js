@@ -14,7 +14,8 @@
       const signature=[
         card.dataset.matchScore||'',card.dataset.confidence||'',card.dataset.pareto||'',
         card.dataset.roles||'',card.dataset.scoreBreakdown||'',
-        card.dataset.budgetStatus||'',card.dataset.budgetFitCount||'',card.dataset.budgetCap||''
+        card.dataset.budgetStatus||'',card.dataset.budgetFitCount||'',card.dataset.budgetCap||'',
+        card.dataset.decisionStatus||'',card.dataset.evidence||'',card.dataset.coverage||'',card.dataset.budgetScore||''
       ].join('::');
       if(card.dataset.v5Signature===signature)return;
       card.dataset.v5Signature=signature;
@@ -44,8 +45,9 @@
 
       const b=parseJson(card.dataset.scoreBreakdown);
       const metrics=[
-        ['가격',b.price],['Trust',b.trust],['평점',b.rating],
-        ['응답',b.response],['완료이력',b.experience],['검증',b.verification]
+        ['가격',b.price],['예산 적합',b.budget],['Trust',b.trust],
+        ['평점',b.rating],['응답',b.response],['완료이력',b.experience],
+        ['서비스 일치',b.coverage],['가격 근거',b.evidence],['검증',b.verification]
       ].filter(([,v])=>Number.isFinite(Number(v)));
       const match=Number(card.dataset.matchScore);
       const confidence=Number(card.dataset.confidence);
@@ -78,6 +80,7 @@
         single_candidate:['비교 가능한 후보가 1개입니다.','선택지가 부족하므로 추천 점수보다 실제 제공 조건 확인이 더 중요합니다.']
       }[level]||['의사결정 보조 모드','가격·신뢰·응답·이력과 데이터 완성도를 함께 비교합니다.'];
       const budgetStatus=first.dataset.budgetStatus||'';
+      const decisionStatus=first.dataset.decisionStatus||'';
       const fitCount=Number(first.dataset.budgetFitCount);
       const budgetCap=Number(first.dataset.budgetCap);
       let budgetText='';
@@ -87,8 +90,14 @@
       if(budgetStatus==='no_match'&&Number.isFinite(budgetCap)){
         budgetText=' · 입력 예산 '+budgetCap.toLocaleString('ko-KR')+'원 내 후보 없음';
       }
+      const statusText={
+        review_budget:'예산 조건을 다시 보는 편이 좋습니다.',
+        low_evidence:'가격 근거 데이터가 충분하지 않아 추가 확인이 필요합니다.',
+        compare_tradeoffs:'상위 후보가 근소해 장점별 비교가 중요합니다.',
+        ready:'현재 조건으로 비교 가능한 후보군입니다.'
+      }[decisionStatus]||'';
       box.dataset.level=level;
-      box.innerHTML='<div><small>DECISION CONFIDENCE</small><strong>'+copy[0]+'</strong></div><span>'+copy[1]+(Number.isFinite(gap)?' · 상위 점수 차이 '+gap.toFixed(1):'')+budgetText+'</span>';
+      box.innerHTML='<div><small>DECISION CONFIDENCE</small><strong>'+copy[0]+'</strong></div><span>'+copy[1]+(statusText?' · '+statusText:'')+(Number.isFinite(gap)?' · 상위 점수 차이 '+gap.toFixed(1):'')+budgetText+'</span>';
     };
 
     const syncAll=()=>{
@@ -112,7 +121,7 @@
     if('MutationObserver' in window){
       new MutationObserver(()=>syncAll()).observe(quoteList,{
         childList:true,subtree:true,attributes:true,
-        attributeFilter:['data-match-score','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','data-budget-status','data-budget-fit-count','data-budget-cap','hidden']
+        attributeFilter:['data-match-score','data-confidence','data-pareto','data-roles','data-score-breakdown','data-decision-level','data-decision-gap','data-budget-status','data-budget-fit-count','data-budget-cap','data-decision-status','data-evidence','data-coverage','data-budget-score','hidden']
       });
     }
   });
