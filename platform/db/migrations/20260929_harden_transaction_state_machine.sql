@@ -396,3 +396,7 @@ revoke all on function public.create_beta_booking(
 grant execute on function public.create_beta_booking(
   text,text,text[],text,date,text,text,text,integer,text
 ) to service_role;
+
+
+-- Keep provider pricing profiles server-only without duplicate permissive policies.
+drop policy if exists provider_pricing_profiles_deny_select on public.provider_pricing_profiles;
