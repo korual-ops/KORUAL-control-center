@@ -8,7 +8,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 const ENGINE_VERSION = "8.1";
-const TRANSACTION_VERSION = "2.0";
+const TRANSACTION_VERSION = "3.0";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
 const allowedOrigins = new Set([
@@ -610,7 +610,9 @@ Deno.serve(async (req: Request) => {
         transaction_version: TRANSACTION_VERSION,
         pricing: "database_profiles",
         quote_tokens: true,
-        server_booking_state: true
+        server_booking_state: true,
+        availability_engine: true,
+        slot_holds: true
       });
     }
 
@@ -963,6 +965,103 @@ Deno.serve(async (req: Request) => {
       return json(origin, { ok: true, tracked: true });
     }
 
+    if (action === "availability") {
+      const desiredDate = cleanText(body?.desired_date, 10);
+      if (!validateDate(desiredDate)) {
+        return json(origin, { ok: false, error: "DATE_INVALID" }, 400);
+      }
+
+      const token = cleanText(body?.quote_token, 6000);
+      if (!token) return json(origin, { ok: false, error: "QUOTE_TOKEN_REQUIRED" }, 409);
+
+      const payload = await verifyQuoteToken(token);
+      if (!payload) return json(origin, { ok: false, error: "QUOTE_TOKEN_INVALID" }, 409);
+
+      const providerKey = cleanText(payload.provider_key, 120);
+      const { data: provider, error: providerError } = await db
+        .from("providers")
+        .select("id,provider_key,name,active,verified,is_demo")
+        .eq("provider_key", providerKey)
+        .eq("active", true)
+        .eq("verified", true)
+        .single();
+
+      if (providerError || !provider) {
+        return json(origin, { ok: false, error: "PROVIDER_UNAVAILABLE" }, 409);
+      }
+
+      const { data: slots, error: slotError } = await db.rpc("get_provider_available_slots", {
+        p_provider_id: provider.id,
+        p_date: desiredDate
+      });
+      if (slotError) throw slotError;
+
+      return json(origin, {
+        ok: true,
+        transaction_version: TRANSACTION_VERSION,
+        provider: {
+          provider_key: provider.provider_key,
+          name: provider.name,
+          demo: Boolean(provider.is_demo)
+        },
+        desired_date: desiredDate,
+        timezone: "Asia/Seoul",
+        hold_minutes: 10,
+        slots: (slots ?? []).map((s: any) => ({
+          starts_at: s.starts_at,
+          ends_at: s.ends_at,
+          capacity: Number(s.capacity),
+          remaining: Number(s.remaining)
+        }))
+      });
+    }
+
+    if (action === "hold_slot") {
+      const token = cleanText(body?.quote_token, 6000);
+      const startsAt = cleanText(body?.starts_at, 64);
+      if (!token) return json(origin, { ok: false, error: "QUOTE_TOKEN_REQUIRED" }, 409);
+      if (!startsAt || Number.isNaN(Date.parse(startsAt))) {
+        return json(origin, { ok: false, error: "SLOT_INVALID" }, 400);
+      }
+
+      const payload = await verifyQuoteToken(token);
+      if (!payload) return json(origin, { ok: false, error: "QUOTE_TOKEN_INVALID" }, 409);
+
+      const providerKey = cleanText(payload.provider_key, 120);
+      const { data: provider, error: providerError } = await db
+        .from("providers")
+        .select("id,provider_key,name,active,verified")
+        .eq("provider_key", providerKey)
+        .eq("active", true)
+        .eq("verified", true)
+        .single();
+
+      if (providerError || !provider) {
+        return json(origin, { ok: false, error: "PROVIDER_UNAVAILABLE" }, 409);
+      }
+
+      const { data: hold, error: holdError } = await db.rpc("hold_provider_slot", {
+        p_provider_id: provider.id,
+        p_session_id: sessionId,
+        p_starts_at: startsAt
+      });
+
+      if (holdError) {
+        const msg = String(holdError.message || "").toLowerCase();
+        if (msg.includes("slot unavailable")) {
+          return json(origin, { ok: false, error: "SLOT_UNAVAILABLE" }, 409);
+        }
+        throw holdError;
+      }
+
+      return json(origin, {
+        ok: true,
+        transaction_version: TRANSACTION_VERSION,
+        hold,
+        timezone: "Asia/Seoul"
+      });
+    }
+
     if (action === "book") {
       const request = body?.request ?? {};
       const customer = body?.customer ?? {};
@@ -978,12 +1077,16 @@ Deno.serve(async (req: Request) => {
       const phone = cleanText(customer.phone, 24).replace(/[^0-9]/g, "");
       const region = cleanText(customer.region, 80);
       const desiredDate = cleanText(customer.desired_date, 10);
+      const slotHoldId = cleanText(body?.slot_hold_id, 80);
       const idempotencyKey = cleanText(body?.idempotency_key, 80);
 
       if (name.length < 2) return json(origin, { ok: false, error: "NAME_REQUIRED" }, 400);
       if (phone.length < 10 || phone.length > 11) return json(origin, { ok: false, error: "PHONE_INVALID" }, 400);
       if (region.length < 2) return json(origin, { ok: false, error: "REGION_REQUIRED" }, 400);
       if (!validateDate(desiredDate)) return json(origin, { ok: false, error: "DATE_INVALID" }, 400);
+      if (!/^[0-9a-f-]{36}$/i.test(slotHoldId)) {
+        return json(origin, { ok: false, error: "SLOT_HOLD_REQUIRED" }, 409);
+      }
       if (!/^[A-Za-z0-9_-]{8,80}$/.test(idempotencyKey)) {
         return json(origin, { ok: false, error: "IDEMPOTENCY_INVALID" }, 400);
       }
@@ -1043,7 +1146,7 @@ Deno.serve(async (req: Request) => {
         return json(origin, { ok: false, error: "REGION_NOT_SUPPORTED" }, 409);
       }
 
-      const { data, error } = await db.rpc("create_beta_booking", {
+      const { data, error } = await db.rpc("create_beta_booking_v2", {
         p_session_id: sessionId,
         p_idempotency_key: idempotencyKey,
         p_services: tokenServices,
@@ -1053,12 +1156,29 @@ Deno.serve(async (req: Request) => {
         p_phone: phone,
         p_provider_key: providerKey,
         p_amount: amount,
+        p_slot_hold_id: slotHoldId,
         p_message:
           "KORUAL quote token; engine=" + ENGINE_VERSION +
+          "; transaction=" + TRANSACTION_VERSION +
           "; priority=" + priorityMode
       });
 
-      if (error) throw error;
+      if (error) {
+        const msg = String(error.message || "").toLowerCase();
+        if (msg.includes("slot hold expired")) {
+          return json(origin, { ok: false, error: "SLOT_HOLD_EXPIRED" }, 409);
+        }
+        if (msg.includes("slot hold inactive")) {
+          return json(origin, { ok: false, error: "SLOT_HOLD_INACTIVE" }, 409);
+        }
+        if (msg.includes("slot hold not found") || msg.includes("slot hold required")) {
+          return json(origin, { ok: false, error: "SLOT_HOLD_REQUIRED" }, 409);
+        }
+        if (msg.includes("slot hold provider mismatch") || msg.includes("slot hold session mismatch") || msg.includes("slot hold date mismatch")) {
+          return json(origin, { ok: false, error: "SLOT_HOLD_MISMATCH" }, 409);
+        }
+        throw error;
+      }
 
       const bookingRunId = cleanText(body?.recommendation_run_id, 80);
       if (/^[0-9a-f-]{36}$/i.test(bookingRunId)) {
