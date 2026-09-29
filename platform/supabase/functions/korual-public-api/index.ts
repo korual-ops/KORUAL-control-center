@@ -8,7 +8,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 const ENGINE_VERSION = "8.1";
-const TRANSACTION_VERSION = "3.1";
+const TRANSACTION_VERSION = "3.2";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
 const allowedOrigins = new Set([
@@ -614,7 +614,7 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 10,
+        version: 11,
         engine_version: ENGINE_VERSION,
         transaction_version: TRANSACTION_VERSION,
         pricing: "database_profiles",
@@ -623,7 +623,9 @@ Deno.serve(async (req: Request) => {
         availability_engine: true,
         slot_holds: true,
         customer_cancel: true,
-        atomic_reschedule: true
+        atomic_reschedule: true,
+        provider_confirmation_sla: true,
+        recovery_engine: true
       });
     }
 
@@ -1449,9 +1451,16 @@ Deno.serve(async (req: Request) => {
         return json(origin, { ok: false, error: "BOOKING_ID_INVALID" }, 400);
       }
 
+      const { error: refreshError } = await db.rpc("refresh_booking_confirmation_v1", {
+        p_booking_id: bookingId
+      });
+      if (refreshError && !String(refreshError.message || "").toLowerCase().includes("booking not found")) {
+        throw refreshError;
+      }
+
       const { data: booking, error: bookingError } = await db
         .from("bookings")
-        .select("id,request_id,quote_id,provider_id,status,scheduled_at,recommendation_run_id,created_at,updated_at")
+        .select("id,request_id,quote_id,provider_id,status,scheduled_at,recommendation_run_id,confirmation_status,confirmation_deadline,confirmation_sla_minutes,provider_confirmed_at,provider_declined_at,recovery_status,created_at,updated_at")
         .eq("id", bookingId)
         .single();
 
@@ -1502,6 +1511,19 @@ Deno.serve(async (req: Request) => {
           created_at: booking.created_at,
           updated_at: booking.updated_at,
           recommendation_run_id: booking.recommendation_run_id,
+          confirmation: {
+            status: booking.confirmation_status,
+            deadline: booking.confirmation_deadline,
+            sla_minutes: booking.confirmation_sla_minutes,
+            confirmed_at: booking.provider_confirmed_at,
+            declined_at: booking.provider_declined_at,
+            recovery_status: booking.recovery_status,
+            action_required: booking.recovery_status === "action_required",
+            suggested_action:
+              booking.recovery_status === "action_required"
+                ? "compare_alternatives"
+                : null
+          },
           request: {
             id: requestRow.id,
             code: requestRow.request_code,
