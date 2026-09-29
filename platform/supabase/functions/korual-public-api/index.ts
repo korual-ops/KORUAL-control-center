@@ -625,7 +625,8 @@ Deno.serve(async (req: Request) => {
         customer_cancel: true,
         atomic_reschedule: true,
         provider_confirmation_sla: true,
-        recovery_engine: true
+        recovery_engine: true,
+        atomic_recovery_swap: true
       });
     }
 
@@ -643,6 +644,12 @@ Deno.serve(async (req: Request) => {
       const budgetCap = Number.isFinite(rawBudgetCap) && rawBudgetCap > 0
         ? Math.min(Math.round(rawBudgetCap), 100000000)
         : null;
+      const excludedProviderKeys = new Set(
+        (Array.isArray(request?.exclude_provider_keys) ? request.exclude_provider_keys : [])
+          .map((x: unknown) => cleanText(x, 120))
+          .filter(Boolean)
+          .slice(0, 8)
+      );
 
       const [providerResult, benchmarkResult] = await Promise.all([
         db.from("providers")
@@ -659,13 +666,15 @@ Deno.serve(async (req: Request) => {
       if (benchmarkResult.error) throw benchmarkResult.error;
 
       const eligibleProviders = (providerResult.data ?? []).filter((p: any) =>
-        providerSupports(p, services) && providerCoversRegion(p, region)
+        !excludedProviderKeys.has(cleanText(p.provider_key, 120)) &&
+        providerSupports(p, services) &&
+        providerCoversRegion(p, region)
       );
 
       if (!eligibleProviders.length) {
         return json(origin, {
           ok: true,
-          request: { service, services, region, priority_mode: priorityMode, budget_cap: budgetCap },
+          request: { service, services, region, priority_mode: priorityMode, budget_cap: budgetCap, excluded_provider_keys: [...excludedProviderKeys] },
           engine_version: ENGINE_VERSION,
           quotes: [],
           notice: "NO_ELIGIBLE_PROVIDER"
@@ -916,7 +925,8 @@ Deno.serve(async (req: Request) => {
           priority_mode: priorityMode,
           priority: cleanText(request.priority, 40),
           budget_cap: budgetCap,
-          bundle: normalizeBundle(request.bundle, service)
+          bundle: normalizeBundle(request.bundle, service),
+          excluded_provider_keys: [...excludedProviderKeys]
         },
         engine_version: ENGINE_VERSION,
         recommendation_run_id: recommendationRunId,
@@ -1270,7 +1280,154 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         engine_version: ENGINE_VERSION,
-        booking: data
+        booking: { ...data, provider_key: providerKey }
+      });
+    }
+
+    if (action === "replace_booking") {
+      const oldBookingId = cleanText(body?.old_booking_id, 80);
+      const slotHoldId = cleanText(body?.slot_hold_id, 80);
+      const operationKey = cleanText(body?.operation_key, 80);
+      const token = cleanText(body?.quote_token, 6000);
+      const requestedRunId = cleanText(body?.recommendation_run_id, 80);
+
+      if (!/^[0-9a-f-]{36}$/i.test(oldBookingId)) {
+        return json(origin, { ok: false, error: "BOOKING_ID_INVALID" }, 400);
+      }
+      if (!/^[0-9a-f-]{36}$/i.test(slotHoldId)) {
+        return json(origin, { ok: false, error: "SLOT_HOLD_REQUIRED" }, 409);
+      }
+      if (!/^[A-Za-z0-9_-]{8,80}$/.test(operationKey)) {
+        return json(origin, { ok: false, error: "IDEMPOTENCY_INVALID" }, 400);
+      }
+      if (!token) {
+        return json(origin, { ok: false, error: "QUOTE_TOKEN_REQUIRED" }, 409);
+      }
+
+      const payload = await verifyQuoteToken(token);
+      if (!payload) {
+        return json(origin, { ok: false, error: "QUOTE_TOKEN_INVALID" }, 409);
+      }
+
+      const { data: oldBooking, error: oldBookingError } = await db
+        .from("bookings")
+        .select("id,request_id,provider_id,status,confirmation_status,recovery_status")
+        .eq("id", oldBookingId)
+        .single();
+
+      if (oldBookingError || !oldBooking) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_FOUND" }, 404);
+      }
+
+      const { data: requestRow, error: requestError } = await db
+        .from("service_requests")
+        .select("id,session_id,services,region,status")
+        .eq("id", oldBooking.request_id)
+        .eq("session_id", sessionId)
+        .single();
+
+      if (requestError || !requestRow) {
+        return json(origin, { ok: false, error: "BOOKING_NOT_OWNED" }, 403);
+      }
+      if (oldBooking.recovery_status !== "action_required" ||
+          !["expired","declined"].includes(oldBooking.confirmation_status)) {
+        return json(origin, { ok: false, error: "RECOVERY_NOT_REQUIRED" }, 409);
+      }
+
+      const tokenServices = (Array.isArray(payload.services) ? payload.services : [])
+        .map((x: unknown) => cleanText(x, 60))
+        .filter(Boolean);
+      const requestServices = (Array.isArray(requestRow.services) ? requestRow.services : [])
+        .map((x: unknown) => cleanText(x, 60))
+        .filter(Boolean);
+      const providerKey = cleanText(payload.provider_key, 120);
+      const amount = Math.round(Number(payload.amount));
+
+      if (!sameServices(tokenServices, requestServices)) {
+        return json(origin, { ok: false, error: "QUOTE_SERVICE_MISMATCH" }, 409);
+      }
+      if (!quoteRegionMatches(payload.region, cleanText(requestRow.region, 80))) {
+        return json(origin, { ok: false, error: "QUOTE_REGION_MISMATCH" }, 409);
+      }
+
+      let ownedRunId: string | null = null;
+      if (/^[0-9a-f-]{36}$/i.test(requestedRunId)) {
+        const sessionHash = await hashValue(sessionId);
+        const { data: ownedRun } = await db
+          .from("recommendation_runs")
+          .select("id")
+          .eq("id", requestedRunId)
+          .eq("session_hash", sessionHash)
+          .single();
+        ownedRunId = ownedRun?.id ?? null;
+      }
+
+      const { data, error } = await db.rpc("replace_beta_booking_v1", {
+        p_session_id: sessionId,
+        p_operation_key: operationKey,
+        p_old_booking_id: oldBookingId,
+        p_services: tokenServices,
+        p_region: cleanText(requestRow.region, 80),
+        p_new_provider_key: providerKey,
+        p_amount: amount,
+        p_slot_hold_id: slotHoldId,
+        p_recommendation_run_id: ownedRunId,
+        p_message:
+          "KORUAL recovery swap; engine=" + ENGINE_VERSION +
+          "; transaction=" + TRANSACTION_VERSION
+      });
+
+      if (error) {
+        const msg = String(error.message || "").toLowerCase();
+        if (msg.includes("recovery not required")) return json(origin, { ok: false, error: "RECOVERY_NOT_REQUIRED" }, 409);
+        if (msg.includes("same provider")) return json(origin, { ok: false, error: "RECOVERY_SAME_PROVIDER" }, 409);
+        if (msg.includes("slot hold expired")) return json(origin, { ok: false, error: "SLOT_HOLD_EXPIRED" }, 409);
+        if (msg.includes("slot hold inactive")) return json(origin, { ok: false, error: "SLOT_HOLD_INACTIVE" }, 409);
+        if (msg.includes("slot hold not found")) return json(origin, { ok: false, error: "SLOT_HOLD_REQUIRED" }, 409);
+        if (msg.includes("slot hold provider mismatch") || msg.includes("slot hold session mismatch")) {
+          return json(origin, { ok: false, error: "SLOT_HOLD_MISMATCH" }, 409);
+        }
+        if (msg.includes("old booking not found")) return json(origin, { ok: false, error: "BOOKING_NOT_FOUND" }, 404);
+        if (msg.includes("old booking not recoverable")) return json(origin, { ok: false, error: "BOOKING_NOT_RECOVERABLE" }, 409);
+        throw error;
+      }
+
+      if (ownedRunId) {
+        try {
+          const sessionHash = await hashValue(sessionId);
+          const { data: run } = await db
+            .from("recommendation_runs")
+            .select("id,engine_version")
+            .eq("id", ownedRunId)
+            .single();
+          if (run) {
+            await db.from("recommendation_events").insert({
+              run_id: run.id,
+              session_hash: sessionHash,
+              event_type: "booking_success",
+              provider_key: providerKey,
+              position: null,
+              policy_version: run.engine_version || ENGINE_VERSION,
+              metadata: {
+                booking_id: data?.booking_id || null,
+                quote_id: data?.quote_id || null,
+                recovery_swap: true,
+                old_booking_id: oldBookingId,
+                transaction_version: TRANSACTION_VERSION
+              }
+            });
+          }
+        } catch (trackingError) {
+          console.warn("recovery_booking_tracking_failed", trackingError);
+        }
+      }
+
+      return json(origin, {
+        ok: true,
+        engine_version: ENGINE_VERSION,
+        transaction_version: TRANSACTION_VERSION,
+        recovery_swap: true,
+        booking: { ...data, provider_key: providerKey }
       });
     }
 
