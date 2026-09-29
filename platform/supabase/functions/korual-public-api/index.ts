@@ -538,12 +538,21 @@ async function checkRate(ipHash: string, action: string) {
   return data === true;
 }
 
+function seoulDateString(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+}
+
 function validateDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const selected = new Date(value + "T00:00:00Z");
   if (Number.isNaN(selected.getTime())) return false;
-  const today = new Date();
-  const floor = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const todayString = seoulDateString();
+  const floor = new Date(todayString + "T00:00:00Z");
   const max = new Date(floor.getTime() + 366 * 24 * 60 * 60 * 1000);
   return selected >= floor && selected <= max;
 }
