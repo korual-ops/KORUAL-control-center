@@ -502,7 +502,10 @@
     if(top){
       top.card.classList.add('is-top-choice','featured');
       const badge=$('.quote-rank,.ai-pick,.value-pick,.premium-pick',top.card);
-      if(badge) badge.textContent=quoteMode==='live'?'조건별 추천':'비교 예시';
+      if(badge){
+        const role=Array.isArray(top.q?.roles)&&top.q.roles.length?top.q.roles[0]:'균형 비교 후보';
+        badge.textContent=quoteMode==='live'?role:'비교 예시';
+      }
     }
     if(quoteContext&&state.currentRequest){
       const cap=state.preferences.budgetCap?' · '+Number(state.preferences.budgetCap).toLocaleString('ko-KR')+'원 이하':'';
