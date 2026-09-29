@@ -242,7 +242,13 @@
     renderQuotesSelection();
     if(quoteContext) quoteContext.textContent='서버에서 검증된 베타 견적을 불러오는 중…';
     try{
-      const data=await fetchApi('quotes',{request});
+      normalizePreferences();
+      const requestForApi={
+        ...request,
+        priority_mode:state.preferences.priority,
+        budget_cap:state.preferences.budgetCap||null
+      };
+      const data=await fetchApi('quotes',{request:requestForApi});
       if(version!==quoteRequestVersion)return;
       if(Array.isArray(data.quotes)&&data.quotes.length){
         for(const q of data.quotes){
@@ -326,6 +332,9 @@
     normalizePreferences();
     if(request.preferenceExplicit&&['balanced','price','trust','speed'].includes(request.priorityMode)){
       state.preferences.priority=request.priorityMode;
+    }else{
+      request.priorityMode=state.preferences.priority;
+      request.priority={balanced:'가격 + 신뢰',price:'가격 우선',trust:'신뢰 우선',speed:'속도 우선'}[state.preferences.priority]||'가격 + 신뢰';
     }
     if(Number.isFinite(Number(request.budgetCap))&&Number(request.budgetCap)>0){
       state.preferences.budgetCap=Number(request.budgetCap);
