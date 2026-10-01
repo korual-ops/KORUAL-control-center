@@ -7,7 +7,7 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-const ENGINE_VERSION = "8.6";
+const ENGINE_VERSION = "8.7";
 const TRANSACTION_VERSION = "4.0";
 const QUOTE_TTL_MS = 30 * 60 * 1000;
 
@@ -160,6 +160,17 @@ function normalizePriority(request: any): PriorityMode {
   if (explicit === "trust" || /신뢰\s*우선|검증\s*우선|후기\s*우선|안전\s*우선/.test(text)) return "trust";
   if (explicit === "speed" || /속도\s*우선|빠른|급해|긴급|오늘|내일/.test(text)) return "speed";
   return "balanced";
+}
+
+function priorityPreferenceExplicit(request: any) {
+  if (request?.preferenceExplicit === true || request?.priority_explicit === true) return true;
+  const explicit = cleanText(request?.priority, 50).toLowerCase();
+  const raw = cleanText(request?.raw, 240).toLowerCase();
+  const text = explicit + " " + raw;
+  return (
+    explicit === "balanced" || explicit === "price" || explicit === "trust" || explicit === "speed" ||
+    /가격\s*\+\s*신뢰|균형|balanced|가격\s*우선|저렴|싼|가성비|예산\s*우선|신뢰\s*우선|검증\s*우선|후기\s*우선|안전\s*우선|속도\s*우선|빠른|급해|긴급|오늘|내일/.test(text)
+  );
 }
 
 function priorityWeights(mode: PriorityMode) {
@@ -732,7 +743,7 @@ Deno.serve(async (req: Request) => {
       return json(origin, {
         ok: true,
         service: "korual-public-api",
-        version: 17,
+        version: 18,
         engine_version: ENGINE_VERSION,
         operational_reliability_gate: 20,
         transaction_version: TRANSACTION_VERSION,
@@ -767,6 +778,7 @@ Deno.serve(async (req: Request) => {
       const services = intent.services;
       const region = detectRegion(request);
       const priorityMode = normalizePriority(request);
+      const priorityExplicit = priorityPreferenceExplicit(request);
       const weights = priorityWeights(priorityMode);
       const desiredDateRaw = cleanText(request?.desired_date || request?.desiredDate, 10);
       const desiredDate = desiredDateRaw && validateDate(desiredDateRaw) ? desiredDateRaw : null;
@@ -1084,16 +1096,24 @@ Deno.serve(async (req: Request) => {
       const usesFallbackPricing = Boolean(topCandidate?.line_items?.some((x: any) =>
         x.benchmark_source === "code_fallback" || x.pricing_source === "default_1x"
       ));
+      const sensitivityRequiresPreference =
+        !priorityExplicit &&
+        (sensitivity.level === "sensitive" || sensitivity.level === "highly_sensitive");
       const decisionStatus =
         budgetCap != null && budgetFitCount === 0 ? "review_budget" :
         Number(topCandidate?.confidence_score ?? 0) < 60 || usesFallbackPricing ? "low_evidence" :
-        decision.level === "close" ? "compare_tradeoffs" :
+        decision.level === "close" || sensitivityRequiresPreference ? "compare_tradeoffs" :
         "ready";
 
       const decisionContext = {
         ...decision,
         status: decisionStatus,
         sensitivity,
+        preference: {
+          mode: priorityMode,
+          explicit: priorityExplicit,
+          sensitivity_requires_choice: sensitivityRequiresPreference
+        },
         budget: {
           cap: budgetCap,
           fit_count: budgetFitCount,
@@ -1186,6 +1206,8 @@ Deno.serve(async (req: Request) => {
               budget_cap: budgetCap,
               budget_fit_count: budgetFitCount,
               decision_status: decisionStatus,
+              priority_explicit: priorityExplicit,
+              sensitivity_requires_choice: sensitivityRequiresPreference,
               top_confidence: Number(topCandidate?.confidence_score ?? 0),
               top_evidence: Number(topCandidate?.evidence_score ?? 0),
               top_ranking_score: Number(topCandidate?.ranking_score ?? 0),
@@ -1212,6 +1234,7 @@ Deno.serve(async (req: Request) => {
           services,
           region,
           priority_mode: priorityMode,
+          priority_explicit: priorityExplicit,
           priority: cleanText(request.priority, 40),
           budget_cap: budgetCap,
           desired_date: desiredDate,
@@ -1296,6 +1319,7 @@ Deno.serve(async (req: Request) => {
       const services = intent.services;
       const region = detectRegion(request);
       const priorityMode = normalizePriority(request);
+      const priorityExplicit = priorityPreferenceExplicit(request);
       const desiredDateRaw = cleanText(request?.desired_date || request?.desiredDate, 10);
       const desiredDate = desiredDateRaw && validateDate(desiredDateRaw) ? desiredDateRaw : null;
       const rawBudgetCap = Number(request?.budget_cap ?? request?.budgetCap);
@@ -1330,14 +1354,25 @@ Deno.serve(async (req: Request) => {
 
       const providers = (providerResult.data ?? []).filter((p: any) => providerCoversRegion(p, region));
       const providerIds = providers.map((p: any) => p.id);
-      const { data: availabilityRows, error: availabilityError } = await db.rpc(
-        "get_provider_date_availability_v1",
-        { p_provider_ids: providerIds, p_date: desiredDate }
-      );
-      if (availabilityError) throw availabilityError;
+      const [availabilityResult, confirmationMetricResult] = await Promise.all([
+        db.rpc("get_provider_date_availability_v1", {
+          p_provider_ids: providerIds,
+          p_date: desiredDate
+        }),
+        providerIds.length
+          ? db.from("provider_confirmation_metrics")
+              .select("provider_id,provider_key,attempt_count,confirmed_count,expired_count,declined_count,observed_response_minutes,ranking_eligible,observed_confirmation_rate,observed_expiry_rate,shrunk_confirmation_rate")
+              .in("provider_id", providerIds)
+          : Promise.resolve({ data: [], error: null })
+      ]);
+      if (availabilityResult.error) throw availabilityResult.error;
+      if (confirmationMetricResult.error) throw confirmationMetricResult.error;
 
       const availabilityByProvider = new Map(
-        (availabilityRows ?? []).map((a: any) => [a.provider_id, a])
+        (availabilityResult.data ?? []).map((a: any) => [a.provider_id, a])
+      );
+      const confirmationMetricByProvider = new Map(
+        (confirmationMetricResult.data ?? []).map((m: any) => [m.provider_id, m])
       );
       const weights = priorityWeights(priorityMode);
       const items: any[] = [];
@@ -1359,6 +1394,9 @@ Deno.serve(async (req: Request) => {
             Number(benchmark.confidence_score || 0) * 0.65 +
             Number(profile.confidence_score || 0) * 0.35
           );
+          const confidence = providerDataConfidence(p);
+          const reviewCount = Math.max(0, Number(p.review_count) || 0);
+          const completedJobs = Math.max(0, Number(p.completed_jobs) || 0);
           return {
             provider_id: p.id,
             provider_key: cleanText(p.provider_key,120),
@@ -1366,11 +1404,21 @@ Deno.serve(async (req: Request) => {
             amount,
             trust: clamp(Number(p.korual_score) || 0),
             rating: Number(p.rating) || 0,
-            reviews: Number(p.review_count) || 0,
+            reviews: reviewCount,
+            review_count: reviewCount,
             response_minutes: p.avg_response_minutes == null ? null : Number(p.avg_response_minutes),
-            experience: Number(p.completed_jobs) || 0,
-            confidence: providerDataConfidence(p),
+            experience: completedJobs,
+            completed_jobs: completedJobs,
+            confidence,
+            confidence_score: confidence,
             evidence,
+            evidence_score: evidence,
+            coverage_score: 100,
+            budget_fit: budgetCap == null ? true : amount <= budgetCap,
+            budget_score: budgetFitScore(amount,budgetCap),
+            operational_reliability: operationalReliabilityScore(
+              confirmationMetricByProvider.get(p.id)
+            ),
             availability,
             profile_source: profile.source,
             benchmark_source: benchmark.source,
@@ -1393,32 +1441,85 @@ Deno.serve(async (req: Request) => {
         const maxAmount = Math.max(...amounts);
 
         for (const candidate of rawCandidates) {
-          const price = maxAmount === minAmount
-            ? 100
-            : clamp(100 - ((candidate.amount - minAmount) / Math.max(1,maxAmount-minAmount)) * 55);
-          const base =
-            price * weights.price +
-            candidate.trust * weights.trust +
-            ratingScore(candidate.rating,candidate.reviews) * weights.rating +
-            responseScore(candidate.response_minutes) * weights.response +
-            experienceScore(candidate.experience) * weights.experience +
-            100 * weights.verification +
-            100 * weights.coverage +
-            budgetFitScore(candidate.amount,budgetCap) * weights.budget +
-            candidate.evidence * weights.evidence;
-          candidate.decision_score = Number(clamp(
-            base + availabilityAdjustment(candidate,priorityMode)
+          const rawPriceScore = maxAmount === minAmount
+            ? 85
+            : 100 - ((candidate.amount - minAmount) / Math.max(1,maxAmount-minAmount)) * 35;
+          const evidenceFactor = clamp(Number(candidate.evidence_score) || 0) / 100;
+          const calibratedPriceScore = 75 + (rawPriceScore - 75) * evidenceFactor;
+          const breakdown = {
+            price: Math.round(clamp(calibratedPriceScore)),
+            trust: Math.round(clamp(candidate.trust)),
+            rating: Math.round(ratingScore(candidate.rating,candidate.review_count)),
+            response: Math.round(responseScore(candidate.response_minutes)),
+            experience: Math.round(experienceScore(candidate.completed_jobs)),
+            verification: 100,
+            coverage: 100,
+            budget: Math.round(clamp(candidate.budget_score)),
+            evidence: Math.round(clamp(candidate.evidence_score)),
+            operational: candidate.operational_reliability?.eligible
+              ? Math.round(clamp(Number(candidate.operational_reliability.score)))
+              : null
+          };
+          const weighted =
+            breakdown.price * weights.price +
+            breakdown.trust * weights.trust +
+            breakdown.rating * weights.rating +
+            breakdown.response * weights.response +
+            breakdown.experience * weights.experience +
+            breakdown.verification * weights.verification +
+            breakdown.coverage * weights.coverage +
+            breakdown.budget * weights.budget +
+            breakdown.evidence * weights.evidence;
+          const confidenceMultiplier =
+            0.94 + 0.06 * (clamp(Number(candidate.confidence_score) || 0) / 100);
+          const baseRankingScore = clamp(weighted * confidenceMultiplier);
+          candidate.operational_reliability_weight = operationalReliabilityWeight(
+            priorityMode,
+            Number(candidate.operational_reliability?.attempt_count || 0)
+          );
+          candidate.availability_adjustment = availabilityAdjustment(candidate,priorityMode);
+          candidate.ranking_score = Number(clamp(
+            blendOperationalReliability(baseRankingScore,candidate,priorityMode) +
+            candidate.availability_adjustment
           ).toFixed(2));
+          const uncertaintyPenalty =
+            ((100 - clamp(candidate.confidence_score)) * 0.05) +
+            ((100 - clamp(candidate.evidence_score)) * 0.03);
+          candidate.uncertainty_penalty = Number(clamp(uncertaintyPenalty,0,8).toFixed(2));
+          candidate.decision_score = Number(clamp(
+            candidate.ranking_score - candidate.uncertainty_penalty
+          ).toFixed(2));
+          candidate.score_breakdown = breakdown;
         }
 
         rawCandidates.sort((a: any,b: any) =>
           (b.availability.status === "available" ? 1 : 0) -
           (a.availability.status === "available" ? 1 : 0) ||
           b.decision_score-a.decision_score ||
+          b.confidence_score-a.confidence_score ||
           a.amount-b.amount
         );
 
-        const top = rawCandidates.slice(0,3);
+        rawCandidates.forEach((candidate:any,index:number)=>{
+          candidate.rank=index+1;
+          candidate.pareto_efficient=isParetoEfficient(candidate,rawCandidates);
+          candidate.roles=candidateRoles(candidate,rawCandidates);
+          candidate.label=candidate.roles[0];
+          candidate.reasons=buildReasons(candidate,rawCandidates);
+        });
+
+        const top: any[] = [];
+        const availableCandidates = rawCandidates.filter((c:any)=>c.availability.status==="available");
+        const unknownCandidates = rawCandidates.filter((c:any)=>c.availability.status==="unknown");
+        for (const candidate of selectDiverseShortlist(availableCandidates,3)) {
+          if (!top.some((x:any)=>x.provider_key===candidate.provider_key)) top.push(candidate);
+        }
+        if (top.length<3) {
+          for (const candidate of selectDiverseShortlist(unknownCandidates,3)) {
+            if (top.length>=3) break;
+            if (!top.some((x:any)=>x.provider_key===candidate.provider_key)) top.push(candidate);
+          }
+        }
         const signed: any[] = [];
         for (const candidate of top) {
           const quoteToken = await signQuote({
@@ -1472,7 +1573,7 @@ Deno.serve(async (req: Request) => {
         ok:true,
         engine_version:ENGINE_VERSION,
         transaction_version:TRANSACTION_VERSION,
-        request:{services,region,desired_date:desiredDate,priority_mode:priorityMode,budget_cap:budgetCap},
+        request:{services,region,desired_date:desiredDate,priority_mode:priorityMode,priority_explicit:priorityExplicit,budget_cap:budgetCap},
         bundle_plan:{
           status:readyForAtomicBooking?"ready":"needs_attention",
           ready_for_atomic_booking:readyForAtomicBooking,

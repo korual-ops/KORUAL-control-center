@@ -46,7 +46,7 @@
     bundlePlan:null,
     bundleBooking:null,
     recoveryContext:null,
-    preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}
+    preferences:{priority:'balanced',priorityExplicit:false,verifiedOnly:true,budgetCap:null}
   };
 
   try{
@@ -216,6 +216,7 @@
       service:String(request?.service||'').trim(),
       bundle:Array.isArray(request?.bundle)?request.bundle.slice(0,8):[],
       priority_mode:String(request?.priority_mode||'balanced'),
+      priority_explicit:Boolean(request?.preferenceExplicit||request?.priority_explicit),
       budget_cap:Number(request?.budget_cap)||null,
       desired_date:String(request?.desired_date||request?.desiredDate||'').trim()||null,
       exclude_provider_keys:Array.isArray(request?.exclude_provider_keys)
@@ -575,9 +576,11 @@
     normalizePreferences();
     if(request.preferenceExplicit&&['balanced','price','trust','speed'].includes(request.priorityMode)){
       state.preferences.priority=request.priorityMode;
+      state.preferences.priorityExplicit=true;
     }else{
       request.priorityMode=state.preferences.priority;
       request.priority={balanced:'가격 + 신뢰',price:'가격 우선',trust:'신뢰 우선',speed:'속도 우선'}[state.preferences.priority]||'가격 + 신뢰';
+      request.preferenceExplicit=state.preferences.priorityExplicit===true;
     }
     if(Number.isFinite(Number(request.budgetCap))&&Number(request.budgetCap)>0){
       state.preferences.budgetCap=Number(request.budgetCap);
@@ -637,9 +640,10 @@
 
   function normalizePreferences(){
     if(!state.preferences||typeof state.preferences!=='object'){
-      state.preferences={priority:'balanced',verifiedOnly:true,budgetCap:null};
+      state.preferences={priority:'balanced',priorityExplicit:false,verifiedOnly:true,budgetCap:null};
     }
     if(!['balanced','price','trust','speed'].includes(state.preferences.priority)) state.preferences.priority='balanced';
+    state.preferences.priorityExplicit=state.preferences.priorityExplicit===true;
     state.preferences.verifiedOnly=state.preferences.verifiedOnly!==false;
     const cap=Number(state.preferences.budgetCap);
     state.preferences.budgetCap=Number.isFinite(cap)&&cap>0?cap:null;
@@ -802,7 +806,21 @@
         const availabilityText=state.currentRequest?.desiredDate
           ?' · 희망일 예약 가능 '+availableCount+'개'+(unknownCount?' · 일정 확인 '+unknownCount+'개':'')
           :'';
-        quoteInsight.textContent='서버 베타 견적 '+amounts.length+'개'+availabilityText+' · 표시 가격 '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 실제 제공 범위와 추가 비용을 확인하세요.';
+        const decisionContext=liveQuotes.find(q=>q.decisionContext)?.decisionContext||null;
+        const sensitivityLevel=decisionContext?.sensitivity?.level||'';
+        const needsPriority=decisionContext?.preference?.sensitivity_requires_choice===true;
+        const decisionPrefix=decisionContext?.status==='review_budget'
+          ?'예산 상한을 충족하는 후보가 없어 예산 조정이 필요합니다. '
+          :decisionContext?.status==='low_evidence'
+            ?'가격·업체 데이터 근거가 아직 충분하지 않아 보수적으로 비교합니다. '
+            :decisionContext?.status==='compare_tradeoffs'&&needsPriority
+              ?'가격·신뢰·속도 기준에 따라 1순위가 달라질 수 있습니다. 추천 기준을 직접 선택하면 판단이 더 명확해집니다. '
+              :decisionContext?.status==='compare_tradeoffs'
+                ?'상위 후보 차이가 작아 한 곳을 단정하기보다 조건별 장단점을 비교하는 편이 좋습니다. '
+                :sensitivityLevel==='stable'||sensitivityLevel==='robust'
+                  ?'현재 기준에서 추천 순위가 비교적 안정적입니다. '
+                  :'';
+        quoteInsight.textContent=decisionPrefix+'서버 베타 견적 '+amounts.length+'개'+availabilityText+' · 표시 가격 '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 실제 제공 범위와 추가 비용을 확인하세요.';
       }else{
         quoteInsight.textContent=quoteMode==='loading'
           ?'검증된 파트너와 조건을 확인하고 있습니다.'
@@ -951,6 +969,14 @@
     $$('[data-priority]').forEach(btn=>btn.addEventListener('click',()=>{
     normalizePreferences();
     state.preferences.priority=btn.dataset.priority||'balanced';
+    state.preferences.priorityExplicit=true;
+    if(state.currentRequest){
+      state.currentRequest.priorityMode=state.preferences.priority;
+      state.currentRequest.priority={balanced:'가격 + 신뢰',price:'가격 우선',trust:'신뢰 우선',speed:'속도 우선'}[state.preferences.priority]||'가격 + 신뢰';
+      state.currentRequest.preferenceExplicit=true;
+      state.selectedQuote=null;
+      renderAnalysis(state.currentRequest);
+    }
     save();
     syncPreferenceUI();
     scheduleQuoteRefresh(80);
@@ -2444,7 +2470,7 @@
   $('#resetDemo')?.addEventListener('click',()=>{
     if(!confirm('이 기기에 저장된 KORUAL 표시 상태를 초기화할까요? 서버 예약 기록은 삭제되지 않습니다.'))return;
     quoteRequestVersion++;quoteMode='sample';liveQuoteKeys.clear();quoteCatalog={...sampleQuotes};
-    state={history:[],requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null,bundlePlan:null,bundleBooking:null,recoveryContext:null,preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}};
+    state={history:[],requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null,bundlePlan:null,bundleBooking:null,recoveryContext:null,preferences:{priority:'balanced',priorityExplicit:false,verifiedOnly:true,budgetCap:null}};
     try{localStorage.removeItem(STATE_KEY)}catch(_){}
     if(matchInput) matchInput.value='';
     if(analysisTitle) analysisTitle.textContent='요청을 기다리는 중';
