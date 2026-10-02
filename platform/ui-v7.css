@@ -213,3 +213,9 @@ html:not(:lang(ko)) .new-home-hero h1{letter-spacing:normal;line-height:1.15;fon
 }
 
 .charter-dialog{width:min(520px,calc(100vw - 40px));box-sizing:border-box;max-height:85dvh;overflow:auto;border:1px solid #cbb78e;border-radius:20px;padding:28px;background:#fff;color:#14263b}.charter-dialog::backdrop{background:#081b2dcc}.charter-dialog p,.charter-dialog li{line-height:1.65}.charter-dialog li{margin:8px 0}.charter-dialog button{min-height:44px}
+
+/* Independent category photographs preserve subjects across responsive crops. */
+.service-scene{background-size:cover;background-position:center}
+.scene-life{background-image:url("/category-life-v2.webp");background-position:center 55%}
+.scene-travel{background-image:url("/category-travel-v2.webp");background-position:center 55%}
+.scene-wellness{background-image:url("/category-wellness-v2.webp");background-position:center 55%}

@@ -30,6 +30,9 @@ const files = [
   'ui-v7.js',
   'seoul-night.webp',
   'service-scenes.png',
+  'category-life-v2.webp',
+  'category-travel-v2.webp',
+  'category-wellness-v2.webp',
   'manifest.webmanifest',
   'icon.svg',
 ];
