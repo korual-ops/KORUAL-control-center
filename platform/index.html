@@ -80,9 +80,9 @@
         <section class="new-discover" aria-label="서비스 둘러보기">
           <div class="new-section-head"><div><small>EXPLORE KORUAL</small><h2>당신의 다음 순간을 위해</h2></div><button type="button" data-open-screen="services">모든 서비스 <span>↗</span></button></div>
           <div class="new-category-grid">
-            <button type="button" class="new-category new-category-life" data-service="생활 서비스"><span class="new-category-symbol">⌂</span><span><small>01 · LIFESTYLE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 공간</em></span><b>↗</b></button>
-            <button type="button" class="new-category new-category-travel" data-service="여행"><span class="new-category-symbol">✈</span><span><small>02 · TRAVEL</small><strong>여행 서비스</strong><em>항공 · 숙박 · 공항 이동</em></span><b>↗</b></button>
-            <button type="button" class="new-category new-category-wellness" data-service="웰니스"><span class="new-category-symbol">✺</span><span><small>03 · WELLNESS</small><strong>웰니스</strong><em>휴식 · 케어 · 일상 회복</em></span><b>↗</b></button>
+            <button type="button" class="new-category new-category-life" data-open-category="life"><span class="new-category-symbol">⌂</span><span><small>01 · LIFESTYLE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 공간</em></span><b>↗</b></button>
+            <button type="button" class="new-category new-category-travel" data-open-category="travel"><span class="new-category-symbol">✈</span><span><small>02 · TRAVEL</small><strong>여행 서비스</strong><em>항공 · 숙박 · 공항 이동</em></span><b>↗</b></button>
+            <button type="button" class="new-category new-category-wellness" data-open-category="wellness"><span class="new-category-symbol">✺</span><span><small>03 · WELLNESS</small><strong>웰니스</strong><em>휴식 · 케어 · 일상 회복</em></span><b>↗</b></button>
           </div>
         </section>
 
@@ -289,18 +289,27 @@
           <label>서비스 검색<input id="serviceSearch" type="search" placeholder="이사, 청소, 여행…" autocomplete="off" /></label>
           <label>희망 지역<select id="serviceRegion"><option value="">전국 · 지역 선택</option><option>서울</option><option>부산</option><option>대구</option><option>인천</option><option>광주</option><option>대전</option><option>울산</option><option>세종</option><option>경기</option><option>강원</option><option>충북</option><option>충남</option><option>전북</option><option>전남</option><option>경북</option><option>경남</option><option>제주</option></select></label>
         </div>
+        <div class="service-category-controls" role="group" aria-label="서비스 카테고리">
+          <button type="button" data-service-category="all" aria-pressed="true">전체</button>
+          <button type="button" data-service-category="life" aria-pressed="false">생활</button>
+          <button type="button" data-service-category="travel" aria-pressed="false">여행</button>
+          <button type="button" data-service-category="wellness" aria-pressed="false">웰니스</button>
+          <button type="button" data-service-category="business" aria-pressed="false">비즈니스</button>
+          <label>정렬<select id="serviceSort"><option value="default">기본순</option><option value="name">이름순</option></select></label>
+          <button type="button" id="resetServiceFilters">필터 초기화</button>
+        </div>
         <p class="coverage-note">전국 17개 시·도에서 희망 지역을 선택할 수 있습니다. 실제 제공 여부는 서비스와 파트너별 확인이 필요합니다.</p>
         <p id="serviceResultCount" class="service-result-count" role="status" aria-live="polite"></p>
-        <div class="service-list"><button type="button" class="service-row" data-service="이사"><span class="service-icon">MV</span><span><small>MOVING</small><strong>이사</strong><em>가정 · 원룸 · 사무실 이사</em></span><b>→</b></button>
-<button type="button" class="service-row" data-service="입주청소"><span class="service-icon">CL</span><span><small>CLEANING</small><strong>청소</strong><em>입주 · 정기 · 에어컨 세척</em></span><b>→</b></button>
-<button type="button" class="service-row" data-service="인터넷 설치"><span class="service-icon">NW</span><span><small>NETWORK</small><strong>인터넷·설치</strong><em>인터넷 · 가전 설치</em></span><b>→</b></button>
-<button type="button" class="service-row" data-service="인테리어"><span class="service-icon">IN</span><span><small>INTERIOR</small><strong>인테리어</strong><em>공간 · 가구 · 수리·시공</em></span><b>→</b></button>
-<button type="button" class="service-row" data-service="웰니스"><span class="service-icon">WL</span><span><small>WELLNESS</small><strong>웰니스</strong><em>휴식 · 운동 · 생활 케어</em></span><b>→</b></button>
+        <div class="service-list"><button type="button" class="service-row" data-category="life" data-service="이사"><span class="service-icon">MV</span><span><small>MOVING</small><strong>이사</strong><em>가정 · 원룸 · 사무실 이사</em></span><b>→</b></button>
+<button type="button" class="service-row" data-category="life" data-service="입주청소"><span class="service-icon">CL</span><span><small>CLEANING</small><strong>청소</strong><em>입주 · 정기 · 에어컨 세척</em></span><b>→</b></button>
+<button type="button" class="service-row" data-category="life" data-service="인터넷 설치"><span class="service-icon">NW</span><span><small>NETWORK</small><strong>인터넷·설치</strong><em>인터넷 · 가전 설치</em></span><b>→</b></button>
+<button type="button" class="service-row" data-category="life" data-service="인테리어"><span class="service-icon">IN</span><span><small>INTERIOR</small><strong>인테리어</strong><em>공간 · 가구 · 수리·시공</em></span><b>→</b></button>
+<button type="button" class="service-row" data-category="wellness" data-service="웰니스"><span class="service-icon">WL</span><span><small>WELLNESS</small><strong>웰니스</strong><em>휴식 · 운동 · 생활 케어</em></span><b>→</b></button>
 
-          <button type="button" class="service-row" data-service="생활 서비스"><span class="service-icon">LF</span><span><small>DAILY LIFE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 인터넷</em></span><b>→</b></button>
-          <button type="button" class="service-row" data-service="여행"><span class="service-icon">TR</span><span><small>TRAVEL</small><strong>KORUAL Travel</strong><em>항공 · 숙박 · 공항 이동</em></span><b>→</b></button>
-          <button type="button" class="service-row" data-service="커머스 운영"><span class="service-icon">CM</span><span><small>COMMERCE</small><strong>KORUAL Commerce</strong><em>상품 · 주문 · 공급처 · 배송</em></span><b>→</b></button>
-          <button type="button" class="service-row" data-service="AI 추천"><span class="service-icon">AI</span><span><small>INTELLIGENCE</small><strong>KORUAL AI</strong><em>조건 분석 · 추천 · 자동화</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-category="life" data-service="생활 서비스"><span class="service-icon">LF</span><span><small>DAILY LIFE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 인터넷</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-category="travel" data-service="여행"><span class="service-icon">TR</span><span><small>TRAVEL</small><strong>KORUAL Travel</strong><em>항공 · 숙박 · 공항 이동</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-category="business" data-service="커머스 운영"><span class="service-icon">CM</span><span><small>COMMERCE</small><strong>KORUAL Commerce</strong><em>상품 · 주문 · 공급처 · 배송</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-category="business" data-service="AI 추천"><span class="service-icon">AI</span><span><small>INTELLIGENCE</small><strong>KORUAL AI</strong><em>조건 분석 · 추천 · 자동화</em></span><b>→</b></button>
         </div>
       </section>
 

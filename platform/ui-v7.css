@@ -125,3 +125,9 @@
 .brand-home{border:0;background:transparent;color:inherit;padding:6px 4px;min-height:44px;text-align:left;cursor:pointer;font:inherit;border-radius:8px;flex-shrink:0}
 .brand-home:focus-visible{outline:2px solid var(--gold,#ac8a4d);outline-offset:3px}
 .brand-home:hover .header-copy strong{opacity:.75}
+
+.service-category-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0}
+.service-category-controls button,.service-category-controls select{min-height:44px;padding:10px 16px;border:1px solid var(--line,#ddd);border-radius:10px;background:var(--surface,#fff);color:inherit;font:inherit;cursor:pointer}
+.service-category-controls button[aria-pressed="true"]{background:#152a3b;color:#fff;border-color:#152a3b}
+.service-category-controls label{display:flex;align-items:center;gap:8px}
+.service-list .service-row[hidden]{display:none!important}

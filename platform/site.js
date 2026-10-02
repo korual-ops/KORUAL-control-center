@@ -666,18 +666,45 @@
   // Filter labels and descriptions, without inserting user input as markup.
   const serviceSearch=$('#serviceSearch');
   const serviceRegion=$('#serviceRegion');
+  const serviceSort=$('#serviceSort');
+  const serviceRows=$$('.service-list .service-row');
+  const serviceOrder=new Map(serviceRows.map((row,index)=>[row,index]));
+  let serviceCategory='all';
   function filterServices(){
     const query=(serviceSearch?.value||'').trim().toLocaleLowerCase();
+    const rows=[...serviceRows];
+    rows.sort((a,b)=>serviceSort?.value==='name'
+      ?($('strong',a)?.textContent||'').localeCompare($('strong',b)?.textContent||'','ko')
+      :serviceOrder.get(a)-serviceOrder.get(b));
+    const list=$('.service-list');
     let count=0;
-    $$('.service-list .service-row').forEach(row=>{
-      row.hidden=!row.textContent.toLocaleLowerCase().includes(query);
-      if(!row.hidden) count++;
+    rows.forEach(row=>{
+      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory)||!row.textContent.toLocaleLowerCase().includes(query);
+      list?.appendChild(row);
+      if(!row.hidden)count++;
     });
+    $$('[data-service-category]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.serviceCategory===serviceCategory)));
     const status=$('#serviceResultCount');
-    if(status) status.textContent=count ? count+'개 서비스 분야 · '+(serviceRegion?.value||'전국') : '일치하는 서비스가 없습니다. 검색어를 바꾸거나 AI 매칭에서 직접 요청하세요.';
+    if(status)status.textContent=count?count+'개 서비스 분야 · '+(serviceRegion?.value||'전국'):'일치하는 서비스가 없습니다. 필터를 초기화하거나 검색어를 바꾸세요.';
   }
+  $$('[data-service-category]').forEach(button=>button.addEventListener('click',()=>{
+    serviceCategory=button.dataset.serviceCategory;filterServices();
+  }));
+  $$('[data-open-category]').forEach(button=>button.addEventListener('click',()=>{
+    serviceCategory=button.dataset.openCategory;
+    if(serviceSearch)serviceSearch.value='';
+    filterServices();showScreen('services');
+  }));
+  $('#resetServiceFilters')?.addEventListener('click',()=>{
+    serviceCategory='all';
+    if(serviceSearch)serviceSearch.value='';
+    if(serviceRegion)serviceRegion.value='';
+    if(serviceSort)serviceSort.value='default';
+    filterServices();
+  });
   serviceSearch?.addEventListener('input',filterServices);
   serviceRegion?.addEventListener('change',filterServices);
+  serviceSort?.addEventListener('change',filterServices);
   filterServices();
 
 
