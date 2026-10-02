@@ -718,6 +718,7 @@
   const serviceRegion=$('#serviceRegion');
   const serviceSort=$('#serviceSort');
   const serviceRows=$$('.service-list .service-row');
+  serviceRows.forEach(row=>{row.dataset.search=$('strong',row)?.textContent||'';});
   const serviceOrder=new Map(serviceRows.map((row,index)=>[row,index]));
   let serviceCategory='all';
   function filterServices(){
@@ -729,7 +730,7 @@
     const list=$('.service-list');
     let count=0;
     rows.forEach(row=>{
-      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory||(serviceCategory==='travel'&&row.dataset.category==='charter'))||!window.KorualDiscovery.matches([row.textContent,row.dataset.service,row.dataset.preparing,...Object.entries(serviceAliases).filter(([key])=>(row.dataset.service||row.dataset.preparing||row.textContent).replace(/\s/g,'').includes(key.replace(/\s/g,''))).map(([,value])=>value)].filter(Boolean).join(' '),query);
+      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory||(serviceCategory==='travel'&&row.dataset.category==='charter'))||!window.KorualDiscovery.matches([row.textContent,row.dataset.search,row.dataset.service,row.dataset.preparing,...Object.entries(serviceAliases).filter(([key])=>(row.dataset.service||row.dataset.preparing||row.dataset.search).replace(/\s/g,'').includes(key.replace(/\s/g,''))).map(([,value])=>value)].filter(Boolean).join(' '),query);
       list?.appendChild(row);
       if(!row.hidden)count++;
     });
