@@ -55,7 +55,8 @@ function json(origin: string, body: unknown, status = 200) {
     headers: {
       ...cors(origin),
       "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store"
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff"
     }
   });
 }
@@ -701,18 +702,37 @@ Deno.serve(async (req: Request) => {
 
   let body: any;
   try {
-    body = await req.json();
+    const reader=req.body?.getReader();
+    if(!reader)return json(origin,{ok:false,error:"INVALID_JSON"},400);
+    const chunks: Uint8Array[]=[];
+    let size=0;
+    while(true){
+      const {value,done}=await reader.read();
+      if(done)break;
+      size+=value.byteLength;
+      if(size>16000){await reader.cancel();return json(origin,{ok:false,error:"PAYLOAD_TOO_LARGE"},413);}
+      chunks.push(value);
+    }
+    const bytes=new Uint8Array(size);
+    let offset=0;
+    for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+    body=JSON.parse(new TextDecoder().decode(bytes));
   } catch {
     return json(origin, { ok: false, error: "INVALID_JSON" }, 400);
   }
 
   const action = cleanText(body?.action, 24);
+  // Free text used for matching must not become a contact-information channel.
+  const requestText=[body?.request?.raw,body?.request?.region,body?.request?.service,...(Array.isArray(body?.request?.bundle)?body.request.bundle:[])].join(" ");
+  if (/(?:\+82[\s.-]?)?0?1[016789][\s.-]?\d{3,4}[\s.-]?\d{4}|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|\b\d{6}[\s-]?[1-8]\d{6}\b|(?:비밀번호|공동현관|도어락|계좌번호|카드번호|주민번호|전화번호|연락처)\s*[:：=]?\s*\S+|\d+\s*동\s*\d+\s*호|(?:로|길)\s*\d+(?:[-\s]\d+)?/i.test(requestText)) {
+    return json(origin,{ok:false,error:"PRIVATE_DATA_IN_REQUEST"},400);
+  }
   const sessionId = cleanText(
-    req.headers.get("x-korual-session") || body?.session_id,
+    req.headers.get("x-korual-session"),
     80
   );
 
-  if (!/^[A-Za-z0-9_-]{12,80}$/.test(sessionId)) {
+  if (!/^[A-Za-z0-9_-]{32,80}$/.test(sessionId)) {
     return json(origin, { ok: false, error: "INVALID_SESSION" }, 400);
   }
 
@@ -1202,7 +1222,7 @@ Deno.serve(async (req: Request) => {
           .single();
         recommendationRunId = run?.id ?? null;
       } catch (auditError) {
-        console.warn("recommendation_audit_failed", auditError);
+        console.warn("recommendation_audit_failed");
       }
 
       return json(origin, {
@@ -2005,7 +2025,7 @@ Deno.serve(async (req: Request) => {
             });
           }
         } catch (trackingError) {
-          console.warn("booking_success_tracking_failed", trackingError);
+          console.warn("booking_success_tracking_failed");
         }
       }
 
@@ -2155,7 +2175,7 @@ Deno.serve(async (req: Request) => {
             });
           }
         } catch (trackingError) {
-          console.warn("recovery_booking_tracking_failed", trackingError);
+          console.warn("recovery_booking_tracking_failed");
         }
       }
 
@@ -2542,7 +2562,7 @@ Deno.serve(async (req: Request) => {
             });
           }
         } catch (trackingError) {
-          console.warn("complete_tracking_failed", trackingError);
+          console.warn("complete_tracking_failed");
         }
       }
 
@@ -2556,11 +2576,9 @@ Deno.serve(async (req: Request) => {
 
     return json(origin, { ok: false, error: "UNKNOWN_ACTION" }, 400);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "SERVER_ERROR";
     return json(origin, {
       ok: false,
-      error: "SERVER_ERROR",
-      detail: message.slice(0, 160)
+      error: "SERVER_ERROR"
     }, 500);
   }
 });

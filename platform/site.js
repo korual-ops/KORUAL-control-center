@@ -50,39 +50,29 @@
   };
 
   try{
-    const saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null');
+    const saved=JSON.parse(sessionStorage.getItem(STATE_KEY)||localStorage.getItem(STATE_KEY)||'null');
     if(saved&&typeof saved==='object') state={...state,...saved};
   }catch(_){}
 
   let sessionId='';
-  try{sessionId=localStorage.getItem(SESSION_KEY)||''}catch(_){}
-  if(!/^[A-Za-z0-9_-]{12,80}$/.test(sessionId)){
-    const raw=globalThis.crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2));
+  try{sessionId=sessionStorage.getItem(SESSION_KEY)||localStorage.getItem(SESSION_KEY)||''}catch(_){}
+  if(!/^[A-Za-z0-9_-]{32,80}$/.test(sessionId)){
+    const bytes=globalThis.crypto.getRandomValues(new Uint8Array(24));
+    const raw=Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('');
     sessionId=('ks_'+raw.replace(/-/g,'_')).slice(0,80);
-    try{localStorage.setItem(SESSION_KEY,sessionId)}catch(_){}
   }
+  try{sessionStorage.setItem(SESSION_KEY,sessionId);localStorage.removeItem(SESSION_KEY);localStorage.removeItem(STATE_KEY)}catch(_){}
 
-  state.history=Array.isArray(state.history)?state.history.filter(x=>x&&typeof x.raw==='string'&&Array.isArray(x.bundle)).slice(0,20):[];
+  state=KorualPrivacy.sanitizeState(state);
 
   // Keep customer contact details in server-backed booking records, not long-lived browser storage.
   // Existing v3 local state is sanitized immediately on boot so older cached PII is removed too.
   function stateForLocalStorage(){
-    const persisted={...state};
-    if(state.booking){
-      persisted.booking={...state.booking};
-      delete persisted.booking.customer;
-    }
-    if(state.bundleBooking){
-      persisted.bundleBooking={...state.bundleBooking};
-      delete persisted.bundleBooking.customer;
-      delete persisted.bundleBooking.customer_name;
-      delete persisted.bundleBooking.phone;
-    }
-    return persisted;
+    return KorualPrivacy.sanitizeState(state);
   }
 
   function persistState(){
-    try{localStorage.setItem(STATE_KEY,JSON.stringify(stateForLocalStorage()))}catch(_){}
+    try{sessionStorage.setItem(STATE_KEY,JSON.stringify(stateForLocalStorage()))}catch(_){}
   }
 
   if(state.booking?.customer)delete state.booking.customer;
@@ -181,6 +171,7 @@
       });
       const data=await res.json().catch(()=>({ok:false,error:'INVALID_RESPONSE'}));
       if(!res.ok||!data.ok){
+        if(data.error==='PRIVATE_DATA_IN_REQUEST')showToast('개인정보를 제외하고 서비스 조건만 입력해주세요.');
         const err=new Error(data.error||'API_ERROR');
         err.code=data.error||'API_ERROR';
         throw err;
@@ -214,6 +205,7 @@
     return JSON.stringify({
       raw:String(request?.raw||'').trim(),
       service:String(request?.service||'').trim(),
+      region:String(request?.region||'').trim(),
       bundle:Array.isArray(request?.bundle)?request.bundle.slice(0,8):[],
       priority_mode:String(request?.priority_mode||'balanced'),
       budget_cap:Number(request?.budget_cap)||null,
@@ -367,6 +359,9 @@
     if(analysisService) analysisService.textContent=request.service;
     if(analysisPriority) analysisPriority.textContent=request.priority;
     if(analysisNext) analysisNext.textContent='조건에 맞는 견적 확인';
+    if($('#analysisRegion')) $('#analysisRegion').textContent=request.region||'미입력';
+    if($('#analysisDate')) $('#analysisDate').textContent=request.desiredDate||'일정 미지정';
+    if($('#analysisBudget')) $('#analysisBudget').textContent=state.preferences.budgetCap?state.preferences.budgetCap.toLocaleString('ko-KR')+'원':'제한 없음';
     if(goQuotes) goQuotes.disabled=false;
     if(quoteDesiredDate){
       quoteDesiredDate.min=localDateString(new Date());
@@ -566,13 +561,23 @@
   let lastAnalyzeRaw='';
   let lastAnalyzeAt=0;
 
-  function analyze(text,{count=true}={}){
+  function analyze(text,{count=true,conditions=null}={}){
     const request=inferRequest(text);
+    if(conditions){
+      request.region=conditions.region;
+      request.desiredDate=conditions.desiredDate||request.desiredDate;
+      request.budgetCap=conditions.budgetCap;
+    }
+    if(KorualPrivacy.containsPrivateData(request.raw)||KorualPrivacy.containsPrivateData(request.region)){
+      showToast('연락처·상세주소·비밀번호를 제외하고 서비스 조건만 입력해주세요.');
+      return false;
+    }
     if(!request.raw){showToast('필요한 서비스를 입력해주세요.');matchInput?.focus();return}
     const now=Date.now();
     if(count&&request.raw===lastAnalyzeRaw&&now-lastAnalyzeAt<700)return;
     if(count){lastAnalyzeRaw=request.raw;lastAnalyzeAt=now}
     normalizePreferences();
+    if(conditions) state.preferences.budgetCap=conditions.budgetCap;
     if(request.preferenceExplicit&&['balanced','price','trust','speed'].includes(request.priorityMode)){
       state.preferences.priority=request.priorityMode;
     }else{
@@ -594,9 +599,36 @@
     renderQuotesSelection();
     loadQuotes(request);
     showToast(request.budgetCap?'요청과 예산을 함께 분석했습니다.':'요청을 분석했습니다.');
+    return true;
   }
 
   matchForm?.addEventListener('submit',e=>{e.preventDefault();analyze(matchInput?.value)});
+  const homeRequestDate=$('#homeRequestDate');
+  if(homeRequestDate){homeRequestDate.min=localDateString(new Date());homeRequestDate.max=addSeoulDays(366);}
+  $$('[data-home-example]').forEach(button=>button.addEventListener('click',()=>{
+    const input=$('#homeRequestInput');
+    if(input){input.value=button.dataset.homeExample;input.focus();}
+  }));
+  $('#homeRequestForm')?.addEventListener('submit',event=>{
+    event.preventDefault();
+    const input=$('#homeRequestInput');
+    const region=$('#homeRequestRegion').value.trim();
+    const date=homeRequestDate.value;
+    const budgetValue=$('#homeRequestBudget').value;
+    const budget=budgetValue?Number(budgetValue):inferRequest(input.value).budgetCap;
+    const error=$('#homeRequestError');
+    if(!input.value.trim()||!region){error.textContent='필요한 서비스와 지역을 입력해주세요.';error.hidden=false;return;}
+    if(date&&!normalizeInferredDate(...date.split('-'))){error.textContent='오늘부터 1년 이내의 희망일을 선택해주세요.';error.hidden=false;homeRequestDate.focus();return;}
+    if(budgetValue&&(!Number.isFinite(budget)||budget<=0||budget>100000000)){error.textContent='예산을 1원부터 1억원 사이로 입력해주세요.';error.hidden=false;return;}
+    error.hidden=true;
+    const raw=input.value.trim();
+    if(matchInput)matchInput.value=raw;
+    if(!analyze(raw,{conditions:{region,desiredDate:date||null,budgetCap:budget||null}})){
+      error.textContent='연락처·상세주소·비밀번호를 지우고 다시 입력해주세요.';error.hidden=false;return;
+    }
+    showScreen('match');
+    $('#analysisCard')?.scrollIntoView({behavior:'auto',block:'start'});
+  });
   $$('[data-prompt]').forEach(btn=>btn.addEventListener('click',()=>{
     if(matchInput) matchInput.value=btn.dataset.prompt||'';
     analyze(btn.dataset.prompt);
@@ -1364,7 +1396,7 @@
           backend_id:data.bundle.id,
           serverUpdatedAt:Date.now()
         };
-        try{localStorage.setItem(STATE_KEY,JSON.stringify(state))}catch(_){}
+        persistState();
         renderBundleBooking();
         renderHome();
         renderProfile();
@@ -2445,7 +2477,7 @@
     if(!confirm('이 기기에 저장된 KORUAL 표시 상태를 초기화할까요? 서버 예약 기록은 삭제되지 않습니다.'))return;
     quoteRequestVersion++;quoteMode='sample';liveQuoteKeys.clear();quoteCatalog={...sampleQuotes};
     state={history:[],requests:0,completes:0,currentRequest:null,selectedQuote:null,booking:null,bundlePlan:null,bundleBooking:null,recoveryContext:null,preferences:{priority:'balanced',verifiedOnly:true,budgetCap:null}};
-    try{localStorage.removeItem(STATE_KEY)}catch(_){}
+    try{localStorage.removeItem(STATE_KEY);sessionStorage.removeItem(STATE_KEY)}catch(_){}
     if(matchInput) matchInput.value='';
     if(analysisTitle) analysisTitle.textContent='요청을 기다리는 중';
     if(analysisState){analysisState.textContent='READY';analysisState.classList.remove('ready')}
@@ -2493,4 +2525,3 @@
 
   if(state.currentRequest) loadQuotes(state.currentRequest);
 })();
-

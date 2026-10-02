@@ -74,7 +74,7 @@
     const price=num(card.dataset.price)||0;
     const trust=num(card.dataset.trust);
     const score=num(card.dataset.korualScore);
-    const sample=/샘플|Partner\s[A-Z]/i.test(card.textContent||'');
+    const sample=card.classList.contains('is-sample');
     return {card,provider,price,trust,score,sample};
   }
 
@@ -91,8 +91,8 @@
         const target=q('.quote-top',info.card)||info.card.firstElementChild;
         target?.insertAdjacentElement('afterend',badge);
       }
-      badge.classList.toggle('is-live',!info.sample);
-      badge.textContent=info.sample?'샘플 비교 데이터':'실시간 응답 데이터';
+      const text=info.sample?'예시 데이터 · 예약 불가':'서버 조회 · 베타 견적';
+      if(badge.textContent!==text)badge.textContent=text;
     });
   }
 
@@ -143,7 +143,7 @@
       '<div class="v7-decision-stats">'+
         '<span><small>비교 견적</small><b>'+infos.length+'개</b></span>'+
         '<span><small>중앙 가격</small><b>'+won.format(median)+'</b></span>'+
-        '<span><small>최고 KORUAL SCORE</small><b>'+(highest??'산정 중')+'</b></span>'+
+        '<span><small>최고 비교점수</small><b>'+(highest??'근거 없음')+'</b></span>'+
       '</div>'+
       '<p class="v7-decision-note"><i>✓</i><span>AI는 후보를 정리하고 설명합니다. 서비스 범위·취소 조건·최종 금액을 확인한 뒤 예약은 사용자가 직접 승인합니다.'+(samples?' 현재 '+samples+'개 항목은 샘플 데이터입니다.':'')+'</span></p>'+
       '<div id="v7Matrix" class="v7-matrix" '+(expanded?'':'hidden')+'>'+matrixHtml(infos)+'</div>';

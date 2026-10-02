@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('./dist/', import.meta.url));
@@ -22,8 +22,11 @@ const types = {
 };
 
 function securePath(pathname) {
-  const cleaned = normalize(decodeURIComponent(pathname)).replace(/^([.][.][/\\])+/, '');
-  return join(root, cleaned);
+  const decoded=decodeURIComponent(pathname);
+  if(decoded.includes('\0')||decoded.includes('\\'))throw Error('INVALID_PATH');
+  const path=resolve(root,'.'+decoded);
+  if(!path.startsWith(resolve(root)+sep))throw Error('INVALID_PATH');
+  return path;
 }
 
 async function sendFile(res, path, cache = false) {
@@ -32,10 +35,11 @@ async function sendFile(res, path, cache = false) {
     'Content-Type': types[extname(path)] || 'application/octet-stream',
     'Cache-Control': cache ? 'public, max-age=31536000, immutable' : 'no-store, max-age=0',
     'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Referrer-Policy': 'no-referrer',
+    'X-Frame-Options': 'DENY',
+    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://dtmmjkikyfgkeimhevso.supabase.co; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-    'Pragma': cache ? undefined : 'no-cache',
-    'Expires': cache ? undefined : '0'
+    ...(cache?{}:{'Pragma':'no-cache','Expires':'0'})
   });
   res.end(data);
 }
@@ -66,10 +70,6 @@ const handler = async (req, res) => {
       const kind = String(url.searchParams.get('kind') || '')
         .replace(/[^a-z0-9._-]/gi, '')
         .slice(0, 40);
-      const msg = String(url.searchParams.get('msg') || '')
-        .replace(/[\r\n\t]/g, ' ')
-        .replace(/[^a-z0-9가-힣 .,/:_()\[\]-]/gi, '')
-        .slice(0, 180);
       const file = String(url.searchParams.get('file') || '')
         .replace(/[^a-z0-9._-]/gi, '')
         .slice(0, 80);
@@ -82,7 +82,6 @@ const handler = async (req, res) => {
       console.log(
         `KORUAL_BOOT stage=${stage || 'unknown'} build=${build || 'unknown'}` +
         (kind ? ` kind=${kind}` : '') +
-        (msg ? ` msg=${msg}` : '') +
         (file ? ` file=${file}` : '') +
         (line ? ` line=${line}` : '') +
         (col ? ` col=${col}` : '')
@@ -98,6 +97,10 @@ const handler = async (req, res) => {
       const isAsset = url.pathname.includes('/assets/');
       return await sendFile(res, path, isAsset);
     } catch {
+      if(extname(url.pathname)){
+        res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});
+        return res.end('Not found');
+      }
       return await sendFile(res, join(root, 'index.html'), false);
     }
   } catch {

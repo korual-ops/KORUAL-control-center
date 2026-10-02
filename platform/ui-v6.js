@@ -3,7 +3,7 @@
 
   const fmt=new Intl.NumberFormat('ko-KR',{style:'currency',currency:'KRW',maximumFractionDigits:0});
   const clamp=(v,min=0,max=100)=>Math.max(min,Math.min(max,Number.isFinite(v)?v:min));
-  const number=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
+  const number=v=>{if(v==null||String(v).trim()==='')return null;const n=Number(v);return Number.isFinite(n)?n:null};
   const median=values=>{
     const xs=values.filter(Number.isFinite).sort((a,b)=>a-b);
     if(!xs.length)return null;
@@ -33,12 +33,10 @@
     const deviations=prices.map(v=>Math.abs(v-fair));
     const mad=median(deviations)||0;
     const robustSpread=Math.max(fair*0.08,mad*1.4826,5000);
-    const confidence=clamp(58+Math.min(prices.length,6)*7-(prices.length<3?8:0),50,92);
     return {
       fair,
       low:Math.max(0,fair-robustSpread),
       high:fair+robustSpread,
-      confidence,
       sampleCount:prices.length
     };
   }
@@ -78,13 +76,15 @@
       list.parentNode?.insertBefore(panel,list);
     }
     panel.innerHTML=
-      '<div class="v6-fair-price-head"><div><small>AI FAIR PRICE</small><strong>'+fmt.format(model.fair)+'</strong></div>'+
-      '<span>신뢰도 '+Math.round(model.confidence)+'</span></div>'+
+      '<div class="v6-fair-price-head"><div><small>표시 견적 중앙값</small><strong>'+fmt.format(model.fair)+'</strong></div>'+
+      '<span>비교 '+model.sampleCount+'건</span></div>'+
       '<div class="v6-fair-price-range"><span>'+fmt.format(model.low)+'</span><i><em style="width:50%"></em></i><span>'+fmt.format(model.high)+'</span></div>'+
-      '<p>현재 불러온 '+model.sampleCount+'개 비교견적의 중앙값과 가격 분산을 이용한 실시간 추정입니다. 실제 결제가는 옵션·현장 조건에 따라 달라질 수 있습니다.</p>';
+      '<p>현재 표시 견적만으로 계산한 참고값입니다. 시장 시세나 확정 총액이 아니며 작업 범위가 다르면 직접 비교할 수 없습니다.</p>';
   }
 
   function renderCard(card,model){
+    const scoreValue=number(card.dataset.matchScore);
+    if(scoreValue===null){card.querySelector('.v6-intelligence')?.remove();delete card.dataset.korualScore;return;}
     const score=scoreCard(card,model);
     const deviation=(score.quoted-model.fair)/Math.max(model.fair,1)*100;
     let panel=card.querySelector('.v6-intelligence');
@@ -95,21 +95,15 @@
       anchor?.insertAdjacentElement('afterend',panel);
     }
     const deviationLabel=Math.abs(deviation)<3
-      ?'적정가 근접'
-      :(deviation<0?'적정가 대비 '+Math.abs(Math.round(deviation))+'% 낮음':'적정가 대비 '+Math.abs(Math.round(deviation))+'% 높음');
+      ?'표시 견적 중앙값 근처'
+      :(deviation<0?'중앙값보다 '+Math.abs(Math.round(deviation))+'% 낮음':'중앙값보다 '+Math.abs(Math.round(deviation))+'% 높음');
 
     panel.innerHTML=
-      '<div class="v6-score-head"><div><small>KORUAL SCORE</small><strong>'+Math.round(score.overall)+'</strong></div>'+
+      '<div class="v6-score-head"><div><small>서버 비교점수</small><strong>'+Math.round(scoreValue)+'</strong></div>'+
       '<span class="'+(Math.abs(deviation)<=12?'is-fair':'')+'">'+deviationLabel+'</span></div>'+
-      '<div class="v6-score-grid">'+
-        metric('가격',score.priceScore)+
-        metric('품질',score.qualityScore)+
-        metric('신뢰',score.reliabilityScore)+
-        metric('조건',score.fitScore)+
-      '</div>'+
-      '<p class="v6-score-note">가격 30% · 품질 30% · 신뢰 25% · 조건 적합도 15% 기준의 설명 가능한 비교점수</p>';
+      '<p class="v6-score-note">서버가 제공한 비교점수입니다. 품질 보증이나 예약 성공 확률을 의미하지 않습니다.</p>';
 
-    card.dataset.korualScore=String(Math.round(score.overall));
+    card.dataset.korualScore=String(Math.round(scoreValue));
     card.dataset.fairPrice=String(Math.round(model.fair));
   }
 
@@ -121,7 +115,7 @@
     if(!list)return;
     const cards=visibleCards();
     const model=priceModel(cards);
-    if(!model)return;
+    if(!model){document.querySelector('#korualFairPriceOverview')?.remove();return;}
     observer?.disconnect();
     ensureOverview(list,model);
     cards.forEach(card=>renderCard(card,model));

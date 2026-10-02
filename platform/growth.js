@@ -65,7 +65,7 @@
 
     // Surface local product usage without exposing personal data.
     try{
-      const state=JSON.parse(localStorage.getItem('korual-mobile-state-v3')||'{}');
+      const state=JSON.parse(sessionStorage.getItem('korual-mobile-state-v3')||'{}');
       const count=Number(state.requests||0);
       if(count>0){
         const label=command.querySelector('.korual-command-head span');

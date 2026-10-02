@@ -247,7 +247,7 @@
     }
 
     function readState(){
-      try{return JSON.parse(localStorage.getItem('korual-mobile-state-v3')||'{}')}catch(_){return {}}
+      try{return JSON.parse(sessionStorage.getItem('korual-mobile-state-v3')||'{}')}catch(_){return {}}
     }
 
     function escapeHtml(value){

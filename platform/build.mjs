@@ -19,6 +19,7 @@ const files = [
   'ui-v6.css',
   'ui-v7.css',
   'site.js',
+  'privacy.js',
   'i18n.js',
   'growth.js',
   'ui-v2.js',

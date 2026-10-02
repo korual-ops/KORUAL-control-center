@@ -20,7 +20,8 @@
   <link rel="stylesheet" href="/ui-v2.css" />
   <link rel="stylesheet" href="/ui-v3.css" />
   <link rel="stylesheet" href="/ui-v4.css" />
-  <link rel="stylesheet" href="/ui-v5.css" />\n  <link rel="stylesheet" href="/ui-v6.css" />
+  <link rel="stylesheet" href="/ui-v5.css" />
+  <link rel="stylesheet" href="/ui-v6.css" />
   <link rel="stylesheet" href="/ui-v7.css" />
 </head>
 <body>
@@ -59,10 +60,19 @@
         <section class="new-home-hero" aria-label="코루알 서비스 시작">
           <div class="new-hero-copy">
             <p class="new-hero-line">KORUAL · WELLNESS · LIFESTYLE · TRAVEL</p>
-            <h1>필요한 순간,<br><em>코루알</em></h1>
-            <p class="new-hero-description">생활 서비스부터 여행까지. 필요한 것을 말하면 조건을 정리하고 비교를 시작합니다.</p>
-            <button class="new-hero-search" type="button" data-open-screen="match"><span class="search-mark" aria-hidden="true">⌕</span><strong>무엇이 필요하세요?</strong><span class="search-go" aria-hidden="true">→</span></button>
-            <p class="new-hero-foot">서비스 요청 · 견적 비교 · 예약 요청</p>
+            <h1>필요한 서비스,<br><em>조건부터 맞추세요.</em></h1>
+            <p class="new-hero-description">지역과 일정, 예산을 정하고 가능한 견적을 비교하세요.</p>
+            <form id="homeRequestForm" class="request-workspace">
+              <label class="request-main"><span>어떤 도움이 필요하세요?</span><textarea id="homeRequestInput" rows="2" maxlength="240" required placeholder="예: 20평 집 청소, 주방과 욕실을 중심으로 부탁해요."></textarea></label>
+              <div class="request-fields">
+                <label><span>서비스 지역</span><input id="homeRequestRegion" maxlength="80" required placeholder="예: 인천 영종도" autocomplete="off" /></label>
+                <label><span>희망일 · 선택</span><input id="homeRequestDate" type="date" /></label>
+                <label><span>예산 상한 · 선택</span><input id="homeRequestBudget" type="number" min="1" max="100000000" step="1" inputmode="numeric" placeholder="원 단위" /></label>
+              </div>
+              <div class="request-footer"><p>연락처·상세주소·비밀번호는 입력하지 마세요.<br>예약자 정보는 예약 단계에서만 입력합니다.</p><button type="submit">조건 정리하고 비교</button></div>
+              <p id="homeRequestError" class="request-error" role="alert" hidden></p>
+            </form>
+            <div class="request-presets" role="group" aria-label="요청 예시"><button type="button" data-home-example="20평 집 청소, 주방과 욕실을 중심으로 비교해줘">집 청소</button><button type="button" data-home-example="에어컨 세척 가격과 작업 범위를 비교해줘">에어컨 세척</button><button type="button" data-home-example="이사와 입주청소를 같은 일정으로 비교해줘">이사 준비</button><button type="button" data-home-example="여행 항공과 숙박을 예산에 맞춰 비교해줘">여행 준비</button></div>
           </div>
           <div class="new-hero-index" aria-hidden="true"><span>01 / 03</span><i></i><span>IN THAT MOMENT</span></div>
         </section>
@@ -144,6 +154,9 @@
             <div><small>서비스</small><strong id="analysisService">—</strong></div>
             <div><small>우선순위</small><strong id="analysisPriority">가격 + 신뢰</strong></div>
             <div><small>다음 단계</small><strong id="analysisNext">견적 비교</strong></div>
+            <div><small>서비스 지역</small><strong id="analysisRegion">미입력</strong></div>
+            <div><small>희망일</small><strong id="analysisDate">일정 미지정</strong></div>
+            <div><small>예산 상한</small><strong id="analysisBudget">제한 없음</strong></div>
           </div>
           <button id="goQuotes" class="wide-primary" type="button" disabled>견적 비교로 이동 <span>→</span></button>
         </article>
@@ -464,13 +477,15 @@
     </nav>
   </div>
 
+  <script src="/privacy.js" defer></script>
   <script src="/site.js" defer></script>
   <script src="/i18n.js" defer></script>
   <script src="/growth.js" defer></script>
   <script src="/ui-v2.js" defer></script>
   <script src="/ui-v3.js" defer></script>
   <script src="/ui-v4.js" defer></script>
-  <script src="/ui-v5.js" defer></script>\n  <script src="/ui-v6.js" defer></script>
+  <script src="/ui-v5.js" defer></script>
+  <script src="/ui-v6.js" defer></script>
   <script src="/ui-v7.js" defer></script>
 </body>
 </html>

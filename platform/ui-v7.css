@@ -80,3 +80,43 @@
 @media (prefers-reduced-motion:reduce){
   .v7-journey,.v7-decision-board,.v7-project-hub{scroll-behavior:auto}
 }
+/* Direct request workspace: navy, gold, readable controls. */
+.new-home-hero{min-height:0!important;padding:36px!important;overflow:hidden;background-position:center!important}
+.new-hero-copy{position:relative;z-index:3;max-width:760px!important;width:100%!important}
+.new-home-hero h1{font-size:clamp(30px,3.5vw,48px)!important;line-height:1.18!important;margin:10px 0 14px!important;letter-spacing:-.035em!important}
+.new-hero-line{font-size:12px!important}
+.new-hero-description{font-size:16px!important;line-height:1.6!important;max-width:640px!important;margin:0 0 22px!important}
+.new-hero-index,.korual-hero-visual,.v7-value-strip,.uxv3-hero-proof,.uxv3-ai-dock,.korual-command,.korual-loop,.korual-proof{display:none!important}
+.request-workspace{padding:22px;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:20px;box-shadow:0 20px 50px #0002}
+.request-workspace label{display:block;min-width:0}
+.request-workspace label span{display:block;font-size:14px;font-weight:700;margin-bottom:8px}
+.request-workspace input,.request-workspace textarea{box-sizing:border-box;display:block;width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);font:inherit;font-size:16px;padding:12px;min-height:48px;line-height:1.5}
+.request-workspace textarea{resize:vertical;max-height:220px}
+.request-workspace input:focus,.request-workspace textarea:focus{outline:3px solid #d8b77480;outline-offset:2px}
+.request-fields{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin-top:16px}
+.request-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px}
+.request-footer p{font-size:14px;line-height:1.6;color:var(--muted);margin:0}
+.request-footer button{min-height:48px;border:0;border-radius:12px;padding:12px 20px;background:#0c2746;color:white;font:inherit;font-size:16px;font-weight:700;cursor:pointer;flex-shrink:0}
+.request-presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.request-presets button{border:1px solid #ffffff50;background:#071a3370;color:white;border-radius:24px;min-height:44px;padding:9px 16px;font:inherit;font-size:14px;cursor:pointer}
+.request-error{color:#b42318;font-size:14px;margin:12px 0 0}
+.request-error[hidden]{display:none}
+.v7-journey-step span,.v7-journey-step b,.v7-value-strip strong,.v7-decision-head button,.v7-decision-stats small,.v7-decision-note,.v7-matrix-row,.v7-data-badge,.v7-approval-gate strong,.v7-approval-gate small,.v7-approval-error,.v7-project-next strong,.v7-project-next button{font-size:14px}
+.v7-decision-head small,.v7-matrix-head,.v7-project-hub-head small,.v7-project-next small,.v6-score-note{font-size:12px}
+.v7-decision-stats b{font-size:18px}.v7-decision-note{line-height:1.7}
+.v7-journey{max-width:800px;border-radius:18px}.v7-journey-step span{white-space:normal;line-height:1.4}.v7-journey-step b{flex-basis:24px;height:24px}
+.v6-score-note,.v6-fair-price-overview p{line-height:1.7;font-size:14px!important}
+.v6-fair-price-head small,.v6-fair-price-head>span{font-size:14px!important}
+.v7-matrix{overflow-x:auto}.v7-matrix-head,.v7-matrix-row{min-width:360px}
+.analysis-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.analysis-grid strong{overflow-wrap:anywhere}
+#analysisCard{scroll-margin-top:135px}
+@media(min-width:900px){.tabbar{display:none!important}.app-frame{padding-bottom:30px!important}.screen-home{padding-bottom:0!important}}
+@media(max-width:640px){
+ .new-home-hero{padding:22px 16px!important;border-radius:20px!important}
+ .new-home-hero h1{font-size:30px!important}.new-hero-description{margin-bottom:16px!important}
+ .request-workspace{padding:16px}.request-fields{grid-template-columns:1fr 1fr;gap:12px}.request-fields label:first-child{grid-column:1/-1}
+ .request-footer{display:block}.request-footer button{width:100%;margin-top:12px}.request-footer p{font-size:13px}
+ .v7-journey{top:64px}.v7-journey-step{gap:4px;padding:4px}.v7-journey-step span{font-size:12px}.v7-journey-step b{font-size:12px;flex-basis:20px;height:20px}
+ .analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .v7-decision-head{flex-wrap:wrap}.v7-decision-stats{grid-template-columns:1fr 1fr}
+}

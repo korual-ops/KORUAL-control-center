@@ -73,7 +73,7 @@
       });
 
       try{
-        const saved=JSON.parse(localStorage.getItem('korual-mobile-state-v3')||'{}');
+        const saved=JSON.parse(sessionStorage.getItem('korual-mobile-state-v3')||'{}');
         const current=saved?.currentRequest;
         if(current?.raw){
           const resume=document.createElement('div');
@@ -88,7 +88,7 @@
         if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
           e.preventDefault();
           if(location.hash&&location.hash!=='#home')openScreen('home');
-          requestAnimationFrame(()=>input.focus());
+          requestAnimationFrame(()=>document.querySelector('#homeRequestInput')?.focus());
         }
       });
     }
