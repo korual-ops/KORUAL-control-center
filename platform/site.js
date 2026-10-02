@@ -659,7 +659,7 @@
     if(region && $('#customerRegion')) $('#customerRegion').value=region;
     showScreen('match');
     if(matchInput) matchInput.value=value;
-    analyze(value);
+    analyze(value,{conditions:{region}});
   }));
   goQuotes?.addEventListener('click',()=>showScreen('quotes'));
 
