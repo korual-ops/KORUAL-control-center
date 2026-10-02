@@ -286,8 +286,8 @@
         </div>
 
         <div class="discovery-controls">
-          <label>서비스 검색<input id="serviceSearch" type="search" placeholder="이사, 청소, 여행…" autocomplete="off" /></label>
-          <label>희망 지역<select id="serviceRegion"><option value="">전국 · 지역 선택</option><option>서울</option><option>부산</option><option>대구</option><option>인천</option><option>광주</option><option>대전</option><option>울산</option><option>세종</option><option>경기</option><option>강원</option><option>충북</option><option>충남</option><option>전북</option><option>전남</option><option>경북</option><option>경남</option><option>제주</option></select></label>
+          <label><span id="serviceSearchLabel">서비스 검색</span><input id="serviceSearch" type="search" placeholder="이사, 청소, 여행…" autocomplete="off" /></label>
+          <label><span id="serviceRegionLabel">희망 지역</span><select id="serviceRegion"><option value="">전국 · 지역 선택</option><option>서울</option><option>부산</option><option>대구</option><option>인천</option><option>광주</option><option>대전</option><option>울산</option><option>세종</option><option>경기</option><option>강원</option><option>충북</option><option>충남</option><option>전북</option><option>전남</option><option>경북</option><option>경남</option><option>제주</option></select></label>
         </div>
         <div class="service-category-controls" role="group" aria-label="서비스 카테고리">
           <button type="button" data-service-category="all" aria-pressed="true">전체</button>
@@ -295,7 +295,7 @@
           <button type="button" data-service-category="travel" aria-pressed="false">여행</button>
           <button type="button" data-service-category="wellness" aria-pressed="false">웰니스</button>
           <button type="button" data-service-category="business" aria-pressed="false">비즈니스</button>
-          <label>정렬<select id="serviceSort"><option value="default">기본순</option><option value="name">이름순</option></select></label>
+          <label><span id="serviceSortLabel">정렬</span><select id="serviceSort"><option value="default">기본순</option><option value="name">이름순</option></select></label>
           <button type="button" id="resetServiceFilters">필터 초기화</button>
         </div>
         <p class="coverage-note">전국 17개 시·도에서 희망 지역을 선택할 수 있습니다. 실제 제공 여부는 서비스와 파트너별 확인이 필요합니다.</p>

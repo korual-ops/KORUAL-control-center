@@ -141,3 +141,13 @@
 .uxv3-quote-cockpit>div,.uxv3-quote-cockpit>span{display:none!important}
 .uxv3-quote-cockpit{justify-content:flex-end;padding:10px 0;background:transparent;border:0}
 .v7-decision-board{margin-top:16px}
+
+/* Use local script-aware fonts without third-party font requests. */
+html:lang(ko){--ui-font:system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+html:lang(en),html:lang(vi){--ui-font:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+html:lang(ja){--ui-font:system-ui,-apple-system,"Yu Gothic","Hiragino Kaku Gothic ProN",sans-serif}
+html:lang(zh){--ui-font:system-ui,-apple-system,"Microsoft YaHei","PingFang SC",sans-serif}
+body,button,input,select,textarea,.new-home-hero h1{font-family:var(--ui-font,system-ui,sans-serif)}
+html:not(:lang(ko)) .new-home-hero h1{letter-spacing:normal;line-height:1.15;font-size:clamp(30px,3.4vw,46px)}
+.request-footer button,.new-feature button,.service-category-controls button{white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.request-footer{flex-wrap:wrap}

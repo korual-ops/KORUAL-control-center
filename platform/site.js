@@ -689,12 +689,12 @@
     const query=(serviceSearch?.value||'').trim().toLocaleLowerCase();
     const rows=[...serviceRows];
     rows.sort((a,b)=>serviceSort?.value==='name'
-      ?($('strong',a)?.textContent||'').localeCompare($('strong',b)?.textContent||'','ko')
+      ?($('strong',a)?.textContent||'').localeCompare($('strong',b)?.textContent||'',document.documentElement.lang||'ko')
       :serviceOrder.get(a)-serviceOrder.get(b));
     const list=$('.service-list');
     let count=0;
     rows.forEach(row=>{
-      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory)||!row.textContent.toLocaleLowerCase().includes(query);
+      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory)||!(row.textContent+' '+row.dataset.service).toLocaleLowerCase().includes(query);
       list?.appendChild(row);
       if(!row.hidden)count++;
     });
@@ -720,6 +720,7 @@
   serviceSearch?.addEventListener('input',filterServices);
   serviceRegion?.addEventListener('change',filterServices);
   serviceSort?.addEventListener('change',filterServices);
+  window.addEventListener('korual:language-changed',filterServices);
   filterServices();
 
 

@@ -101,7 +101,13 @@
     }
   };
 
-  const B=[
+
+  const UI_COPY={"requestHero": ["필요한 서비스,\n조건부터 맞추세요.", "Find your service.\nStart with your needs.", "必要なサービスを、\n条件から探そう。", "找到所需服务，\n先确定条件。", "Tìm dịch vụ bạn cần.\nBắt đầu từ nhu cầu."], "requestDesc": ["지역과 일정, 예산을 정하고 가능한 견적을 비교하세요.", "Set your area, date and budget, then compare available quotes.", "地域・日程・予算を決めて、見積もりを比較しましょう。", "选择地区、日期和预算，比较可用报价。", "Chọn khu vực, ngày và ngân sách để so sánh báo giá."], "requestAsk": ["어떤 도움이 필요하세요?", "What help do you need?", "どんなお手伝いが必要ですか？", "您需要什么帮助？", "Bạn cần hỗ trợ gì?"], "requestArea": ["서비스 지역", "Service area", "サービス地域", "服务地区", "Khu vực dịch vụ"], "requestDate": ["희망일 · 선택", "Preferred date · optional", "希望日・任意", "期望日期 · 可选", "Ngày mong muốn · tùy chọn"], "requestBudget": ["예산 상한 · 선택", "Budget limit · optional", "予算上限・任意", "预算上限 · 可选", "Giới hạn ngân sách · tùy chọn"], "requestPrivacy": ["연락처·상세주소·비밀번호는 입력하지 마세요.\n예약자 정보는 예약 단계에서만 입력합니다.", "Do not enter contact details, a full address or passwords.\nBooking details are collected only at the booking step.", "連絡先・詳細住所・パスワードは入力しないでください。\n予約者情報は予約時にのみ入力します。", "请勿输入联系方式、详细地址或密码。\n仅在预约步骤填写预约人信息。", "Không nhập thông tin liên hệ, địa chỉ đầy đủ hoặc mật khẩu.\nThông tin người đặt chỉ được nhập ở bước đặt lịch."], "requestSubmit": ["조건 정리하고 비교", "Review needs and compare", "条件を整理して比較", "整理条件并比较", "Xem nhu cầu và so sánh"], "requestExample": ["예: 20평 집 청소, 주방과 욕실을 중심으로 부탁해요.", "Describe the service and scope you need.", "必要なサービスと作業範囲を入力してください。", "请描述所需服务和工作范围。", "Mô tả dịch vụ và phạm vi bạn cần."], "areaExample": ["예: 인천 영종도", "Example: Incheon, Yeongjong", "例：仁川・永宗島", "例如：仁川永宗岛", "Ví dụ: Incheon, Yeongjong"], "budgetUnit": ["원 단위", "Amount in KRW", "韓国ウォン単位", "韩元金额", "Số tiền bằng KRW"], "catAll": ["전체", "All", "すべて", "全部", "Tất cả"], "catLife": ["생활", "Home & life", "暮らし", "生活", "Đời sống"], "catTravel": ["여행", "Travel", "旅行", "旅行", "Du lịch"], "catWellness": ["웰니스", "Wellness", "ウェルネス", "健康生活", "Chăm sóc sức khỏe"], "catBusiness": ["비즈니스", "Business", "ビジネス", "商务", "Kinh doanh"], "sortDefault": ["기본순", "Default order", "標準順", "默认排序", "Thứ tự mặc định"], "sortName": ["이름순", "Name order", "名前順", "按名称", "Theo tên"], "resetFilters": ["필터 초기화", "Reset filters", "絞り込みを解除", "重置筛选", "Đặt lại bộ lọc"], "sortLabel": ["정렬", "Sort", "並び替え", "排序", "Sắp xếp"], "serviceSearch": ["서비스 검색", "Search services", "サービス検索", "搜索服务", "Tìm dịch vụ"], "regionLabel": ["희망 지역", "Preferred area", "希望地域", "期望地区", "Khu vực mong muốn"], "resumeLabel": ["조건 수정", "Edit conditions", "条件を編集", "修改条件", "Sửa điều kiện"], "allServices": ["모든 서비스", "All services", "すべてのサービス", "全部服务", "Tất cả dịch vụ"], "bannerTitle": ["이사 준비를\n하나의 흐름으로.", "Plan your move\nin one place.", "引っ越し準備を\nひとつの流れで。", "搬家准备，\n一站式安排。", "Chuẩn bị chuyển nhà\ntrong một quy trình."], "bannerDesc": ["이사, 입주청소, 인터넷 설치까지 필요한 일을 한 번에 정리해보세요.", "Organize moving, move-in cleaning and internet installation together.", "引っ越し・入居前清掃・インターネット設置をまとめて整理。", "统一安排搬家、入住清洁和网络安装。", "Sắp xếp chuyển nhà, dọn dẹp và lắp internet cùng lúc."], "bannerAction": ["이사 플랜 시작", "Plan my move", "引っ越しプランを開始", "开始搬家计划", "Lập kế hoạch chuyển nhà"], "nextMoment": ["당신의 다음 순간을 위해", "For your next moment", "あなたの次の一歩に", "为您的下一刻", "Cho khoảnh khắc tiếp theo"], "lifeTitle": ["생활 서비스", "Home services", "生活サービス", "生活服务", "Dịch vụ đời sống"], "travelTitle": ["여행 서비스", "Travel services", "旅行サービス", "旅行服务", "Dịch vụ du lịch"], "lifeBrief": ["이사 · 청소 · 설치 · 공간", "Moving · cleaning · installation · space", "引っ越し・清掃・設置・空間", "搬家 · 清洁 · 安装 · 空间", "Chuyển nhà · dọn dẹp · lắp đặt · không gian"], "wellnessBrief": ["휴식 · 케어 · 일상 회복", "Rest · care · everyday recovery", "休息・ケア・日常の回復", "休息 · 护理 · 日常恢复", "Nghỉ ngơi · chăm sóc · phục hồi"], "demoLabel": ["데모 · 예약 불가", "Demo · booking unavailable", "デモ・予約不可", "演示 · 无法预约", "Bản demo · không thể đặt"], "sampleLabel": ["예시 데이터 · 예약 불가", "Sample data · booking unavailable", "サンプルデータ・予約不可", "示例数据 · 无法预约", "Dữ liệu mẫu · không thể đặt"]};
+  for(const [key,values] of Object.entries(UI_COPY)){
+    supported.forEach((language,index)=>T[language][key]=values[index]);
+  }
+
+  const B=[["[data-ui-screen=\"home\"]", "home"],["[data-ui-screen=\"match\"]", "aiMatch"],["[data-ui-screen=\"services\"]", "service"],["[data-ui-screen=\"quotes\"]", "quote"],["[data-ui-screen=\"bookings\"]", "booking"],["[data-home-example*=\"20평\"]", "cleaning"],["[data-home-example*=\"에어컨\"]", "promptAir"],["[data-home-example*=\"이사와\"]", "moving"],["[data-home-example*=\"여행 항공\"]", "travel"],[".new-home-hero h1", "requestHero", "html"], [".new-hero-description", "requestDesc"], [".request-main>span", "requestAsk"], [".request-fields label:nth-child(1)>span", "requestArea"], [".request-fields label:nth-child(2)>span", "requestDate"], [".request-fields label:nth-child(3)>span", "requestBudget"], [".request-footer p", "requestPrivacy", "html"], ["#homeRequestForm button[type=\"submit\"]", "requestSubmit"], ["#homeRequestInput", "requestExample", "placeholder"], ["#homeRequestRegion", "areaExample", "placeholder"], ["#homeRequestBudget", "budgetUnit", "placeholder"], ["[data-service-category=\"all\"]", "catAll"], ["[data-service-category=\"life\"]", "catLife"], ["[data-service-category=\"travel\"]", "catTravel"], ["[data-service-category=\"wellness\"]", "catWellness"], ["[data-service-category=\"business\"]", "catBusiness"], ["#serviceSort option[value=\"default\"]", "sortDefault"], ["#serviceSort option[value=\"name\"]", "sortName"], ["#resetServiceFilters", "resetFilters"], ["#serviceSortLabel", "sortLabel"], ["#serviceSearchLabel", "serviceSearch"], ["#serviceRegionLabel", "regionLabel"], [".new-feature h2", "bannerTitle", "html"], [".new-feature p", "bannerDesc"], [".new-feature button", "bannerAction", "prefixArrow"], [".new-section-head h2", "nextMoment"], [".new-section-head>button", "allServices", "prefixArrow"], ["[data-open-category=\"life\"] strong", "lifeTitle"], ["[data-open-category=\"travel\"] strong", "travelTitle"], ["[data-open-category=\"wellness\"] strong", "catWellness"], ["[data-open-category=\"life\"] em", "lifeBrief"], ["[data-open-category=\"travel\"] em", "travelDesc"], ["[data-open-category=\"wellness\"] em", "wellnessBrief"],
     ['.home-hero h1','homeHero','html'],
     ['.home-hero>p','homeDesc'],['.hero-cta .cta-copy strong','ask'],
     ['.section-title h2','quick',null,0],['.section-title>button','all',null,0],
@@ -161,6 +167,12 @@
     }
   };
 
+  for(const [key,values] of Object.entries(UI_COPY)){
+    supported.forEach((language,index)=>{
+      DYNAMIC[language] ||= {};
+      if(!values[0].includes('\n'))DYNAMIC[language][values[0]]=values[index];
+    });
+  }
   const exact={
     '아직 요청이 없어요':'noRequest','필요한 서비스를 입력해보세요.':'tryService','최근 요청을 기반으로 다음 행동을 여기에 추천합니다.':'recentHelp',
     '견적을 선택하세요':'selectPrompt','요청을 기다리는 중':'waiting','가격 + 신뢰':'priceTrust','3개 견적 비교':'threeQuotes',
@@ -183,7 +195,7 @@
     if(mode==='html'){
       const parts=String(value).split('\n');
       el.innerHTML=parts.map((x,i)=>i===parts.length-1&&el.querySelector?.('em')?x:'').join('');
-      if(el.matches('.home-hero h1')){
+      if(el.matches('.home-hero h1,.new-home-hero h1')){
         const [a,b]=parts;el.innerHTML=escape(a)+'<br><em>'+escape(b||'')+'</em>';
       }else el.innerHTML=parts.map(escape).join('<br>');
     }else if(mode==='placeholder')el.setAttribute('placeholder',value);
@@ -254,7 +266,7 @@
   document.querySelectorAll('[data-language]').forEach(btn=>btn.addEventListener('click',()=>{
     lang=btn.dataset.language;
     try{localStorage.setItem(STORAGE_KEY,lang)}catch(_){}
-    applyBindings();closeSheet();
+    applyBindings();closeSheet();window.dispatchEvent(new CustomEvent('korual:language-changed')); 
   }));
 
   const observer=new MutationObserver(records=>{
@@ -282,6 +294,7 @@
 
   applyBindings();
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+  window.addEventListener('korual:screen-changed',()=>{applyExact(document.body);translateHeader()});
   window.addEventListener('hashchange',()=>setTimeout(()=>{applyBindings();translateHeader()},0));
-  window.KORUAL_I18N={getLanguage:()=>lang,setLanguage:(next)=>{if(supported.includes(next)){lang=next;try{localStorage.setItem(STORAGE_KEY,lang)}catch(_){}applyBindings()}}};
+  window.KORUAL_I18N={translate:(key)=>(T[lang]||T.ko)[key]||key,getLanguage:()=>lang,setLanguage:(next)=>{if(supported.includes(next)){lang=next;try{localStorage.setItem(STORAGE_KEY,lang)}catch(_){}applyBindings();window.dispatchEvent(new CustomEvent('korual:language-changed'))}}};
 })();
