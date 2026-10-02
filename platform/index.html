@@ -295,6 +295,7 @@
           <button type="button" data-service-category="all" aria-pressed="true">전체</button>
           <button type="button" data-service-category="life" aria-pressed="false">생활</button>
           <button type="button" data-service-category="travel" aria-pressed="false">여행</button>
+          <button type="button" data-service-category="charter" aria-pressed="false">전세기 예약</button>
           <button type="button" data-service-category="wellness" aria-pressed="false">웰니스</button>
           <button type="button" data-service-category="business" aria-pressed="false">비즈니스</button>
           <label><span id="serviceSortLabel">정렬</span><select id="serviceSort"><option value="default">기본순</option><option value="name">이름순</option></select></label>
@@ -310,7 +311,8 @@
 
           <button type="button" class="service-row" data-category="life" data-service="생활 서비스"><span class="service-icon">LF</span><span><small>DAILY LIFE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 인터넷</em></span><b>→</b></button>
           <button type="button" class="service-row" data-category="travel" data-service="여행"><span class="service-icon">TR</span><span><small>TRAVEL</small><strong>KORUAL Travel</strong><em>항공 · 숙박 · 공항 이동</em></span><b>→</b></button>
-          <button type="button" class="service-row" data-category="business" data-service="커머스 운영"><span class="service-icon">CM</span><span><small>COMMERCE</small><strong>KORUAL Commerce</strong><em>상품 · 주문 · 공급처 · 배송</em></span><b>→</b></button>
+          <button type="button" class="service-row" data-category="charter" id="openCharter"><span class="service-icon">PV</span><span><small>PRIVATE CHARTER</small><strong>전세기 예약</strong><em>맞춤 항공 이동 · 예약 준비 중</em></span><b>→</b></button>
+<button type="button" class="service-row" data-category="business" data-service="커머스 운영"><span class="service-icon">CM</span><span><small>COMMERCE</small><strong>KORUAL Commerce</strong><em>상품 · 주문 · 공급처 · 배송</em></span><b>→</b></button>
           <button type="button" class="service-row" data-category="business" data-service="AI 추천"><span class="service-icon">AI</span><span><small>INTELLIGENCE</small><strong>KORUAL AI</strong><em>조건 분석 · 추천 · 자동화</em></span><b>→</b></button>
         </div>
       </section>
@@ -488,6 +490,13 @@
     </nav>
   </div>
 
+<dialog id="charterDialog" aria-labelledby="charterTitle" class="charter-dialog">
+ <h2 id="charterTitle">전세기 예약</h2><p class="quote-condition">예약 준비 중</p>
+ <p>운항사 제휴가 연결되면 맞춤 견적과 예약을 제공할 예정입니다. 현재 예약·결제·문의 접수는 제공하지 않습니다.</p>
+ <h3>견적 문의 준비사항</h3><ul><li>출발 공항과 도착 공항</li><li>출발 날짜·시간과 편도·왕복 여부</li><li>탑승 인원과 수하물 규모</li><li>예산과 일정 변경 가능 범위</li></ul>
+ <p>여권·연락처·결제정보는 지금 입력하지 마세요.</p>
+ <form method="dialog"><button class="primary" type="submit">닫기</button></form>
+</dialog>
   <script src="/privacy.js" defer></script>
   <script src="/site.js" defer></script>
   <script src="/i18n.js" defer></script>

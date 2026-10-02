@@ -708,6 +708,7 @@
   goQuotes?.addEventListener('click',()=>showScreen('quotes'));
 
   // Filter labels and descriptions, without inserting user input as markup.
+  $('#openCharter')?.addEventListener('click',()=>$('#charterDialog')?.showModal());
   const serviceSearch=$('#serviceSearch');
   const serviceRegion=$('#serviceRegion');
   const serviceSort=$('#serviceSort');
@@ -723,7 +724,7 @@
     const list=$('.service-list');
     let count=0;
     rows.forEach(row=>{
-      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory)||!(row.textContent+' '+row.dataset.service).toLocaleLowerCase().includes(query);
+      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory||(serviceCategory==='travel'&&row.dataset.category==='charter'))||!(row.textContent+' '+row.dataset.service).toLocaleLowerCase().includes(query);
       list?.appendChild(row);
       if(!row.hidden)count++;
     });
@@ -966,7 +967,7 @@
         quoteEmptyMessage.textContent=emptyCopy[1];
       }else{
         quoteEmptyTitle.textContent='현재 조건에 맞는 견적이 없습니다.';
-        quoteEmptyMessage.textContent='예산 또는 검증 조건을 변경해 다시 비교해보세요.';
+        quoteEmptyMessage.textContent=state.preferences.budgetCap?uiText('budgetEmpty','예산 상한을 해제해 다시 비교할 수 있습니다. 검증 업체 설정은 유지됩니다.'):uiText('verifiedEmpty','검증 조건을 충족하는 견적이 없습니다. 조건을 수정하거나 나중에 다시 조회해주세요.');
       }
       const action=$('#clearQuoteFilters');
       if(action){
@@ -980,7 +981,7 @@
               ?'예약 상태 보기'
               :quoteMode==='error'
                 ?'다시 조회'
-                :'필터 해제';
+                :quoteMode==='sample'?uiText('startRequest','요청 작성'):state.preferences.budgetCap?uiText('clearBudget','예산 상한 해제'):uiText('editRequest','조건 수정');
       }
     }
   }
@@ -2570,9 +2571,12 @@
       if(state.currentRequest)loadQuotes(state.currentRequest);
       return;
     }
-    state.preferences.budgetCap=null;
-    state.preferences.verifiedOnly=false;
-    save();syncPreferenceUI();
+    if(quoteMode==='live'&&state.preferences.budgetCap){
+      state.preferences.budgetCap=null;
+      save();syncPreferenceUI();return;
+    }
+    showScreen('home');
+    $('#homeRequestInput')?.focus();
   });
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'){
