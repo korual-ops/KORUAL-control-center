@@ -244,3 +244,22 @@ html:not(:lang(ko)) .new-home-hero h1{letter-spacing:normal;line-height:1.15;fon
 .new-category-grid .new-category:nth-child(n+4){grid-column:span 3}
 @media(min-width:641px) and (max-width:900px){.new-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.new-category-grid .new-category,.new-category-grid .new-category:nth-child(n+4){grid-column:span 1}.new-category-grid .new-category:last-child{grid-column:1/-1}}
 @media(max-width:640px){.new-category-grid{grid-template-columns:minmax(0,1fr)!important}.new-category-grid .new-category,.new-category-grid .new-category:nth-child(n+4){grid-column:span 1}.charter-photo{height:160px}}
+/* Typography: local multilingual families and consistent readable roles. */
+:root{--font-body:var(--ui-font,system-ui,sans-serif);--font-display:var(--ui-font,system-ui,sans-serif)}
+html:lang(ko){--ui-font:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif}
+body{font-family:var(--ui-font);line-height:1.6;font-weight:400;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,input,select,textarea{font-family:var(--ui-font);letter-spacing:normal}
+h1,h2,h3,.screen-heading h2,.new-section-head h2{font-family:var(--ui-font);font-weight:700;line-height:1.25;letter-spacing:-.025em}
+html:lang(ja) h1,html:lang(ja) h2,html:lang(zh) h1,html:lang(zh) h2{letter-spacing:normal}
+.request-workspace label>span,.discovery-controls label>span{font-size:14px;font-weight:600;line-height:1.5}
+.request-footer p,.coverage-note,.screen-heading p,.charter-dialog p,.charter-dialog li{font-size:14px;line-height:1.7;letter-spacing:normal}
+.service-result-count{font-size:13px;line-height:1.6;font-weight:500}
+.new-category strong{font-size:22px;font-weight:700;line-height:1.4}
+.new-category small,.service-list .service-row>span:nth-child(2) small{font-size:11px;font-weight:600;line-height:1.5}
+.new-category em{font-size:14px;font-weight:400;line-height:1.6}
+.quote-card h3,.provider-row strong,.analysis-head strong{font-family:var(--ui-font);font-weight:700;line-height:1.4}
+.quote-card p,.quote-condition,.analysis-grid strong{line-height:1.6}
+.quote-price,.sticky-price,.analysis-grid strong,input[type="number"]{font-variant-numeric:tabular-nums}
+.service-category-controls button,.prompt-row button,.priority-segment button{font-weight:600}
+.header-copy small{font-family:var(--ui-font);font-weight:600;line-height:1.4}
+@media(max-width:640px){.new-category strong{font-size:21px}.request-workspace input,.request-workspace textarea{font-size:16px}.screen-heading h2{font-size:32px;line-height:1.25}.tab small{font-weight:600;letter-spacing:normal}}
