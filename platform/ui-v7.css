@@ -219,3 +219,19 @@ html:not(:lang(ko)) .new-home-hero h1{letter-spacing:normal;line-height:1.15;fon
 .scene-life{background-image:url("/category-life-v2.webp");background-position:center 55%}
 .scene-travel{background-image:url("/category-travel-v2.webp");background-position:center 55%}
 .scene-wellness{background-image:url("/category-wellness-v2.webp");background-position:center 55%}
+/* Category cells: consistent hierarchy and readable local fonts. */
+.service-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+.service-list .service-row{box-sizing:border-box;grid-template-columns:48px minmax(0,1fr) 20px;gap:16px;min-height:116px;padding:20px;align-items:center}
+.service-list .service-row>span:nth-child(2){min-width:0}
+.service-list .service-row>span:nth-child(2) small{font-family:var(--ui-font);font-size:10px;line-height:1.4;letter-spacing:.08em;font-weight:700}
+.service-list .service-row>span:nth-child(2) strong{font-family:var(--ui-font);font-size:18px;line-height:1.4;font-weight:700;letter-spacing:normal;margin:4px 0;overflow-wrap:anywhere}
+.service-list .service-row>span:nth-child(2) em{font-family:var(--ui-font);font-size:13px;line-height:1.65;letter-spacing:normal;font-weight:400;overflow-wrap:anywhere}
+.service-list .service-icon{width:48px;height:48px;font-size:12px;font-weight:700}
+.service-list .service-row>b{justify-self:end}
+.new-category strong,.new-category em,.service-category-controls,.charter-dialog{font-family:var(--ui-font)}
+.new-category strong{line-height:1.35;letter-spacing:normal}
+.new-category em{line-height:1.6;overflow-wrap:anywhere}
+.service-category-controls{gap:8px 10px}.service-category-controls button{font-size:14px;font-weight:600;letter-spacing:normal}
+.service-row:focus-visible,.new-category:focus-visible,.service-category-controls button:focus-visible{outline:3px solid #af8d50;outline-offset:3px}
+.charter-dialog form button{border:0;border-radius:10px;padding:10px 22px;background:#132b45;color:#fff;font:inherit;cursor:pointer}
+@media(max-width:640px){.service-list{grid-template-columns:minmax(0,1fr);gap:12px}.service-list .service-row{padding:16px;gap:12px;min-height:108px}.service-list .service-row>span:nth-child(2) strong{font-size:17px}.service-category-controls button{flex:0 1 auto}.service-category-controls label{margin-top:6px}}
