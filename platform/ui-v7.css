@@ -120,3 +120,8 @@
  .analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  .v7-decision-head{flex-wrap:wrap}.v7-decision-stats{grid-template-columns:1fr 1fr}
 }
+
+/* The entire brand area is an accessible home control. */
+.brand-home{border:0;background:transparent;color:inherit;padding:6px 4px;min-height:44px;text-align:left;cursor:pointer;font:inherit;border-radius:8px;flex-shrink:0}
+.brand-home:focus-visible{outline:2px solid var(--gold,#ac8a4d);outline-offset:3px}
+.brand-home:hover .header-copy strong{opacity:.75}

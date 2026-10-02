@@ -107,10 +107,16 @@
     // Keep desktop nav in sync with the visible screen/hash.
     const syncNav=()=>{
       const current=(location.hash||'#home').slice(1);
-      document.querySelectorAll('.korual-desktop-nav button').forEach(b=>b.classList.toggle('is-active',b.dataset.uiScreen===current));
+      document.querySelectorAll('.korual-desktop-nav button').forEach(b=>{
+        const active=b.dataset.uiScreen===current;
+        b.classList.toggle('is-active',active);
+        if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+      });
     };
     syncNav();
     window.addEventListener('hashchange',syncNav);
+    window.addEventListener('korual:screen-changed',syncNav);
+    window.addEventListener('popstate',syncNav);
 
     // Quote selection state is owned by site.js to avoid duplicate click state.
   });

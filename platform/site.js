@@ -127,6 +127,7 @@
     if(headerSubtitle) headerSubtitle.textContent=titles[name][1];
     if(updateHash && location.hash!=='#'+name) history.pushState(null,'','#'+name);
     tabs.forEach(tab=>tab.setAttribute('aria-current',tab.dataset.tab===name?'page':'false'));
+    window.dispatchEvent(new CustomEvent('korual:screen-changed',{detail:{screen:name}}));
     window.scrollTo({top:0,behavior:'auto'});
     if(name==='bookings') queueMicrotask(()=>{
       syncBookingStatus({silent:true});
@@ -137,6 +138,7 @@
   tabs.forEach(tab=>tab.addEventListener('click',()=>showScreen(tab.dataset.tab)));
   $$('[data-open-screen]').forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.openScreen)));
   window.addEventListener('hashchange',()=>showScreen(location.hash.slice(1)||'home',{updateHash:false}));
+  window.addEventListener('popstate',()=>showScreen(location.hash.slice(1)||'home',{updateHash:false}));
   const initial=location.hash.slice(1);
   if(initial&&titles[initial]) showScreen(initial,{updateHash:false});
 
