@@ -709,6 +709,11 @@
 
   // Filter labels and descriptions, without inserting user input as markup.
   $('#openCharter')?.addEventListener('click',()=>$('#charterDialog')?.showModal());
+  $$('[data-preparing]').forEach(button=>button.addEventListener('click',()=>{
+    $('#preparingTitle').textContent=button.querySelector('strong').textContent;
+    $('#preparingDialog').showModal();
+  }));
+  const serviceAliases={이사:'moving relocation 引越 搬家 chuyen nha',입주청소:'cleaning 清掃 清洁 don dep', '에어컨 청소':'air conditioner cleaning AC エアコン 空调 dieu hoa', '인터넷 설치':'internet installation network 設置 安装 lap dat',숙소예약:'hotel resort accommodation 숙박 酒店 ホテル khach san','공항 이동':'airport transfer taxi 空港 机场 san bay',수리:'repair handyman 修理 维修 sua chua',전세기:'private charter jet 包机 チャーター'};
   const serviceSearch=$('#serviceSearch');
   const serviceRegion=$('#serviceRegion');
   const serviceSort=$('#serviceSort');
@@ -724,7 +729,7 @@
     const list=$('.service-list');
     let count=0;
     rows.forEach(row=>{
-      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory||(serviceCategory==='travel'&&row.dataset.category==='charter'))||!(row.textContent+' '+row.dataset.service).toLocaleLowerCase().includes(query);
+      row.hidden=!(serviceCategory==='all'||row.dataset.category===serviceCategory||(serviceCategory==='travel'&&row.dataset.category==='charter'))||!window.KorualDiscovery.matches([row.textContent,row.dataset.service,row.dataset.preparing,...Object.entries(serviceAliases).filter(([key])=>(row.dataset.service||row.dataset.preparing||row.textContent).replace(/\s/g,'').includes(key.replace(/\s/g,''))).map(([,value])=>value)].filter(Boolean).join(' '),query);
       list?.appendChild(row);
       if(!row.hidden)count++;
     });
