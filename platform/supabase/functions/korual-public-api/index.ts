@@ -747,6 +747,20 @@ Deno.serve(async (req: Request) => {
     if (!(await checkRate(ipHash, action || "unknown"))) {
       return json(origin, { ok: false, error: "RATE_LIMITED" }, 429);
     }
+    // Demo providers never receive personal contact details through a booking.
+    if (["book","book_bundle","replace_booking"].includes(action)) {
+      const tokens=action==="book_bundle"
+        ?(Array.isArray(body?.items)?body.items.map((item:any)=>item?.quote_token):[])
+        :[body?.quote_token];
+      if(!tokens.length)return json(origin,{ok:false,error:"QUOTE_TOKEN_REQUIRED"},409);
+      for(const token of tokens){
+        const quote=await verifyQuoteToken(cleanText(token,6000));
+        if(!quote)return json(origin,{ok:false,error:"QUOTE_TOKEN_INVALID"},409);
+        const {data:provider,error}=await db.from("providers").select("is_demo").eq("provider_key",quote.provider_key).single();
+        if(error||!provider)return json(origin,{ok:false,error:"PROVIDER_UNAVAILABLE"},409);
+        if(provider.is_demo)return json(origin,{ok:false,error:"DEMO_BOOKING_DISABLED"},409);
+      }
+    }
 
     if (action === "health") {
       return json(origin, {
@@ -1486,7 +1500,7 @@ Deno.serve(async (req: Request) => {
 
       const readyItems=items.filter((x:any)=>x.suggested?.availability?.status==="available");
       const totalAmount=items.reduce((sum:number,x:any)=>sum+Number(x.suggested?.amount||0),0);
-      const readyForAtomicBooking=items.length===services.length && readyItems.length===services.length;
+      const readyForAtomicBooking=items.length===services.length && readyItems.length===services.length && items.every((item:any)=>!item.suggested?.demo);
 
       return json(origin,{
         ok:true,

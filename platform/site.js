@@ -417,6 +417,7 @@
             trust:Number(q.trust)||0,
             label:q.label||'견적',
             provider_key:q.provider_key,
+            demo:q.demo===true,
             quoteToken:typeof q.quote_token==='string'?q.quote_token:null,
             verified:Boolean(q.verified),
             rating:Number(q.rating)||0,
@@ -737,7 +738,7 @@
     const q=quoteCatalog[id];
     const dateRequested=Boolean(state.currentRequest?.desiredDate);
     const dateEligible=!dateRequested||q?.availability?.status==='available';
-    return Boolean(q && quoteMode==='live' && liveQuoteKeys.has(id) &&
+    return Boolean(q && !q.demo && quoteMode==='live' && liveQuoteKeys.has(id) &&
       (!state.preferences.verifiedOnly||q.verified) &&
       (!state.preferences.budgetCap||q.price<=state.preferences.budgetCap) &&
       dateEligible);
@@ -759,9 +760,9 @@
       if(select) select.disabled=!isEligible(card.dataset.quoteCard);
       const rank=$('.quote-rank,.ai-pick,.value-pick,.premium-pick',card);
       if(rank)rank.textContent=q?.label||'견적';
-      card.classList.toggle('is-sample',quoteMode!=='live'||unavailable);
+      card.classList.toggle('is-sample',quoteMode!=='live'||unavailable||q?.demo===true);
       const badge=$('.verified',card);
-      if(badge) badge.textContent=quoteMode==='live'&&!unavailable?(q.verified?'✓ 검증':'미검증'):'예시';
+      if(badge) badge.textContent=q?.demo?'데모 · 예약 불가':quoteMode==='live'&&!unavailable?(q.verified?'✓ 검증':'미검증'):'예시';
       card.classList.remove('is-top-choice','featured');
       const decisionScore=q?scoreQuote(q):-1;
       const providerMeta=$('.provider-row small',card);
@@ -773,7 +774,7 @@
             :q.availability?.status==='unknown'
               ?' · 일정 확인 필요'
               :'';
-          providerMeta.textContent='서버 베타 · Match '+Math.round(decisionScore)+confidence+availability;
+          providerMeta.textContent=q.demo?'데모 업체 · 예시 견적 · 예약 불가':'서버 베타 · Match '+Math.round(decisionScore)+confidence+availability;
         }else{
           providerMeta.textContent='예시 데이터 · 예약 불가';
         }
