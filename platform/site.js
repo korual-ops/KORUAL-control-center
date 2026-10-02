@@ -2,6 +2,7 @@
   const $=(q,root=document)=>root.querySelector(q);
   const $$=(q,root=document)=>[...root.querySelectorAll(q)];
   const root=document.documentElement;
+  const uiText=(key,fallback)=>window.KORUAL_I18N?.translate?.(key)||fallback;
   const STATE_KEY='korual-mobile-state-v3';
   const SESSION_KEY='korual-session-v1';
   const API_URL='https://dtmmjkikyfgkeimhevso.supabase.co/functions/v1/korual-public-api';
@@ -700,7 +701,7 @@
     });
     $$('[data-service-category]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.serviceCategory===serviceCategory)));
     const status=$('#serviceResultCount');
-    if(status)status.textContent=count?count+'개 서비스 분야 · '+(serviceRegion?.value||'전국'):'일치하는 서비스가 없습니다. 필터를 초기화하거나 검색어를 바꾸세요.';
+    if(status)status.textContent=count?uiText('serviceCount','{count}개 서비스 분야 · {region}').replace('{count}',count).replace('{region}',serviceRegion?.value||uiText('nationwide','전국')):uiText('noServiceResult','일치하는 서비스가 없습니다. 필터를 초기화하거나 검색어를 바꾸세요.');
   }
   $$('[data-service-category]').forEach(button=>button.addEventListener('click',()=>{
     serviceCategory=button.dataset.serviceCategory;filterServices();
@@ -720,7 +721,7 @@
   serviceSearch?.addEventListener('input',filterServices);
   serviceRegion?.addEventListener('change',filterServices);
   serviceSort?.addEventListener('change',filterServices);
-  window.addEventListener('korual:language-changed',filterServices);
+  window.addEventListener('korual:language-changed',()=>{filterServices();renderHome()});
   filterServices();
 
 
@@ -2423,8 +2424,8 @@
         :'<div class="recommend-badge">B</div><div><small>예약 진행 중</small><strong>'+escapeHtml(state.booking.service)+' 예약을 확인하세요.</strong><p>'+escapeHtml(state.booking.quote?.name||'Partner')+' · '+escapeHtml(state.booking.id)+'</p></div><button type="button" data-open-screen="bookings">→</button>';
     }else if(state.currentRequest){
       const request=state.currentRequest;
-      const summary=[request.region||'지역 미입력',request.desiredDate||'일정 미지정',state.preferences.budgetCap?Number(state.preferences.budgetCap).toLocaleString('ko-KR')+'원 이하':'예산 미지정'];
-      card.innerHTML='<div class="recommend-badge">↻</div><div><small>이어서 비교</small><strong>'+escapeHtml(request.service)+' 조건을 이어서 사용하세요.</strong><p>'+summary.map(escapeHtml).join(' · ')+'</p><small>원문은 장기 저장하지 않습니다. 새로고침 후에는 상세 조건을 확인해주세요.</small></div><button type="button" id="resumeRequest">조건 수정</button>';
+      const summary=[request.region||uiText('areaMissing','지역 미입력'),request.desiredDate||uiText('dateMissing','일정 미지정'),state.preferences.budgetCap?Number(state.preferences.budgetCap).toLocaleString('ko-KR')+' KRW':uiText('budgetMissing','예산 미지정')];
+      card.innerHTML='<div class="recommend-badge">↻</div><div><small>이어서 비교</small><strong>'+escapeHtml(uiText('resumeSentence','{service} 조건을 이어서 사용하세요.').replace('{service}',request.service))+'</strong><p>'+summary.map(escapeHtml).join(' · ')+'</p><small>원문은 장기 저장하지 않습니다. 새로고침 후에는 상세 조건을 확인해주세요.</small></div><button type="button" id="resumeRequest">조건 수정</button>';
     }else{
       card.innerHTML='<div class="recommend-badge">AI</div><div><small>아직 요청이 없어요</small><strong>필요한 서비스를 입력해보세요.</strong><p>최근 요청을 기반으로 다음 행동을 여기에 추천합니다.</p></div><button type="button" data-open-screen="match">→</button>';
     }
