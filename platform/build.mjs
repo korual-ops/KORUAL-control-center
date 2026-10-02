@@ -33,6 +33,8 @@ const files = [
   'category-life-v2.webp',
   'category-travel-v2.webp',
   'category-wellness-v2.webp',
+  'category-charter-v1.webp',
+  'category-business-v1.webp',
   'manifest.webmanifest',
   'icon.svg',
 ];
