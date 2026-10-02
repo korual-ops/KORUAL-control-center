@@ -5,6 +5,7 @@
     const quotesScreen=document.querySelector('.screen[data-screen="quotes"]');
     if(!quoteList||!quotesScreen)return;
 
+    const evidenceNumber=value=>value==null||String(value).trim()===''?NaN:Number(value);
     const parseJson=value=>{
       try{return JSON.parse(value||'{}')}catch(_){return {}}
     };
@@ -51,11 +52,11 @@
         ['평점',b.rating],['응답',b.response],['완료이력',b.experience],
         ['서비스 일치',b.coverage],['가격 근거',b.evidence],
         ['운영 신뢰',b.operational],['검증',b.verification]
-      ].filter(([,v])=>v!==null&&v!==undefined&&Number.isFinite(Number(v)));
-      const match=Number(card.dataset.matchScore);
-      const rawRanking=Number(card.dataset.rawRankingScore);
-      const uncertaintyPenalty=Number(card.dataset.uncertaintyPenalty);
-      const confidence=Number(card.dataset.confidence);
+      ].filter(([,v])=>Number.isFinite(evidenceNumber(v)));
+      const match=evidenceNumber(card.dataset.matchScore);
+      const rawRanking=evidenceNumber(card.dataset.rawRankingScore);
+      const uncertaintyPenalty=evidenceNumber(card.dataset.uncertaintyPenalty);
+      const confidence=evidenceNumber(card.dataset.confidence);
       details.innerHTML='<summary>왜 이 점수인가?</summary>'+
         '<div class="uxv5-score-grid">'+metrics.map(([k,v])=>
           '<div><label><span>'+k+'</span><b>'+Math.round(Number(v))+'</b></label><div class="uxv5-bar"><i style="width:'+Math.max(0,Math.min(100,Number(v)))+'%"></i></div></div>'

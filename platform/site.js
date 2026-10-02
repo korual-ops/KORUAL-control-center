@@ -627,7 +627,17 @@
     return true;
   }
 
-  matchForm?.addEventListener('submit',e=>{e.preventDefault();analyze(matchInput?.value)});
+  matchForm?.addEventListener('submit',event=>{
+    event.preventDefault();
+    const text=matchInput?.value||'';
+    const inferred=inferRequest(text);
+    const previous=state.currentRequest;
+    analyze(text,{conditions:{
+      region:inferred.region||previous?.region||'',
+      desiredDate:inferred.desiredDate||previous?.desiredDate||null,
+      budgetCap:inferred.budgetCap??state.preferences.budgetCap??null
+    }});
+  });
   const homeRequestDate=$('#homeRequestDate');
   if(homeRequestDate){homeRequestDate.min=localDateString(new Date());homeRequestDate.max=addSeoulDays(366);}
   $$('[data-home-example]').forEach(button=>button.addEventListener('click',()=>{

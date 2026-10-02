@@ -131,3 +131,13 @@
 .service-category-controls button[aria-pressed="true"]{background:#152a3b;color:#fff;border-color:#152a3b}
 .service-category-controls label{display:flex;align-items:center;gap:8px}
 .service-list .service-row[hidden]{display:none!important}
+
+/* One comparison summary, with optional evidence inside each card. */
+.screen[data-screen="quotes"] .uxv4-market,
+.screen[data-screen="quotes"] .v6-fair-price-overview,
+.screen[data-screen="quotes"] .uxv5-decision-status,
+.screen[data-screen="quotes"] .uxv4-position,
+.screen[data-screen="quotes"] .uxv3-reasons{display:none!important}
+.uxv3-quote-cockpit>div,.uxv3-quote-cockpit>span{display:none!important}
+.uxv3-quote-cockpit{justify-content:flex-end;padding:10px 0;background:transparent;border:0}
+.v7-decision-board{margin-top:16px}
