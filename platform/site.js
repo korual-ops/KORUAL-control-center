@@ -201,6 +201,23 @@
     }).catch(()=>{});
   }
 
+  function optionalNumber(value){
+    if(value==null||typeof value==='boolean'||(typeof value==='string'&&!value.trim()))return null;
+    const number=Number(value);
+    return Number.isFinite(number)?number:null;
+  }
+
+  function validUniqueQuotes(quotes){
+    const seen=new Set();
+    return (Array.isArray(quotes)?quotes:[]).filter(quote=>{
+      const key=typeof quote?.provider_key==='string'?quote.provider_key.trim():'';
+      const amount=optionalNumber(quote?.amount);
+      if(!key||amount===null||amount<0||seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
   function quoteCacheKey(request){
     return JSON.stringify({
       raw:String(request?.raw||'').trim(),
@@ -211,9 +228,9 @@
       budget_cap:Number(request?.budget_cap)||null,
       desired_date:String(request?.desired_date||request?.desiredDate||'').trim()||null,
       exclude_provider_keys:Array.isArray(request?.exclude_provider_keys)
-        ?request.exclude_provider_keys.slice(0,8)
+        ?[...new Set(request.exclude_provider_keys)].sort().slice(0,8)
         :Array.isArray(request?.excludeProviderKeys)
-          ?request.excludeProviderKeys.slice(0,8)
+          ?[...new Set(request.excludeProviderKeys)].sort().slice(0,8)
           :[]
     });
   }
@@ -223,6 +240,7 @@
     const cached=quoteResponseCache.get(key);
     if(cached&&Date.now()-cached.at<15000)return cached.data;
     const data=await fetchApi('quotes',{request:requestForApi},{signal});
+    if(signal?.aborted)throw new DOMException('Request cancelled','AbortError');
     quoteResponseCache.set(key,{at:Date.now(),data});
     if(quoteResponseCache.size>12){
       const oldest=[...quoteResponseCache.entries()].sort((a,b)=>a[1].at-b[1].at)[0]?.[0];
@@ -391,17 +409,16 @@
         budget_cap:state.preferences.budgetCap||null,
         desired_date:request?.desiredDate||request?.desired_date||null,
         exclude_provider_keys:Array.isArray(request?.excludeProviderKeys)
-          ?request.excludeProviderKeys.slice(0,8)
+          ?[...new Set(request.excludeProviderKeys)].sort().slice(0,8)
           :Array.isArray(request?.exclude_provider_keys)
-            ?request.exclude_provider_keys.slice(0,8)
+            ?[...new Set(request.exclude_provider_keys)].sort().slice(0,8)
             :[]
       };
       const data=await fetchQuotesStable(requestForApi,requestSignal);
       if(version!==quoteRequestVersion||requestSignal.aborted)return;
       if(Array.isArray(data.quotes)&&data.quotes.length){
         const slots=['best','value','premium'];
-        data.quotes.slice(0,slots.length).forEach((serverQuote,index)=>{
-          if(!serverQuote?.provider_key||!Number.isFinite(Number(serverQuote.amount))||Number(serverQuote.amount)<0)return;
+        validUniqueQuotes(data.quotes).slice(0,slots.length).forEach((serverQuote,index)=>{
           const slot=slots[index];
           const q={
             ...serverQuote,
@@ -422,15 +439,15 @@
             verified:Boolean(q.verified),
             rating:Number(q.rating)||0,
             reviews:Number(q.review_count)||0,
-            response:q.response_minutes==null?null:Number(q.response_minutes),
+            response:optionalNumber(q.response_minutes),
             jobs:Number(q.completed_jobs)||0,
-            rankingScore:Number.isFinite(Number(q.ranking_score))?Number(q.ranking_score):null,
-            decisionScore:Number.isFinite(Number(q.decision_score))?Number(q.decision_score):null,
-            uncertaintyPenalty:Number.isFinite(Number(q.uncertainty_penalty))?Number(q.uncertainty_penalty):null,
-            confidence:Number.isFinite(Number(q.confidence_score))?Number(q.confidence_score):null,
-            evidence:Number.isFinite(Number(q.evidence_score))?Number(q.evidence_score):null,
-            coverage:Number.isFinite(Number(q.coverage_score))?Number(q.coverage_score):null,
-            budgetScore:Number.isFinite(Number(q.budget_score))?Number(q.budget_score):null,
+            rankingScore:optionalNumber(q.ranking_score),
+            decisionScore:optionalNumber(q.decision_score),
+            uncertaintyPenalty:optionalNumber(q.uncertainty_penalty),
+            confidence:optionalNumber(q.confidence_score),
+            evidence:optionalNumber(q.evidence_score),
+            coverage:optionalNumber(q.coverage_score),
+            budgetScore:optionalNumber(q.budget_score),
             availability:q.availability&&typeof q.availability==='object'?q.availability:null,
             availabilityAdjustment:Number.isFinite(Number(q.availability_adjustment))?Number(q.availability_adjustment):0,
             reasons:Array.isArray(q.reasons)?q.reasons.slice(0,3):[],
@@ -506,11 +523,11 @@
     if(!card)return;
     card.dataset.price=String(q.amount||0);
     card.dataset.trust=String(q.trust||0);
-    const effectiveScore=Number.isFinite(Number(q.decision_score))?Number(q.decision_score):Number(q.ranking_score);
-    card.dataset.matchScore=Number.isFinite(effectiveScore)?String(effectiveScore):'';
-    card.dataset.rawRankingScore=Number.isFinite(Number(q.ranking_score))?String(q.ranking_score):'';
-    card.dataset.uncertaintyPenalty=Number.isFinite(Number(q.uncertainty_penalty))?String(q.uncertainty_penalty):'';
-    card.dataset.confidence=Number.isFinite(Number(q.confidence_score))?String(q.confidence_score):'';
+    const effectiveScore=optionalNumber(q.decision_score)??optionalNumber(q.ranking_score);
+    card.dataset.matchScore=effectiveScore!==null?String(effectiveScore):'';
+    card.dataset.rawRankingScore=optionalNumber(q.ranking_score)!==null?String(q.ranking_score):'';
+    card.dataset.uncertaintyPenalty=optionalNumber(q.uncertainty_penalty)!==null?String(q.uncertainty_penalty):'';
+    card.dataset.confidence=optionalNumber(q.confidence_score)!==null?String(q.confidence_score):'';
     card.dataset.pareto=q.pareto_efficient===true?'true':'false';
     card.dataset.roles=Array.isArray(q.roles)?q.roles.join('|'):'';
     card.dataset.reasons=Array.isArray(q.reasons)?q.reasons.join('|'):'';
@@ -680,7 +697,7 @@
 
   function scoreQuote(q){
     if(!q)return -1;
-    if(quoteMode==='live'&&Number.isFinite(Number(q.decisionScore)))return Number(q.decisionScore);
+    if(quoteMode==='live')return optionalNumber(q.decisionScore)??optionalNumber(q.rankingScore)??-1;
     const prices=Object.entries(quoteCatalog)
       .filter(([key])=>quoteMode!=='live'||liveQuoteKeys.has(key))
       .map(([,x])=>Number(x.price)||0)
@@ -693,13 +710,13 @@
     const rating=Math.max(0,Math.min(5,Number(q.rating)||0));
     const adjustedRating=(reviewCount*rating+40*4.5)/(reviewCount+40);
     const ratingScore=Math.max(0,Math.min(100,adjustedRating/5*100));
-    const response=Number(q.response);
-    const responseScore=!Number.isFinite(response)?55:response<=10?100:response<=20?90:response<=45?78:response<=90?65:response<=180?50:38;
+    const response=optionalNumber(q.response);
+    const responseScore=response===null?55:response<=10?100:response<=20?90:response<=45?78:response<=90?65:response<=180?50:38;
     const jobs=Math.max(0,Number(q.jobs)||0);
     const experience=Math.max(0,Math.min(100,45+55*(1-Math.exp(-jobs/250))));
     const verification=q.verified?100:40;
-    const confidence=Number.isFinite(Number(q.confidence))?Number(q.confidence):Math.max(0,Math.min(100,
-      (q.verified?25:0)+Math.min(25,reviewCount/200*25)+Math.min(20,jobs/300*20)+(Number.isFinite(response)?15:0)+(rating>0?15:0)
+    const confidence=optionalNumber(q.confidence)!==null?Number(q.confidence):Math.max(0,Math.min(100,
+      (q.verified?25:0)+Math.min(25,reviewCount/200*25)+Math.min(20,jobs/300*20)+(response!==null?15:0)+(rating>0?15:0)
     ));
     const weights={
       balanced:{price:.30,trust:.30,rating:.15,response:.10,experience:.10,verification:.05},
@@ -720,7 +737,7 @@
     const reasons=[];
     if((Number(q.price)||0)<=low*1.03)reasons.push('표시 견적 중 가격 경쟁력');
     if(Number(q.trust)>=94)reasons.push('높은 Trust Score');
-    if(Number.isFinite(Number(q.response))&&Number(q.response)<=10)reasons.push('빠른 평균 응답');
+    if(optionalNumber(q.response)!==null&&Number(q.response)<=10)reasons.push('빠른 평균 응답');
     if(Number(q.jobs)>=300)reasons.push('완료 이력 풍부');
     if(Number(q.rating)>=4.9&&Number(q.reviews)>=100)reasons.push('평점·리뷰 표본 강점');
     const confidence=Number(q.confidence);
@@ -768,13 +785,13 @@
       const providerMeta=$('.provider-row small',card);
       if(providerMeta&&q){
         if(quoteMode==='live'&&!unavailable){
-          const confidence=Number.isFinite(Number(q.confidence))?' · Confidence '+Math.round(Number(q.confidence))+'%':'';
+          const confidence=optionalNumber(q.confidence)!==null?' · Confidence '+Math.round(Number(q.confidence))+'%':'';
           const availability=q.availability?.status==='available'
             ?' · 희망일 가능'
             :q.availability?.status==='unknown'
               ?' · 일정 확인 필요'
               :'';
-          providerMeta.textContent=q.demo?'데모 업체 · 예시 견적 · 예약 불가':'서버 베타 · Match '+Math.round(decisionScore)+confidence+availability;
+          providerMeta.textContent=q.demo?'데모 업체 · 예시 견적 · 예약 불가':'서버 베타 · '+(decisionScore>=0?'Match '+Math.round(decisionScore):'점수 정보 없음')+confidence+availability;
         }else{
           providerMeta.textContent='예시 데이터 · 예약 불가';
         }
