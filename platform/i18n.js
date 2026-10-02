@@ -177,7 +177,7 @@
     '아직 요청이 없어요':'noRequest','필요한 서비스를 입력해보세요.':'tryService','최근 요청을 기반으로 다음 행동을 여기에 추천합니다.':'recentHelp',
     '견적을 선택하세요':'selectPrompt','요청을 기다리는 중':'waiting','가격 + 신뢰':'priceTrust','3개 견적 비교':'threeQuotes',
     '서비스 찾기':'findService','접수됨':'received','완료 시뮬레이션':'completeDemo','확인':'confirm',
-    '예약 요청 저장':'saveBooking','취소':'cancel','검증':'verified','홈':'home','AI매칭':'aiMatch','견적':'quote','예약':'booking','내정보':'profile'
+    '예약 요청 저장':'saveBooking','취소':'cancel','검증':'verified','홈':'home','서비스':'service','AI 매칭':'aiMatch','AI매칭':'aiMatch','견적':'quote','예약':'booking','내정보':'profile'
   };
 
   let lang='ko';
@@ -198,7 +198,8 @@
       if(el.matches('.home-hero h1,.new-home-hero h1')){
         const [a,b]=parts;el.innerHTML=escape(a)+'<br><em>'+escape(b||'')+'</em>';
       }else el.innerHTML=parts.map(escape).join('<br>');
-    }else if(mode==='placeholder')el.setAttribute('placeholder',value);
+    }else if(mode==='aria-label')el.setAttribute('aria-label',value);
+    else if(mode==='placeholder')el.setAttribute('placeholder',value);
     else if(mode==='prefixArrow')el.innerHTML=escape(value)+' <b>→</b>';
     else if(mode==='prefixCheck')el.innerHTML=escape(value)+' <span>✓</span>';
     else if(mode==='bullet')el.innerHTML='<span>●</span> '+escape(value);
