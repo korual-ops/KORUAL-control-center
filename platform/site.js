@@ -639,11 +639,35 @@
       budgetCap:inferred.budgetCap??state.preferences.budgetCap??null
     }});
   });
+  const scopeTemplates={
+    cleaning:['주방 청소','욕실 청소','창틀 청소','에어컨 세척'],
+    moving:['짐 포장','큰 가구 운반','가전 운반','입주청소 함께 비교'],
+    installation:['인터넷 신규 설치','가전 설치','기존 기기 철거']
+  };
+  let scopeType='';
+  function renderRequestScope(){
+    const text=$('#homeRequestInput')?.value||'';
+    const next=/이사/.test(text)?'moving':/청소|에어컨/.test(text)?'cleaning':/인터넷|설치/.test(text)?'installation':'';
+    const panel=$('#requestScope');
+    if(!panel)return;
+    panel.hidden=!next;
+    if(next===scopeType)return;
+    scopeType=next;
+    const options=$('#requestScopeOptions');
+    options.replaceChildren();
+    for(const item of scopeTemplates[next]||[]){
+      const label=document.createElement('label');
+      const input=document.createElement('input');input.type='checkbox';input.value=item;
+      const text=document.createElement('span');text.textContent=item;
+      label.append(input,text);options.append(label);
+    }
+  }
+  $('#homeRequestInput')?.addEventListener('input',renderRequestScope);
   const homeRequestDate=$('#homeRequestDate');
   if(homeRequestDate){homeRequestDate.min=localDateString(new Date());homeRequestDate.max=addSeoulDays(366);}
   $$('[data-home-example]').forEach(button=>button.addEventListener('click',()=>{
     const input=$('#homeRequestInput');
-    if(input){input.value=button.dataset.homeExample;input.focus();}
+    if(input){input.value=button.dataset.homeExample;renderRequestScope();input.focus();}
   }));
   $('#homeRequestForm')?.addEventListener('submit',event=>{
     event.preventDefault();
@@ -657,7 +681,8 @@
     if(date&&!normalizeInferredDate(...date.split('-'))){error.textContent='오늘부터 1년 이내의 희망일을 선택해주세요.';error.hidden=false;homeRequestDate.focus();return;}
     if(budgetValue&&(!Number.isFinite(budget)||budget<=0||budget>100000000)){error.textContent='예산을 1원부터 1억원 사이로 입력해주세요.';error.hidden=false;return;}
     error.hidden=true;
-    const raw=input.value.trim();
+    const extras=$$('#requestScopeOptions input:checked').map(input=>input.value);
+    const raw=input.value.trim()+(extras.length?' · 요청 범위: '+extras.join(', '):'');
     if(matchInput)matchInput.value=raw;
     if(!analyze(raw,{conditions:{region,desiredDate:date||null,budgetCap:budget||null}})){
       error.textContent='연락처·상세주소·비밀번호를 지우고 다시 입력해주세요.';error.hidden=false;return;
@@ -671,11 +696,11 @@
   }));
   $$('[data-service]').forEach(btn=>btn.addEventListener('click',()=>{
     const region=$('#serviceRegion')?.value||'';
-    const value=(region ? region+' 지역에서 ' : '')+(btn.dataset.service||'');
-    if(region && $('#customerRegion')) $('#customerRegion').value=region;
-    showScreen('match');
-    if(matchInput) matchInput.value=value;
-    analyze(value,{conditions:{region}});
+    const input=$('#homeRequestInput');
+    if(input)input.value=btn.dataset.service||'';
+    if(region)$('#homeRequestRegion').value=region;
+    renderRequestScope();showScreen('home');
+    $('#homeRequestRegion')?.focus();
   }));
   goQuotes?.addEventListener('click',()=>showScreen('quotes'));
 
@@ -821,6 +846,11 @@
       card.hidden=Boolean(overBudget||unverified||unavailable);
       const select=$('[data-quote]',card);
       if(select) select.disabled=!isEligible(card.dataset.quoteCard);
+      const condition=isEligible(card.dataset.quoteCard)?'ready':q?.demo?'demo':'check';
+      card.dataset.condition=condition;
+      let status=$('.quote-condition',card);
+      if(!status){status=document.createElement('p');status.className='quote-condition';card.appendChild(status);}
+      status.textContent=condition==='ready'?'예약 조건 충족':condition==='demo'?'데모 업체 · 실제 예약 불가':'예약 전 일정·조건 확인 필요';
       const rank=$('.quote-rank,.ai-pick,.value-pick,.premium-pick',card);
       if(rank)rank.textContent=q?.label||'견적';
       card.classList.toggle('is-sample',quoteMode!=='live'||unavailable||q?.demo===true);
@@ -954,7 +984,7 @@
 
   function syncPreferenceUI(){
     normalizePreferences();
-    $$('[data-priority]').forEach(btn=>btn.classList.toggle('is-active',btn.dataset.priority===state.preferences.priority));
+    $$('[data-priority]').forEach(btn=>{const active=btn.dataset.priority===state.preferences.priority;btn.classList.toggle('is-active',active);btn.setAttribute('aria-pressed',String(active))});
     if(verifiedOnly) verifiedOnly.checked=state.preferences.verifiedOnly;
     if(budgetCap) budgetCap.value=state.preferences.budgetCap||'';
     if(quoteDesiredDate){
@@ -1094,7 +1124,7 @@
   });
 
     $$('.filter-strip [data-sort]').forEach(btn=>btn.addEventListener('click',()=>{
-    $$('.filter-strip [data-sort]').forEach(x=>x.classList.toggle('is-active',x===btn));
+    $$('.filter-strip [data-sort]').forEach(x=>{x.classList.toggle('is-active',x===btn);x.setAttribute('aria-pressed',String(x===btn))});
     sortMode=btn.dataset.sort;
     applyDecisionLens();
   }));
@@ -2436,7 +2466,7 @@
       $('#homeRequestRegion').value=request.region||'';
       $('#homeRequestDate').value=request.desiredDate||'';
       $('#homeRequestBudget').value=state.preferences.budgetCap||'';
-      showScreen('home');
+      renderRequestScope();showScreen('home');
       $('#homeRequestInput').focus();
     });
     $$('[data-open-screen]',card).forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.openScreen)));

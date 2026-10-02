@@ -64,6 +64,7 @@
             <p class="new-hero-description">지역과 일정, 예산을 정하고 가능한 견적을 비교하세요.</p>
             <form id="homeRequestForm" class="request-workspace">
               <label class="request-main"><span>어떤 도움이 필요하세요?</span><textarea id="homeRequestInput" rows="2" maxlength="240" required placeholder="예: 20평 집 청소, 주방과 욕실을 중심으로 부탁해요."></textarea></label>
+              <fieldset id="requestScope" class="request-scope" hidden><legend>작업 범위 · 선택</legend><p>포함할 항목을 선택하세요. 실제 제공 범위와 추가 비용은 업체 확인이 필요합니다.</p><div id="requestScopeOptions"></div></fieldset>
               <div class="request-fields">
                 <label><span>서비스 지역</span><input id="homeRequestRegion" maxlength="80" required placeholder="예: 인천 영종도" autocomplete="off" /></label>
                 <label><span>희망일 · 선택</span><input id="homeRequestDate" type="date" /></label>
@@ -80,10 +81,11 @@
         <section class="new-discover" aria-label="서비스 둘러보기">
           <div class="new-section-head"><div><small>EXPLORE KORUAL</small><h2>당신의 다음 순간을 위해</h2></div><button type="button" data-open-screen="services">모든 서비스 <span>↗</span></button></div>
           <div class="new-category-grid">
-            <button type="button" class="new-category new-category-life" data-open-category="life"><span class="new-category-symbol">⌂</span><span><small>01 · LIFESTYLE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 공간</em></span><b>↗</b></button>
-            <button type="button" class="new-category new-category-travel" data-open-category="travel"><span class="new-category-symbol">✈</span><span><small>02 · TRAVEL</small><strong>여행 서비스</strong><em>항공 · 숙박 · 공항 이동</em></span><b>↗</b></button>
-            <button type="button" class="new-category new-category-wellness" data-open-category="wellness"><span class="new-category-symbol">✺</span><span><small>03 · WELLNESS</small><strong>웰니스</strong><em>휴식 · 케어 · 일상 회복</em></span><b>↗</b></button>
+            <button type="button" class="new-category new-category-life" data-open-category="life"><span class="service-scene scene-life" aria-hidden="true"></span><span class="new-category-symbol">⌂</span><span><small>01 · LIFESTYLE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 공간</em></span><b>↗</b></button>
+            <button type="button" class="new-category new-category-travel" data-open-category="travel"><span class="service-scene scene-travel" aria-hidden="true"></span><span class="new-category-symbol">✈</span><span><small>02 · TRAVEL</small><strong>여행 서비스</strong><em>항공 · 숙박 · 공항 이동</em></span><b>↗</b></button>
+            <button type="button" class="new-category new-category-wellness" data-open-category="wellness"><span class="service-scene scene-wellness" aria-hidden="true"></span><span class="new-category-symbol">✺</span><span><small>03 · WELLNESS</small><strong>웰니스</strong><em>휴식 · 케어 · 일상 회복</em></span><b>↗</b></button>
           </div>
+          <p class="image-note">이미지는 서비스 이해를 돕기 위한 예시입니다.</p>
         </section>
 
         <section class="new-feature" aria-label="추천 시작점">

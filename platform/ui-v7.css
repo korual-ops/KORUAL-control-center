@@ -151,3 +151,51 @@ body,button,input,select,textarea,.new-home-hero h1{font-family:var(--ui-font,sy
 html:not(:lang(ko)) .new-home-hero h1{letter-spacing:normal;line-height:1.15;font-size:clamp(30px,3.4vw,46px)}
 .request-footer button,.new-feature button,.service-category-controls button{white-space:normal;overflow-wrap:anywhere;line-height:1.4}
 .request-footer{flex-wrap:wrap}
+
+.request-scope{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:12px;min-width:0}
+.request-scope[hidden]{display:none!important}
+.request-scope legend{font-weight:750;font-size:14px;padding:0 6px}
+.request-scope p{font-size:13px;line-height:1.5;color:var(--muted);margin:0 0 10px}
+#requestScopeOptions{display:flex;flex-wrap:wrap;gap:8px}
+#requestScopeOptions label{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+#requestScopeOptions input{width:18px;height:18px;min-height:18px;flex-shrink:0;padding:0;accent-color:#17334a}
+#requestScopeOptions label span{margin:0;font-size:14px}
+#requestScopeOptions label:has(input:checked){background:var(--surface2);border-color:#9a7b43}
+@media(max-width:640px){
+ .app-frame{width:100%;max-width:100%;padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+ .app-header{padding:10px 14px!important;height:auto!important;min-height:64px;gap:8px}
+ .header-copy strong{font-size:21px!important;letter-spacing:.1em!important}
+ .header-copy small{font-size:10px!important}
+ .header-chip{display:none!important}
+ .header-right{gap:6px!important}.header-icon{width:44px!important;height:44px!important}
+ .screen{padding-left:14px!important;padding-right:14px!important}
+ .new-home-hero{padding:18px!important;border-radius:16px!important}
+ .request-workspace{padding:16px!important}.request-fields{grid-template-columns:1fr!important}
+ .request-footer{display:flex;flex-direction:column;align-items:stretch!important}.request-footer button{width:100%;min-height:48px}
+ .new-category-grid,.service-list,.field-grid{grid-template-columns:1fr!important}
+ .service-category-controls{gap:8px}.service-category-controls button{flex:1 1 auto;font-size:14px}
+ .service-category-controls label{width:100%}.service-category-controls select{flex:1;min-width:0}
+ .discovery-controls{display:grid!important;grid-template-columns:1fr!important;gap:12px}
+ input,select,textarea{font-size:16px!important}
+ .tabbar{width:calc(100% - 20px)!important;max-width:560px;bottom:calc(8px + env(safe-area-inset-bottom))!important;height:68px!important}
+ .tab{min-height:56px}.tab span{font-size:11px!important}
+ .quote-sticky{bottom:calc(86px + env(safe-area-inset-bottom))!important}
+ .v7-journey-step span{font-size:10px!important}.v7-journey{position:relative!important;top:auto!important}
+ .uxv4-sheet,.booking-sheet,.trust-sheet,.language-sheet{max-height:85dvh;max-width:100%;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+ .uxv4-table-wrap{overflow-x:auto}.uxv4-table{min-width:560px}
+ .new-feature button,.service-row,.select-quote{min-height:48px}
+ .ai-concierge{display:none!important}
+}
+
+.service-scene{display:block;width:calc(100% + 48px);height:160px;margin:-24px -24px 16px;background-image:url('/service-scenes.png');background-size:300% auto;background-repeat:no-repeat;flex-shrink:0}
+.scene-life{background-position:left center}.scene-travel{background-position:center center}.scene-wellness{background-position:right center}
+.new-category .new-category-symbol{display:none!important}
+.new-category>span:not(.service-scene):not(.new-category-symbol){display:block}
+.new-category strong,.new-category em{display:block}
+.new-category strong{font-size:22px;margin:6px 0}.new-category em{font-style:normal;font-size:14px;line-height:1.5;color:var(--muted)}
+.image-note{font-size:12px;color:var(--muted);margin-top:10px}
+.quote-condition{font-size:13px;line-height:1.5;padding:9px 12px;border-radius:10px;margin:12px 0 0;background:#f6f0df;color:#72581c}
+.quote-card[data-condition="ready"]{border-color:#388763}.quote-card[data-condition="ready"] .quote-condition{background:#e9f6ee;color:#236847}
+.quote-card[data-condition="demo"] .quote-condition{background:#efedf7;color:#62528c}
+[data-priority][aria-pressed="true"],[data-sort][aria-pressed="true"]{outline:2px solid #9a7b43;outline-offset:2px}
+@media(max-width:640px){.service-scene{height:180px}.new-category{min-height:0}.request-presets{display:flex;flex-wrap:wrap;gap:8px}.request-presets button{min-height:44px}}

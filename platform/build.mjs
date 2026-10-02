@@ -29,6 +29,7 @@ const files = [
   'ui-v6.js',
   'ui-v7.js',
   'seoul-night.webp',
+  'service-scenes.png',
   'manifest.webmanifest',
   'icon.svg',
 ];
