@@ -1,3 +1,4 @@
+@import url("/success-layer.css?v=1.0.1");
 /* KORUAL UI v7 — decision clarity, human approval, project continuity */
 :root{
   --v7-glow:color-mix(in srgb,var(--accent) 20%,transparent);
