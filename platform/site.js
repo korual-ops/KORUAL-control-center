@@ -581,23 +581,28 @@
   let lastAnalyzeRaw='';
   let lastAnalyzeAt=0;
 
-  function analyze(text,{count=true,conditions=null}={}){
-    const request=inferRequest(text);
-    if(conditions){
-      request.region=conditions.region;
-      request.desiredDate=conditions.desiredDate||request.desiredDate;
-      request.budgetCap=conditions.budgetCap;
+  function mergeRequestConditions(request,conditions){
+    const merged={...request};
+    if(!conditions)return merged;
+    for(const key of ['region','desiredDate','budgetCap']){
+      if(Object.prototype.hasOwnProperty.call(conditions,key))merged[key]=conditions[key];
     }
+    return merged;
+  }
+
+  function analyze(text,{count=true,conditions=null}={}){
+    const request=mergeRequestConditions(inferRequest(text),conditions);
     if(KorualPrivacy.containsPrivateData(request.raw)||KorualPrivacy.containsPrivateData(request.region)){
       showToast('연락처·상세주소·비밀번호를 제외하고 서비스 조건만 입력해주세요.');
       return false;
     }
     if(!request.raw){showToast('필요한 서비스를 입력해주세요.');matchInput?.focus();return}
     const now=Date.now();
-    if(count&&request.raw===lastAnalyzeRaw&&now-lastAnalyzeAt<700)return;
-    if(count){lastAnalyzeRaw=request.raw;lastAnalyzeAt=now}
+    const requestIdentity=JSON.stringify([request.raw,request.region,request.desiredDate,request.budgetCap,state.preferences.priority]);
+    if(count&&requestIdentity===lastAnalyzeRaw&&now-lastAnalyzeAt<700)return false;
+    if(count){lastAnalyzeRaw=requestIdentity;lastAnalyzeAt=now}
     normalizePreferences();
-    if(conditions) state.preferences.budgetCap=conditions.budgetCap;
+    if(conditions&&Object.prototype.hasOwnProperty.call(conditions,'budgetCap'))state.preferences.budgetCap=conditions.budgetCap;
     if(request.preferenceExplicit&&['balanced','price','trust','speed'].includes(request.priorityMode)){
       state.preferences.priority=request.priorityMode;
     }else{
@@ -2406,10 +2411,22 @@
         ?'<div class="recommend-badge">!</div><div><small>확인 필요</small><strong>'+escapeHtml(state.booking.service)+' 예약의 대안을 확인하세요.</strong><p>업체 확인 지연 또는 거절 상태입니다. 기존 조건으로 다시 비교할 수 있습니다.</p></div><button type="button" data-open-screen="bookings">→</button>'
         :'<div class="recommend-badge">B</div><div><small>예약 진행 중</small><strong>'+escapeHtml(state.booking.service)+' 예약을 확인하세요.</strong><p>'+escapeHtml(state.booking.quote?.name||'Partner')+' · '+escapeHtml(state.booking.id)+'</p></div><button type="button" data-open-screen="bookings">→</button>';
     }else if(state.currentRequest){
-      card.innerHTML='<div class="recommend-badge">AI</div><div><small>최근 요청</small><strong>'+escapeHtml(state.currentRequest.service)+' 견적을 비교해보세요.</strong><p>'+state.currentRequest.bundle.map(escapeHtml).join(' · ')+'</p></div><button type="button" data-open-screen="quotes">→</button>';
+      const request=state.currentRequest;
+      const summary=[request.region||'지역 미입력',request.desiredDate||'일정 미지정',state.preferences.budgetCap?Number(state.preferences.budgetCap).toLocaleString('ko-KR')+'원 이하':'예산 미지정'];
+      card.innerHTML='<div class="recommend-badge">↻</div><div><small>이어서 비교</small><strong>'+escapeHtml(request.service)+' 조건을 이어서 사용하세요.</strong><p>'+summary.map(escapeHtml).join(' · ')+'</p><small>원문은 장기 저장하지 않습니다. 새로고침 후에는 상세 조건을 확인해주세요.</small></div><button type="button" id="resumeRequest">조건 수정</button>';
     }else{
       card.innerHTML='<div class="recommend-badge">AI</div><div><small>아직 요청이 없어요</small><strong>필요한 서비스를 입력해보세요.</strong><p>최근 요청을 기반으로 다음 행동을 여기에 추천합니다.</p></div><button type="button" data-open-screen="match">→</button>';
     }
+    $('#resumeRequest',card)?.addEventListener('click',()=>{
+      const request=state.currentRequest;
+      if(!request)return;
+      $('#homeRequestInput').value=request.raw||request.service||'';
+      $('#homeRequestRegion').value=request.region||'';
+      $('#homeRequestDate').value=request.desiredDate||'';
+      $('#homeRequestBudget').value=state.preferences.budgetCap||'';
+      showScreen('home');
+      $('#homeRequestInput').focus();
+    });
     $$('[data-open-screen]',card).forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.openScreen)));
   }
 
@@ -2485,7 +2502,7 @@
       const title=document.createElement('strong');title.textContent=request.raw;
       const meta=document.createElement('small');meta.textContent=request.service+' · 다시 비교';
       button.append(title,meta);
-      button.addEventListener('click',()=>{matchInput.value=request.raw;showScreen('match');analyze(request.raw,{count:false});});
+      button.addEventListener('click',()=>{matchInput.value=request.raw;showScreen('match');analyze(request.raw,{count:false,conditions:{region:request.region||'',desiredDate:request.desiredDate||null,budgetCap:request.budgetCap??null}});});
       list.append(button);
     });
   }
