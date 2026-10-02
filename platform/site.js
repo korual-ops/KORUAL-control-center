@@ -645,13 +645,13 @@
     installation:['인터넷 신규 설치','가전 설치','기존 기기 철거']
   };
   let scopeType='';
-  function renderRequestScope(){
+  function renderRequestScope(resetSelection=false){
     const text=$('#homeRequestInput')?.value||'';
-    const next=/이사/.test(text)?'moving':/청소|에어컨/.test(text)?'cleaning':/인터넷|설치/.test(text)?'installation':'';
+    const next=/이사|\bmoving\b|引越|搬家|chuyển nhà/i.test(text)?'moving':/청소|에어컨|cleaning|air conditioner|清掃|掃除|清洁|清潔|dọn dẹp|vệ sinh/i.test(text)?'cleaning':/인터넷|설치|internet|installation|設置|安装|安裝|lắp đặt/i.test(text)?'installation':'';
     const panel=$('#requestScope');
     if(!panel)return;
     panel.hidden=!next;
-    if(next===scopeType)return;
+    if(next===scopeType&&!resetSelection)return;
     scopeType=next;
     const options=$('#requestScopeOptions');
     options.replaceChildren();
@@ -662,12 +662,13 @@
       label.append(input,text);options.append(label);
     }
   }
-  $('#homeRequestInput')?.addEventListener('input',renderRequestScope);
+  $('#homeRequestInput')?.addEventListener('input',()=>renderRequestScope());
+  $('#homeRequestForm')?.addEventListener('input',()=>{const error=$('#homeRequestError');if(error)error.hidden=true;});
   const homeRequestDate=$('#homeRequestDate');
   if(homeRequestDate){homeRequestDate.min=localDateString(new Date());homeRequestDate.max=addSeoulDays(366);}
   $$('[data-home-example]').forEach(button=>button.addEventListener('click',()=>{
     const input=$('#homeRequestInput');
-    if(input){input.value=button.dataset.homeExample;renderRequestScope();input.focus();}
+    if(input){input.value=button.dataset.homeExample;renderRequestScope(true);input.focus();}
   }));
   $('#homeRequestForm')?.addEventListener('submit',event=>{
     event.preventDefault();
@@ -699,8 +700,10 @@
     const input=$('#homeRequestInput');
     if(input)input.value=btn.dataset.service||'';
     if(region)$('#homeRequestRegion').value=region;
-    renderRequestScope();showScreen('home');
-    $('#homeRequestRegion')?.focus();
+    renderRequestScope(true);showScreen('home');
+    const error=$('#homeRequestError');if(error)error.hidden=true;
+    const regionInput=$('#homeRequestRegion');
+    (regionInput?.value.trim()?input:regionInput)?.focus();
   }));
   goQuotes?.addEventListener('click',()=>showScreen('quotes'));
 
