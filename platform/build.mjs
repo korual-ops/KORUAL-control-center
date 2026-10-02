@@ -46,4 +46,4 @@ for (const file of files) {
   await copyFile(new URL(file, base), new URL(file, dist));
 }
 
-console.log(`KORUAL production build complete: ${files.length} assets`);
+console.log(`KORUAL production build complete: ${files.length} assets`); // success-flow-2026-10-02
