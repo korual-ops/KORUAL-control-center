@@ -276,3 +276,14 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
   else boot();
 })();
+
+
+/* KORUAL Success Layer production loader */
+(() => {
+  if (window.KORUALSuccessLayer || document.querySelector('script[data-korual-success-loader]')) return;
+  const script = document.createElement('script');
+  script.src = '/success-layer.js?v=1.0.1';
+  script.defer = true;
+  script.dataset.korualSuccessLoader = 'true';
+  document.head.appendChild(script);
+})();
