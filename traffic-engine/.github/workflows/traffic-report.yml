@@ -1,0 +1,23 @@
+name: Traffic opportunity report
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 0 * * 1'
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+        working-directory: traffic-engine
+      - run: npm run report > traffic-report.json
+        working-directory: traffic-engine
+      - uses: actions/upload-artifact@v4
+        with:
+          name: traffic-opportunity-report
+          path: traffic-engine/traffic-report.json
