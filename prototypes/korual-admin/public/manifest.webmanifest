@@ -1,0 +1,21 @@
+{
+  "name": "KORUAL Commerce OS",
+  "short_name": "KORUAL",
+  "description": "상품, 주문, 고객, 자동화를 관리하는 KORUAL 운영센터",
+  "lang": "ko-KR",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090a0a",
+  "theme_color": "#0d0e0e",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {"src": "/icons/korual-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ],
+  "shortcuts": [
+    {"name": "주문 관리", "short_name": "주문", "url": "/?view=orders", "icons": [{"src": "/icons/korual-mark.svg", "sizes": "any"}]},
+    {"name": "상품 관리", "short_name": "상품", "url": "/?view=products", "icons": [{"src": "/icons/korual-mark.svg", "sizes": "any"}]},
+    {"name": "자동화", "short_name": "자동화", "url": "/?view=automation", "icons": [{"src": "/icons/korual-mark.svg", "sizes": "any"}]}
+  ]
+}

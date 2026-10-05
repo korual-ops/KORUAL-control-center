@@ -1,0 +1,41 @@
+name: KORUAL Admin CI
+
+on:
+  pull_request:
+    paths:
+      - "prototypes/korual-admin/**"
+      - ".github/workflows/korual-admin-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "prototypes/korual-admin/**"
+      - ".github/workflows/korual-admin-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: korual-admin-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prototypes/korual-admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: prototypes/korual-admin/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - name: Ensure no server secrets are bundled
+        run: |
+          if grep -R -E "SERVICE_ROLE_KEY|CLIENT_SECRET|sk-cafe24-" dist; then
+            echo "Server secret pattern found in browser bundle"
+            exit 1
+          fi
