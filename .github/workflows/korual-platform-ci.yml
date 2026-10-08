@@ -31,6 +31,10 @@ jobs:
         working-directory: platform
         run: npm install --no-audit --no-fund
 
+      - name: Check catalog module syntax
+        working-directory: platform
+        run: node --check category-catalog.js && node --check category-hub.js
+
       - name: Run automated tests
         working-directory: platform
         run: npm test
