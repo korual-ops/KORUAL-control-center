@@ -8,7 +8,9 @@ const translations={
  vi:{eyebrow:'KORUAL SERVICE DIRECTORY',title:'Khám phá dịch vụ',desc:'Tìm theo nhu cầu và kiểm tra trạng thái trước khi gửi yêu cầu.',search:'Tìm dịch vụ',all:'Tất cả',beta:'Nhập yêu cầu Beta',planned:'Sắp ra mắt',reset:'Tất cả danh mục',showAll:'Xem toàn bộ dịch vụ',count:'dịch vụ',group:'nhóm',start:'Nhập yêu cầu',coming:'Sắp ra mắt',betaNote:'Beta chỉ để nhập yêu cầu và xem thử so sánh, chưa xác nhận đặt chỗ hay thanh toán.',plannedNote:'Dịch vụ đang phát triển chưa thể đặt hay thanh toán.',focus:'Kiểm tra yêu cầu và nhập khu vực, ngày mong muốn.',empty:'Không có kết quả phù hợp.',next:'Khám phá danh mục',examples:'Dịch vụ nhập yêu cầu Beta'}
 };
 const mounts=[...document.querySelectorAll('[data-korual-category-hub]')];
-const state={rootId:'all',phase:'all',query:''};
+const state={rootId:'all',phase:'all',query:'',region:''};
+const regions=['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주'];
+const regionLabels={ko:'희망 지역 (실제 서비스 제공 여부는 업체 확인)',en:'Preferred region (not guaranteed availability)',ja:'希望地域（提供状況は要確認）',zh:'期望地区（服务情况需确认）',vi:'Khu vực mong muốn (cần xác nhận khả năng phục vụ)'};
 function language(){const l=window.KORUAL_I18N?.getLanguage?.()||document.documentElement.lang.slice(0,2)||'ko';return translations[l]?l:'ko';}
 function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function tr(){return translations[language()];}
@@ -47,6 +49,7 @@ function render(){
   const {matching,main}=content(t,lang);
   mount.innerHTML='<section class="kh" aria-label="'+esc(t.title)+'"><div class="kh-header"><div><small>'+esc(t.eyebrow)+'</small><h2>'+esc(t.title)+'</h2><p>'+esc(t.desc)+'</p></div><div class="kh-count">'+roots.length+' / '+allServices.length+'</div></div>'+
    '<label class="kh-search"><span class="kh-search-glyph" aria-hidden="true">⌕</span><span class="kh-visually-hidden">'+esc(t.search)+'</span><input type="search" data-kh-query value="'+esc(state.query)+'" placeholder="'+esc(t.search)+'" autocomplete="off" /></label>'+
+   '<label class="kh-region"><span>'+esc(regionLabels[lang])+'</span><select data-kh-region><option value="">'+esc(t.all)+'</option>'+regions.map(r=>'<option value="'+esc(r)+'"'+(state.region===r?' selected':'')+'>'+esc(r)+'</option>').join('')+'</select></label>'+ 
    '<div class="kh-tabs" role="group" aria-label="Status filters">'+[['all',t.all],['beta',t.beta],['planned',t.planned]].map(([k,l])=>'<button type="button" data-kh-phase="'+k+'" aria-pressed="'+(state.phase===k)+'" class="'+(state.phase===k?'is-active':'')+'">'+esc(l)+'</button>').join('')+'</div>'+
    '<div class="kh-result-count" role="status" aria-live="polite">'+matching.length+' '+esc(t.count)+'</div>'+main+
    '<p class="kh-caveat">'+esc(t.betaNote)+'</p><p class="kh-caveat">'+esc(t.plannedNote)+'</p></section>';
@@ -62,6 +65,8 @@ function start(id){
  home.click();
  request.value=service.label.ko+' 관련 서비스 조건(지역·일정·예산·작업 범위)을 비교해줘';
  request.dispatchEvent(new Event('input',{bubbles:true}));
+ const regionInput=document.getElementById('homeRequestRegion');
+ if(regionInput&&state.region){regionInput.value=state.region;regionInput.dispatchEvent(new Event('input',{bubbles:true}));}
  request.focus({preventScroll:false});
 }
 for(const mount of mounts){
@@ -73,6 +78,7 @@ for(const mount of mounts){
   else if(button.hasAttribute('data-kh-clear')){state.rootId='all';state.query='';render();}
   else if(button.hasAttribute('data-kh-start'))start(button.dataset.khStart);
  });
+ mount.addEventListener('change',event=>{if(event.target.matches('[data-kh-region]')){state.region=event.target.value;render();}});
  mount.addEventListener('input',event=>{
   if(!event.target.matches('[data-kh-query]'))return;
   const input=event.target;
