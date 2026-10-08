@@ -35,3 +35,13 @@ test('no future category can imply current live booking',()=>{
   assert.ok(allServices.every(s=>['beta','planned'].includes(s.status)));
   assert.equal(allServices.filter(s=>s.status==='live').length,0);
 });
+
+import {generateSeed} from '../scripts/generate-category-seed.mjs';
+test('database seed is reproducible and contains the full hierarchy',()=>{
+ const first=generateSeed();const second=generateSeed();
+ assert.equal(first,second);
+ assert.equal((first.match(/on conflict \(code\)/g)||[]).length,3);
+ assert.ok(first.includes("'private-charter'"));
+ assert.ok(first.includes("'service'"));
+ assert.ok(first.includes("'planned'"));
+});
