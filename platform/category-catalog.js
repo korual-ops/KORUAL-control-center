@@ -1,3 +1,4 @@
+import {extraLocales} from './category-locales.js';
 // KORUAL canonical customer-facing taxonomy — additive, no production DB changes.
 // Status describes the *UI flow only*. 'beta' means request input/preview, not live inventory, bookability or verified providers.
 // 'planned' services must never expose fabricated quotes or one-click booking.
@@ -446,10 +447,10 @@ const raw = [
 export const roots = Object.freeze(raw.map(([id,labels,icon,groups],rootOrder)=>Object.freeze({
   id, icon, order:rootOrder, label:{ko:labels[0],en:labels[1],ja:labels[2],zh:labels[3],vi:labels[4]},
   groups:Object.freeze(groups.map(([groupId,ko,en,rows],groupOrder)=>Object.freeze({
-    id:groupId,order:groupOrder,label:{ko,en},
+    id:groupId,order:groupOrder,label:{ko,en,...Object.fromEntries(['ja','zh','vi'].map((lang,i)=>[lang,extraLocales[groupId]?.[i]||en]))},
     services:Object.freeze(rows.map((line,serviceOrder)=>{
       const [serviceId,ko,en,status]=line.split('|');
-      return Object.freeze({id:serviceId,order:serviceOrder,label:{ko,en},status,rootId:id,groupId});
+      return Object.freeze({id:serviceId,order:serviceOrder,label:{ko,en,...Object.fromEntries(['ja','zh','vi'].map((lang,i)=>[lang,extraLocales[serviceId]?.[i]||en]))},status,rootId:id,groupId});
     }))
   })))
 })));
