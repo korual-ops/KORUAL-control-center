@@ -465,7 +465,7 @@ export function searchServices(query,rootId='all'){
     if(rootId!=='all'&&service.rootId!==rootId)return false;
     const root=roots.find(r=>r.id===service.rootId);
     const group=root?.groups.find(g=>g.id===service.groupId);
-    const haystack=normalizeText([service.id,service.label.ko,service.label.en,root?.label.ko,root?.label.en,group?.label.ko,group?.label.en].join(' '));
+    const haystack=normalizeText([service.id,...Object.values(service.label),...Object.values(root?.label||{}),...Object.values(group?.label||{})].join(' '));
     return words.every(word=>haystack.includes(word));
   });
 }
