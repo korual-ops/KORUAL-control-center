@@ -21,6 +21,7 @@ const files = [
   'success-layer.css',
   'category-hub.css',
   'category-catalog.js',
+  'category-locales.js',
   'category-hub.js',
   'site.js',
   'service-discovery.js',
