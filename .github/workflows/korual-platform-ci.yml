@@ -31,6 +31,10 @@ jobs:
         working-directory: platform
         run: npm install --no-audit --no-fund
 
+      - name: Run automated tests
+        working-directory: platform
+        run: npm test
+
       - name: Build platform
         working-directory: platform
         run: npm run build
