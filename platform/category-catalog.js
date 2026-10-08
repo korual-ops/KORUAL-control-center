@@ -458,7 +458,7 @@ export function labelFor(item,language='ko'){
   return item.label?.[language] || item.label?.en || item.label?.ko || '';
 }
 export function findService(id){return allServices.find(service=>service.id===id)||null;}
-export function normalizeText(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().trim().replace(/\\s+/g,' ');}
+export function normalizeText(value){return String(value||'').normalize('NFKC').toLocaleLowerCase().trim().replace(/\s+/g,' ');}
 export function searchServices(query,rootId='all'){
   const words=normalizeText(query).split(' ').filter(Boolean);
   return allServices.filter(service=>{
