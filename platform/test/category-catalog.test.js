@@ -29,7 +29,8 @@ test('search works in Korean and English, including multiple words and spaces',(
 test('catalog labels have safe fallback for untranslated leaf locales',()=>{
   assert.equal(labelFor(roots[0],'ja'),'住まい・暮らし');
   assert.equal(labelFor(findService('move-in-clean'),'ko'),'입주청소');
-  assert.equal(labelFor(findService('move-in-clean'),'vi'),'Move-in cleaning');
+  assert.equal(labelFor(findService('move-in-clean'),'vi'),'Vệ sinh trước khi dọn vào');
+  assert.equal(labelFor(roots.find(r=>r.id==='travel').groups.find(g=>g.id==='transport'),'ja'),'航空・空港');
 });
 test('no future category can imply current live booking',()=>{
   assert.ok(allServices.every(s=>['beta','planned'].includes(s.status)));
