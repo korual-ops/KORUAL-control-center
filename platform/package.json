@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node build.mjs && node static-server.mjs",
+    "test": "node --test test/*.test.js",
     "build": "node build.mjs",
     "start": "node static-server.mjs"
   }
