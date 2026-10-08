@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="/ui-v6.css" />
   <link rel="stylesheet" href="/ui-v7.css" />
   <link rel="stylesheet" href="/success-layer.css?v=1.0.1" />
+  <link rel="stylesheet" href="/category-hub.css" />
 </head>
 <body>
   <div class="app-frame">
@@ -81,6 +82,7 @@
 
         <section class="new-discover" aria-label="서비스 둘러보기">
           <div class="new-section-head"><div><small>EXPLORE KORUAL</small><h2>당신의 다음 순간을 위해</h2></div><button type="button" data-open-screen="services">모든 서비스 <span>↗</span></button></div>
+          <div data-korual-category-hub="home"></div>
           <div class="new-category-grid">
             <button type="button" class="new-category new-category-life" data-open-category="life"><span class="service-scene scene-life" aria-hidden="true"></span><span class="new-category-symbol">⌂</span><span><small>01 · LIFESTYLE</small><strong>생활 서비스</strong><em>이사 · 청소 · 설치 · 공간</em></span><b>↗</b></button>
             <button type="button" class="new-category new-category-travel" data-open-category="travel"><span class="service-scene scene-travel" aria-hidden="true"></span><span class="new-category-symbol">✈</span><span><small>02 · TRAVEL</small><strong>여행 서비스</strong><em>항공 · 숙박 · 공항 이동</em></span><b>↗</b></button>
@@ -290,6 +292,7 @@
           <p>필요한 서비스와 희망 지역을 선택하고 요청을 시작하세요.</p>
         </div>
 
+        <div data-korual-category-hub="services"></div>
         <div class="discovery-controls">
           <label><span id="serviceSearchLabel">서비스 검색</span><input id="serviceSearch" type="search" placeholder="이사, 청소, 여행…" autocomplete="off" /></label>
           <label><span id="serviceRegionLabel">희망 지역</span><select id="serviceRegion"><option value="">전국 · 지역 선택</option><option>서울</option><option>부산</option><option>대구</option><option>인천</option><option>광주</option><option>대전</option><option>울산</option><option>세종</option><option>경기</option><option>강원</option><option>충북</option><option>충남</option><option>전북</option><option>전남</option><option>경북</option><option>경남</option><option>제주</option></select></label>
@@ -516,5 +519,6 @@
   <script src="/ui-v6.js" defer></script>
   <script src="/ui-v7.js" defer></script>
   <script src="/success-layer.js?v=1.0.1" defer></script>
+  <script type="module" src="/category-hub.js"></script>
 </body>
 </html>
