@@ -91,7 +91,9 @@
         const target=q('.quote-top',info.card)||info.card.firstElementChild;
         target?.insertAdjacentElement('afterend',badge);
       }
-      const text=info.sample?'예시 데이터 · 예약 불가':'서버 조회 · 베타 견적';
+      const text=info.sample?'예시 데이터 · 예약 불가':info.card.dataset.quoteKind==='confirmed'
+        ?'업체 확인 견적 · 조건 확인 필요'
+        :'서버 계산 예상가 · 최종 금액은 업체 확인';
       if(badge.textContent!==text)badge.textContent=text;
     });
   }
