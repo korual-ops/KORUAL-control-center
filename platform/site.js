@@ -887,6 +887,23 @@
       card.dataset.quoteKind=trustAssessment?.kind||'sample';
       const priceCaption=$('.price-row small',card);
       if(priceCaption)priceCaption.textContent=trustAssessment?.kind==='confirmed'?'업체 확인 견적':'예상 견적 · 최종 가격 아님';
+      let breakdownNote=$('.quote-cost-breakdown',card);
+      if(!breakdownNote){
+        breakdownNote=document.createElement('p');
+        breakdownNote.className='quote-cost-breakdown';
+        $('.price-row',card)?.insertAdjacentElement('afterend',breakdownNote);
+      }
+      if(breakdownNote){
+        const items=quoteMode==='live'&&!q?.demo&&Array.isArray(q?.lineItems)?q.lineItems:[];
+        const names=items.slice(0,3).map(item=>{
+          const name=String(item?.service||'서비스').slice(0,30);
+          const amount=optionalNumber(item?.amount);
+          return name+(amount===null?'':(' '+amount.toLocaleString('ko-KR')+'원'));
+        });
+        breakdownNote.textContent=names.length
+          ?'예상 항목: '+names.join(' · ')+(items.length>3?' 외 '+(items.length-3)+'개':'')+' · 추가 비용 별도 확인'
+          :'총액·서비스 범위·추가 비용은 업체에 확인해야 합니다.';
+      }
       const rank=$('.quote-rank,.ai-pick,.value-pick,.premium-pick',card);
       if(rank)rank.textContent=q?.label||'견적';
       card.classList.toggle('is-sample',quoteMode!=='live'||unavailable||q?.demo===true);
