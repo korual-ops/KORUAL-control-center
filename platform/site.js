@@ -421,7 +421,17 @@
       if(version!==quoteRequestVersion||requestSignal.aborted)return;
       if(Array.isArray(data.quotes)&&data.quotes.length){
         const slots=['best','value','premium'];
-        validUniqueQuotes(data.quotes).slice(0,slots.length).forEach((serverQuote,index)=>{
+        const quoteReceivedAt=Date.now();
+        const quoteTrustContext={
+          receivedAt:quoteReceivedAt,
+          now:quoteReceivedAt,
+          ttlSeconds:data.quote_expires_in_seconds,
+          pricingBasis:data.pricing_basis,
+          desiredDate:requestForApi.desired_date
+        };
+        // Reject duplicate, expired and internally inconsistent server estimates.
+        const trustworthyQuotes=window.KorualQuoteTrust.validateUnique(validUniqueQuotes(data.quotes),quoteTrustContext);
+        trustworthyQuotes.slice(0,slots.length).forEach((serverQuote,index)=>{
           const slot=slots[index];
           const q={
             ...serverQuote,
@@ -466,6 +476,9 @@
             engineVersion:data?.engine_version||null,
             pricingBasis:data?.pricing_basis||null,
             quoteExpiresIn:Number(data?.quote_expires_in_seconds)||null,
+            quoteTrustRaw:serverQuote,
+            quoteTrustContext,
+            quoteSourceLabel:window.KorualQuoteTrust.evaluate(serverQuote,quoteTrustContext).label,
             position:Number(q.presentation_order)||index+1
           };
           updateQuoteCard(q);
@@ -836,7 +849,10 @@
     const q=quoteCatalog[id];
     const dateRequested=Boolean(state.currentRequest?.desiredDate);
     const dateEligible=!dateRequested||q?.availability?.status==='available';
-    return Boolean(q && !q.demo && quoteMode==='live' && liveQuoteKeys.has(id) &&
+    const evidence=q?.quoteTrustRaw&&q?.quoteTrustContext
+      ?window.KorualQuoteTrust.evaluate(q.quoteTrustRaw,{...q.quoteTrustContext,now:Date.now()})
+      :null;
+    return Boolean(q && evidence?.requestable && !q.demo && quoteMode==='live' && liveQuoteKeys.has(id) &&
       (!state.preferences.verifiedOnly||q.verified) &&
       (!state.preferences.budgetCap||q.price<=state.preferences.budgetCap) &&
       dateEligible);
@@ -860,12 +876,22 @@
       card.dataset.condition=condition;
       let status=$('.quote-condition',card);
       if(!status){status=document.createElement('p');status.className='quote-condition';card.appendChild(status);}
-      status.textContent=condition==='ready'?'예약 조건 충족':condition==='demo'?'데모 업체 · 실제 예약 불가':'예약 전 일정·조건 확인 필요';
+      const trustAssessment=q?.quoteTrustRaw&&q?.quoteTrustContext
+        ?window.KorualQuoteTrust.evaluate(q.quoteTrustRaw,{...q.quoteTrustContext,now:Date.now()})
+        :null;
+      status.textContent=condition==='ready'
+        ?'예약 요청 가능 · 업체 확정 후 최종 금액 확인'
+        :condition==='demo'?'데모 업체 · 실제 예약 불가'
+        :trustAssessment?.flags.includes('EXPIRED')?'견적 유효시간 만료 · 새 견적 요청'
+        :'예약 전 일정·가격·조건 확인 필요';
+      card.dataset.quoteKind=trustAssessment?.kind||'sample';
+      const priceCaption=$('.price-row small',card);
+      if(priceCaption)priceCaption.textContent=trustAssessment?.kind==='confirmed'?'업체 확인 견적':'예상 견적 · 최종 가격 아님';
       const rank=$('.quote-rank,.ai-pick,.value-pick,.premium-pick',card);
       if(rank)rank.textContent=q?.label||'견적';
       card.classList.toggle('is-sample',quoteMode!=='live'||unavailable||q?.demo===true);
       const badge=$('.verified',card);
-      if(badge) badge.textContent=q?.demo?'데모 · 예약 불가':quoteMode==='live'&&!unavailable?(q.verified?'✓ 검증':'미검증'):'예시';
+      if(badge) badge.textContent=q?.demo?'데모 · 예약 불가':quoteMode==='live'&&!unavailable?(q.verified?'✓ 업체 검증':'업체 미검증'):'예시';
       card.classList.remove('is-top-choice','featured');
       const decisionScore=q?scoreQuote(q):-1;
       const providerMeta=$('.provider-row small',card);
@@ -938,7 +964,7 @@
         const availabilityText=state.currentRequest?.desiredDate
           ?' · 희망일 예약 가능 '+availableCount+'개'+(unknownCount?' · 일정 확인 '+unknownCount+'개':'')
           :'';
-        quoteInsight.textContent='서버 베타 견적 '+amounts.length+'개'+availabilityText+' · 표시 가격 '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 실제 제공 범위와 추가 비용을 확인하세요.';
+        quoteInsight.textContent='서버 계산 예상가 '+amounts.length+'개'+availabilityText+' · '+low.toLocaleString('ko-KR')+'~'+high.toLocaleString('ko-KR')+'원. 업체 확정가가 아니며 실제 서비스 범위·필수 추가비용·취소 조건 확인 후 예약 요청하세요.';
       }else{
         quoteInsight.textContent=quoteMode==='loading'
           ?'검증된 파트너와 조건을 확인하고 있습니다.'
@@ -1052,8 +1078,13 @@
     document.body.style.overflow='';
   }
 
+  // A server quote token expires even when the user keeps the screen open.
+  setInterval(()=>{
+    if(quoteMode==='live'&&!document.hidden)applyDecisionLens();
+  },15000);
+
   function renderQuotesSelection(){
-    $$('[data-quote-card]').forEach(card=>card.classList.toggle('selected',state.selectedQuote?.id===card.dataset.quoteCard));
+    $('[data-quote-card]').forEach(card=>card.classList.toggle('selected',state.selectedQuote?.id===card.dataset.quoteCard));
     if(state.selectedQuote){
       if(stickyQuoteName) stickyQuoteName.textContent=state.selectedQuote.label+' · '+state.selectedQuote.name;
       if(stickyQuotePrice) stickyQuotePrice.textContent='₩'+Number(state.selectedQuote.price).toLocaleString('ko-KR');
