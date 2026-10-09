@@ -65,9 +65,12 @@ jobs:
             sleep 1
           done
           if [ "$READY" -ne 1 ]; then cat /tmp/korual-platform-smoke.log; exit 1; fi
-          curl --fail --silent --show-error http://127.0.0.1:3977/ | grep -q '/quote-trust.js'
-          curl --fail --silent --show-error http://127.0.0.1:3977/quote-trust.js | grep -q 'KorualQuoteTrust'
-          curl --fail --silent --show-error http://127.0.0.1:3977/site.js | grep -q 'validateUnique'
+          curl --fail --silent --show-error http://127.0.0.1:3977/ -o /tmp/korual-index.html
+          grep -q '/quote-trust.js' /tmp/korual-index.html
+          curl --fail --silent --show-error http://127.0.0.1:3977/quote-trust.js -o /tmp/korual-quote-trust.js
+          grep -q 'KorualQuoteTrust' /tmp/korual-quote-trust.js
+          curl --fail --silent --show-error http://127.0.0.1:3977/site.js -o /tmp/korual-site.js
+          grep -q 'validateUnique' /tmp/korual-site.js
           echo "KORUAL production server smoke tests passed"
 
       - name: Upload production build artifact
