@@ -43,6 +43,33 @@ jobs:
         working-directory: platform
         run: npm run build
 
+      - name: Validate browser scripts
+        working-directory: platform
+        run: |
+          node --check quote-trust.js
+          node --check site.js
+          node --check ui-v7.js
+
+      - name: Smoke test built production server and required assets
+        working-directory: platform
+        run: |
+          PORT=3977 node static-server.mjs > /tmp/korual-platform-smoke.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          READY=0
+          for attempt in $(seq 1 20); do
+            if curl --silent --fail http://127.0.0.1:3977/healthz | grep -q '"ok":true'; then
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/korual-platform-smoke.log; exit 1; fi
+          curl --fail --silent --show-error http://127.0.0.1:3977/ | grep -q '/quote-trust.js'
+          curl --fail --silent --show-error http://127.0.0.1:3977/quote-trust.js | grep -q 'KorualQuoteTrust'
+          curl --fail --silent --show-error http://127.0.0.1:3977/site.js | grep -q 'validateUnique'
+          echo "KORUAL production server smoke tests passed"
+
       - name: Upload production build artifact
         uses: actions/upload-artifact@v4
         with:
