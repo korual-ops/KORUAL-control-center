@@ -21,6 +21,10 @@
     const add = code => { if (!flags.includes(code)) flags.push(code); };
     const amount = money(q.total_amount ?? q.amount ?? q.quotedPrice);
     if (amount === null || amount <= 0) add('INVALID_AMOUNT');
+    // Reject ambiguity when a future API returns both an old and new total.
+    if (present(q.amount) && present(q.total_amount) && money(q.amount) !== money(q.total_amount)) {
+      add('TOTAL_AMOUNT_MISMATCH');
+    }
     const items = Array.isArray(q.line_items) ? q.line_items : [];
     if (items.length) {
       const values = items.map(item => money(item && item.amount));
@@ -41,7 +45,9 @@
     const kind = flags.includes('DEMO') ? 'sample' : providerConfirmed ? 'confirmed' :
       (BASIS_ESTIMATE.has(basis) || source === 'estimate' || !providerConfirmed) ? 'estimate' : 'unknown';
     if (kind === 'estimate') add('ESTIMATED_NOT_FINAL');
-    const explicitExpiry = timestamp(q.valid_until ?? q.expires_at);
+    const rawExpiry = q.valid_until ?? q.expires_at;
+    const explicitExpiry = timestamp(rawExpiry);
+    if (present(rawExpiry) && explicitExpiry === null) add('INVALID_EXPIRY');
     const ttl = money(context.ttlSeconds);
     const ttlExpiry = ttl !== null ? receivedAt + ttl * 1000 : null;
     // Trust the shortest available limit, not an unbounded cached price.
@@ -52,7 +58,7 @@
     if (typeof q.quote_token !== 'string' || !q.quote_token.trim()) add('TOKEN_MISSING');
     if (context.desiredDate && q.availability?.status !== 'available') add('DATE_NOT_CONFIRMED');
     if (!items.length && !present(q.mandatory_fees)) add('FEES_NOT_ITEMIZED');
-    const block = ['INVALID_AMOUNT', 'LINE_ITEMS_MISMATCH', 'INVALID_FEES', 'INVALID_BASE',
+    const block = ['INVALID_AMOUNT', 'TOTAL_AMOUNT_MISMATCH', 'INVALID_EXPIRY', 'LINE_ITEMS_MISMATCH', 'INVALID_FEES', 'INVALID_BASE',
       'FEE_TOTAL_MISMATCH', 'DEMO', 'EXPIRED', 'UNVERIFIED_PROVIDER', 'TOKEN_MISSING', 'DATE_NOT_CONFIRMED'];
     const requestable = !flags.some(f => block.includes(f));
     const paymentReady = requestable && kind === 'confirmed' &&
@@ -71,7 +77,7 @@
       const key = typeof q?.provider_key === 'string' ? q.provider_key.trim() : '';
       if (!key || seen.has(key)) return false;
       const assessed = evaluate(q, context);
-      if (assessed.flags.some(f => ['INVALID_AMOUNT', 'LINE_ITEMS_MISMATCH',
+      if (assessed.flags.some(f => ['INVALID_AMOUNT', 'TOTAL_AMOUNT_MISMATCH', 'INVALID_EXPIRY', 'LINE_ITEMS_MISMATCH',
         'INVALID_FEES', 'INVALID_BASE', 'FEE_TOTAL_MISMATCH', 'EXPIRED'].includes(f))) return false;
       seen.add(key);
       return true;
