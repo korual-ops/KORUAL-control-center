@@ -37,6 +37,8 @@ test('line items must match quoted amount and fees must be internally consistent
   assert.equal(evaluate({...baseline,base_amount:140000,mandatory_fees:10000},context).requestable,true);
   assert.equal(evaluate({...baseline,base_amount:140000,mandatory_fees:20000},context).requestable,false);
   assert.equal(evaluate({...baseline,mandatory_fees:-1000},context).requestable,false);
+  assert.equal(evaluate({...baseline,total_amount:155000},context).requestable,false);
+  assert.equal(evaluate({...baseline,valid_until:'unparseable-date'},context).requestable,false);
 });
 test('quote expiration is based on original reception, not each rerender',()=>{
   assert.equal(evaluate(baseline,{...context,now:NOW+599000}).requestable,true);
