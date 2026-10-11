@@ -26,6 +26,7 @@ const files = [
   'category-catalog.js',
   'category-locales.js',
   'category-hub.js',
+  'quote-trust.js',
   'site.js',
   'service-discovery.js',
   'privacy.js',
