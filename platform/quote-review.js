@@ -75,3 +75,10 @@ root.querySelector('#clearReview').addEventListener('click', () => {
   catch { status.textContent = '저장된 검토표를 삭제하지 못했습니다. 다시 시도해주세요.'; }
 });
 fill(); status.textContent = initialMessage;
+
+// Preserve the application's screen hash when jumping within the quote screen.
+document.querySelector('a[href="#quoteReview"]')?.addEventListener('click', event => {
+  event.preventDefault();
+  root.scrollIntoView({behavior:'smooth', block:'start'});
+  budget.focus({preventScroll:true});
+});
