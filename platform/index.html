@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="/ui-v7.css" />
   <link rel="stylesheet" href="/success-layer.css?v=1.0.1" />
   <link rel="stylesheet" href="/category-hub.css" />
+  <link rel="stylesheet" href="/quote-review.css" />
 </head>
 <body>
   <div class="app-frame">
@@ -189,6 +190,7 @@
         </div>
 
         <div class="quote-tools"><p>제공 범위·추가 비용·취소 조건까지 확인하세요.</p><button id="retryQuotes" type="button">견적 다시 조회</button></div>
+        <p class="review-entry"><a href="#quoteReview">받은 견적의 총비용 직접 비교하기 ↓</a></p>
         <div id="quoteEmpty" class="empty-card" hidden><strong id="quoteEmptyTitle">현재 조건에 맞는 견적이 없습니다.</strong><p id="quoteEmptyMessage">예산 또는 검증 조건을 변경해 다시 비교해보세요.</p><button id="clearQuoteFilters" type="button">필터 해제</button></div>
         <article id="bundlePlanCard" class="bundle-plan-card" hidden>
           <div class="bundle-plan-head">
@@ -233,6 +235,7 @@
           </article>
         </div>
 
+        <section id="quoteReview" class="quote-review" aria-label="견적 총비용 검토표"></section>
         <div id="quoteSticky" class="sticky-action">
           <div><small>SELECTED</small><strong id="stickyQuoteName">견적을 선택하세요</strong></div>
           <div><span id="stickyQuotePrice">—</span><button id="bookSelected" type="button" disabled>예약</button></div>
@@ -520,5 +523,6 @@
   <script src="/ui-v7.js" defer></script>
   <script src="/success-layer.js?v=1.0.1" defer></script>
   <script type="module" src="/category-hub.js"></script>
+  <script type="module" src="/quote-review.js"></script>
 </body>
 </html>
