@@ -8,6 +8,9 @@ await mkdir(dist, { recursive: true });
 
 const files = [
   'index.html',
+  'quote-review.js',
+  'quote-review-model.js',
+  'quote-review.css',
   'site.css',
   'discovery.css',
   'redesign.css',
@@ -19,6 +22,10 @@ const files = [
   'ui-v6.css',
   'ui-v7.css',
   'success-layer.css',
+  'category-hub.css',
+  'category-catalog.js',
+  'category-locales.js',
+  'category-hub.js',
   'site.js',
   'service-discovery.js',
   'privacy.js',
