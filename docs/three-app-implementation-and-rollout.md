@@ -3,6 +3,30 @@
 **Build date:** 2026-10-13 · **Mode:** feature branch / draft PR (not production)
 **Repository:** korual-ops/KORUAL-control-center
 
+## v2 incremental work: real conversion loop and provider acquisition
+
+All changes described in this document are **unmerged preview code** unless explicitly noted.
+
+1. **Customer real request**: `platform/index.html` provides a separate real quote form (not confused with AI estimates). `platform/real-requests.js` uses the existing high-entropy browser session to submit a service/date/region request with explicit contact consent and a generated idempotency key. Only the opaque request id is held in session storage (not name/phone). `platform/build.mjs` copies the responsive JS/CSS.
+2. **Supply guard**: `real_market_ready` checks active, verified, non-demo providers and disables the new personal-data form when supply is unavailable. `submit_real_request` checks actual matching service/region supply before saving the customer's contact details; rejects where there is no real supplier.
+3. **Customer quote inbox**: `real_quote_status` confirms request ownership through the high-entropy session id and only returns actual submitted quotes from active verified non-demo providers, with status and timestamps. It **does not** finalize bookings or payments.
+4. **Admin manual routing**: pending requests are visible as non-sensitive summaries on the operator UI and require an authenticated explicit admin matching action.
+5. **Partner intake**: a separate guest form collects only company, work email, region, service category, consent/acknowledgment. Server-side validation plus a pilot local throttle stores it in `partner_applications`. It does not create a profile/provider/membership or approve the applicant automatically.
+6. **Admin application queue**: can move `received → reviewing → needs_documents` or `rejected`; only authorized operators access contact email. The review API never grants verified status.
+7. **Honest analytics**: operator KPIs now distinguish verified actual suppliers from demo providers and track pending applications. A migration-not-yet-installed status is displayed as unavailable rather than fabricated zero.
+
+### Significant integration gaps before release
+
+- The Customer Edge Function currently has **no standalone CI typecheck/deployment**. Its source edit has to be built, typechecked and integration-tested in a Supabase staging project.
+- The root Express API Partner/Admin routes and the separate Customer Edge Function must be configured and tested together against a **staging copy** of the marketplace schema. GitHub Node CI does not demonstrate this by itself.
+- **Reservation from a Partner-submitted real quote is NOT implemented in the new inbox.** It is only a display/compare flow. Do not imply booking/settlement exists there.
+- **No real suppliers currently exist in the connected database** (three demo providers only as of 2026-10-13), so no real-quote form is usable until a verified real provider is actually enrolled.
+- Customers are offered no real quote unless the supplier's category and service area match; current region logic is string-based, not geospatial or legal coverage verification.
+- Before collecting real customer/partner contact information publicly: finalize Korean privacy consent copy (purpose, retention, third-party recipient disclosure, rights), implement automatic deletion after the 90-day business intake expiration window, protect signup with a persistent/shared rate limiter and bot detection, set up incident/monitoring and verify backups.
+- Authentication needs leaked-password protection and production-grade operator MFA, verified by server-side auth context; `profiles.mfa_enabled` as a flag is not itself evidence of an MFA challenge.
+- Existing Customer public API may still display algorithmic estimated provider quotes; do not relabel these as actual submitted Partner quotes.
+- No bulk merchant auto-approval, payouts, provider identity checks or payment/settlement authorization added in this change.
+
 ## What was implemented (code, not live deployment)
 
 | App | Path on the root Express deployment | Scope |
