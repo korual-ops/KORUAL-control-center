@@ -859,10 +859,25 @@ Deno.serve(async (req: Request) => {
       if (createError) {
         if (createError.code==="23505") {
           const {data:existing,error:readError}=await db.from("service_requests")
-            .select("id,request_code,status,created_at")
+            .select("id,request_code,status,created_at,services,region,desired_date,customer_name,phone")
             .eq("session_id",sessionId).eq("idempotency_key",key).maybeSingle();
           if (readError)throw readError;
-          if (existing)return json(origin,{ok:true,idempotent:true,request:existing});
+          if (existing) {
+            const sameTerms =
+              Array.isArray(existing.services) &&
+              existing.services.length === services.length &&
+              existing.services.every((s:string,i:number)=>s===services[i]) &&
+              existing.region === region &&
+              existing.desired_date === desiredDate &&
+              existing.customer_name === name &&
+              existing.phone === phone;
+            if (!sameTerms) {
+              return json(origin,{ok:false,error:"IDEMPOTENCY_CONFLICT"},409);
+            }
+            // No PII is echoed to the browser, even for owned duplicate requests.
+            const {id,request_code,status,created_at}=existing;
+            return json(origin,{ok:true,idempotent:true,request:{id,request_code,status,created_at}});
+          }
         }
         throw createError;
       }
