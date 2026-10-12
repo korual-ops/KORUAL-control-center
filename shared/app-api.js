@@ -5,6 +5,7 @@
  */
 import express from 'express';
 import { authorizePartner } from './partner-access.js';
+import { eligiblePartners } from './lead-routing.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const OPEN_REQUESTS = ['NEW', 'MATCHING', 'QUOTED'];
@@ -224,5 +225,60 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       return res.json({ok:true,counts:Object.fromEntries(result),at:new Date().toISOString()});
     }catch(error){return handleError(res,error,'operations');}
   });
+
+  operations.get('/requests',async(_req,res)=>{
+    try {
+      const {data,error}=await db.from('service_requests')
+        .select('id,request_code,services,region,desired_date,status,created_at')
+        .in('status',OPEN_REQUESTS)
+        .order('created_at',{ascending:false}).limit(30);
+      if(error)throw error;
+      res.set('Cache-Control','no-store');
+      return res.json({ok:true,requests:data||[]});
+    }catch(error){return handleError(res,error,'admin_requests');}
+  });
+
+  operations.post('/assign',async(req,res)=>{
+    // This is an explicit, authenticated operator action. No money movement.
+    if(req.get('x-korual-app')!=='operations'||!req.is('application/json')){
+      return res.status(403).json({ok:false,error:'OPERATOR_ACTION_HEADER_REQUIRED'});
+    }
+    const origin=req.get('origin');
+    if(origin){
+      try{if(new URL(origin).host!==req.get('host'))return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
+      catch{return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
+    }
+    const requestId=String(req.body?.request_id||'');
+    if(!UUID.test(requestId))return res.status(400).json({ok:false,error:'INVALID_ID'});
+    try {
+      const {data:request,error:requestError}=await db.from('service_requests')
+        .select('id,services,region,status').eq('id',requestId).maybeSingle();
+      if(requestError)throw requestError;
+      if(!request||!OPEN_REQUESTS.includes(request.status))return res.status(409).json({ok:false,error:'REQUEST_CLOSED'});
+      const {data:providers,error:providerError}=await db.from('providers')
+        .select('id,active,verified,is_demo,service_categories,regions,korual_score')
+        .eq('active',true).eq('verified',true).eq('is_demo',false).limit(150);
+      if(providerError)throw providerError;
+      if(!providers?.length)return res.status(409).json({ok:false,error:'NO_VERIFIED_SUPPLY'});
+      const {data:memberships,error:membershipError}=await db.from('partner_memberships')
+        .select('provider_id').eq('active',true)
+        .in('role',['OWNER','OPERATOR'])
+        .in('provider_id',providers.map(p=>p.id)).limit(500);
+      if(membershipError)return handleError(res,membershipError,'assign_memberships');
+      const selected=eligiblePartners({request,providers,memberProviderIds:new Set((memberships||[]).map(m=>m.provider_id))});
+      if(!selected.length)return res.status(409).json({ok:false,error:'NO_ELIGIBLE_PARTNERS'});
+      const rows=selected.map(p=>({request_id:requestId,provider_id:p.provider_id,match_score:p.match_score,status:'pending'}));
+      const {error:insertError}=await db.from('service_request_matches')
+        .upsert(rows,{onConflict:'request_id,provider_id',ignoreDuplicates:true});
+      if(insertError)throw insertError;
+      const {error:auditError}=await db.from('admin_actions').insert({
+        actor_user_id:req.user.sub,action:'ASSIGN_SERVICE_LEADS',
+        meta:{request_id:requestId,provider_ids:selected.map(p=>p.provider_id),source:'korual_operations'}
+      });
+      if(auditError)console.error('KORUAL_PORTAL assignment_audit_failed',auditError.message);
+      return res.json({ok:true,assigned:selected.length,provider_ids:selected.map(p=>p.provider_id)});
+    }catch(error){return handleError(res,error,'assign_lead');}
+  });
+
   app.use('/api/operations',operations);
 }
