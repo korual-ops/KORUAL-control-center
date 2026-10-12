@@ -30,8 +30,8 @@ BEGIN
     RETURN jsonb_build_object('ok',false,'error','INVALID_ASSIGNMENT');
   END IF;
 
-  SELECT count(DISTINCT provider_id) INTO v_count
-    FROM unnest(p_provider_ids) AS provider_id;
+  SELECT count(DISTINCT candidate.id) INTO v_count
+    FROM unnest(p_provider_ids) AS candidate(id);
   IF v_count <> array_length(p_provider_ids,1) OR EXISTS (
     SELECT 1 FROM unnest(p_scores) AS score
       WHERE score IS NULL OR score NOT BETWEEN 0 AND 100
