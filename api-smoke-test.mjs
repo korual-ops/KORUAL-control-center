@@ -44,3 +44,19 @@ test('service request validation rejects missing fields before database access',
   assert.equal(result.body.ok, false);
   assert.equal(result.body.error, 'INVALID_REGION');
 });
+
+test('partner and admin APIs reject anonymous access',async()=>{
+  for (const path of ['/api/partner/me','/api/partner/leads?provider_id=11111111-1111-4111-8111-111111111111','/api/operations/overview']) {
+    const res=await request(path);
+    assert.equal(res.status,401,path);
+    assert.equal(res.body.error,'UNAUTHENTICATED');
+  }
+});
+test('quote mutations reject anonymous access before touching DB',async()=>{
+  const res=await request('/api/partner/quotes',{
+    method:'POST',
+    headers:{'content-type':'application/json','x-korual-app':'partner'},
+    body:JSON.stringify({provider_id:'11111111-1111-4111-8111-111111111111',request_id:'22222222-2222-4222-8222-222222222222',amount:55000,message:'견적 내역'})
+  });
+  assert.equal(res.status,401);
+});
