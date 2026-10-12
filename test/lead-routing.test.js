@@ -32,3 +32,22 @@ test('service taxonomy aliases resolve to the same actual supplier category',()=
  });
  assert.equal(matched.length,1);
 });
+
+test('partial bundle coverage cannot be assigned as a full-service quote',()=>{
+ const provider={...p('one'),service_categories:['입주청소']};
+ assert.deepEqual(eligiblePartners({
+  request:{services:['입주청소','이사'],region:'인천 영종도'},
+  providers:[provider],memberProviderIds:new Set(['one'])
+ }),[]);
+});
+
+test('region prefix does not falsely match unrelated lookalike names',()=>{
+ assert.equal(eligiblePartners({
+  request:{services:['입주청소'],region:'인천시티 리조트'},
+  providers:[p('one')],memberProviderIds:new Set(['one'])
+ }).length,0);
+ assert.equal(eligiblePartners({
+  request:{services:['입주청소'],region:'인천광역시 중구'},
+  providers:[p('one')],memberProviderIds:new Set(['one'])
+ }).length,1);
+});
