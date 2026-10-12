@@ -55,7 +55,7 @@ async function selectProvider(){
 }
 async function load(){
  try{const data=await api('/api/partner/me');state.providers=data.providers||[];
-   if(!state.providers.length){switchView(true);$('#providerSelect').replaceChildren();feedback('승인된 사업장 권한이 없습니다. 운영 담당자에게 소속 업체 등록을 요청하세요.',true);return;}
+   if(!state.providers.length){state.leads=[];state.quotes=[];state.bookings=[];render();switchView(true);$('#providerSelect').replaceChildren();feedback('승인된 사업장 권한이 없습니다. 운영 담당자에게 소속 업체 등록을 요청하세요.',true);return;}
    switchView(true);const sel=$('#providerSelect');clear(sel);
    state.providers.forEach(p=>{const o=node('option',p.name+' · '+p.role);o.value=p.id;sel.append(o);});
    state.selected=state.providers[0].id;sel.value=state.selected;await selectProvider();
@@ -71,7 +71,7 @@ $('#loginForm').addEventListener('submit',async e=>{
  try{await api('/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:$('#username').value,password:$('#password').value})});$('#password').value='';await load();}
  catch(err){$('#loginError').textContent=err.message;}
 });
-$('#logout').addEventListener('click',async()=>{try{await api('/auth/logout',{method:'POST'});}catch{}state.providers=[];switchView(false);});
+$('#logout').addEventListener('click',async()=>{try{await api('/auth/logout',{method:'POST'});}catch{}state.providers=[];state.selected=null;state.leads=[];state.quotes=[];state.bookings=[];state.request=null;render();switchView(false);});
 $('#quoteForm').addEventListener('submit',async e=>{
  e.preventDefault();if(!state.request||!state.selected)return;
  const f=new FormData(e.target);const submit=e.target.querySelector('[type=submit]');submit.disabled=true;
