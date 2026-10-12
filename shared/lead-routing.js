@@ -4,15 +4,19 @@
  * Never rank demo/disabled/unverified providers or providers with no staff.
  */
 function clean(s) { return String(s||'').trim().replace(/\s+/g,' '); }
+export function normalizeService(s){
+ const value=clean(s);
+ return ({'에어컨 청소':'에어컨','인터넷/TV':'인터넷 설치'})[value]||value;
+}
 export function eligiblePartners({request,providers,memberProviderIds,max=3}) {
-  const services=Array.isArray(request?.services)?request.services.map(clean).filter(Boolean):[];
+  const services=Array.isArray(request?.services)?request.services.map(normalizeService).filter(Boolean):[];
   const region=clean(request?.region);
   if(!region||!services.length)return [];
   return (Array.isArray(providers)?providers:[])
     .filter(p=>p && p.active === true && p.verified === true && p.is_demo !== true)
     .filter(p=>memberProviderIds instanceof Set && memberProviderIds.has(p.id))
     .map(p=>{
-      const cats=Array.isArray(p.service_categories)?p.service_categories.map(clean):[];
+      const cats=Array.isArray(p.service_categories)?p.service_categories.map(normalizeService):[];
       const regions=Array.isArray(p.regions)?p.regions.map(clean):[];
       const categoryMatch=services.some(service=>cats.includes(service));
       const regionMatch=regions.some(r=>r==='전국' || region===r || region.startsWith(r+' ') || region.startsWith(r+'시') || region.startsWith(r+'광역시'));
