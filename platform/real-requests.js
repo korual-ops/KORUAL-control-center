@@ -94,7 +94,7 @@
   refresh.addEventListener('click',poll);
   async function prepareRealMarketplace(){
     try{
-      const data=await api('real_marketplace_readiness',{});
+      const data=await api('real_market_ready',{});
       if(!data.real_request_enabled){
         for(const control of form.querySelectorAll('input,select,button[type=submit]')){
           control.disabled=true;
