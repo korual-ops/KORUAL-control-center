@@ -295,10 +295,17 @@ function rankingSensitivity(candidates: any[]) {
   };
 }
 
+function canonicalServiceCategory(value: unknown) {
+  const service=cleanText(value,60);
+  if (service === "에어컨 청소") return "에어컨";
+  if (service === "인터넷/TV") return "인터넷 설치";
+  return service;
+}
+
 function providerCoverage(provider: any, services: string[]) {
   const categories = new Set(
     (Array.isArray(provider?.service_categories) ? provider.service_categories : [])
-      .map((x: unknown) => cleanText(x, 60))
+      .map((x: unknown) => canonicalServiceCategory(x))
   );
 
   const items = services.map((service) => {
