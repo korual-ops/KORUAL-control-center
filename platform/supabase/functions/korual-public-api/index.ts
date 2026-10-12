@@ -801,7 +801,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (action === "real_marketplace_readiness") {
+    if (action === "real_market_ready") {
       const {count,error}=await db.from("providers")
         .select("id",{count:"exact",head:true})
         .eq("active",true).eq("verified",true).eq("is_demo",false);
