@@ -59,7 +59,17 @@ function safeOriginAndJson(req, res, next) {
 
 export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRuntimeConfig }) {
   const partner = express.Router();
-  partner.use(requireRuntimeConfig, requireAuth);
+  // Recheck the account status on every request so deactivation is immediate
+  // even when an otherwise valid short-lived JWT is still cached.
+  partner.use(requireRuntimeConfig, requireAuth, async (req,res,next)=>{
+    try{
+      const {data,error}=await db.from('profiles')
+        .select('id,active').eq('id',req.user.sub).maybeSingle();
+      if(error)return handleError(res,error,'active_profile');
+      if(!data?.active)return res.status(403).json({ok:false,error:'ACCOUNT_DISABLED'});
+      return next();
+    }catch(error){return handleError(res,error,'active_profile');}
+  });
 
   async function membership(req, res, action) {
     const providerId = req.method === 'POST' ? req.body?.provider_id : req.query?.provider_id;
