@@ -64,6 +64,7 @@ function safeOriginAndJson(req, res, next) {
 
 export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRuntimeConfig }) {
   const partner = express.Router();
+  partner.use((_req,res,next)=>{res.set('Cache-Control','private, no-store');next();});
   // Public application does NOT create verified companies or grant provider access.
   // Pilot-only per-process throttling: replace with shared persistent rate limiting
   // and bot protection before public launch.
@@ -144,15 +145,19 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       const {data: memberships,error} = await db.from('partner_memberships')
         .select('provider_id,role,active').eq('user_id', req.user.sub).eq('active', true).limit(40);
       if (error) return handleError(res,error,'memberships');
-      const results = await Promise.all((memberships || []).map(async m => {
-        const {data, error: e} = await db.from('providers')
-          .select('id,name,active,verified,is_demo').eq('id',m.provider_id).maybeSingle();
-        if (e) throw e;
-        if (!data?.active || !data.verified || data.is_demo) return null;
-        return {id:data.id,name:data.name,role:m.role,verified:true};
-      }));
-      res.set('Cache-Control','no-store');
-      return res.json({ok:true,providers:results.filter(Boolean),user_id:req.user.sub});
+      const ids=(memberships||[]).map(m=>m.provider_id);
+      if(!ids.length)return res.json({ok:true,providers:[],user_id:req.user.sub});
+      // Single provider lookup replaces up to 40 sequential N+1 reads.
+      const {data:providers,error:providerError}=await db.from('providers')
+        .select('id,name,active,verified,is_demo')
+        .in('id',ids).eq('active',true).eq('verified',true).eq('is_demo',false);
+      if(providerError)throw providerError;
+      const byId=new Map((providers||[]).map(p=>[p.id,p]));
+      const results=(memberships||[]).flatMap(m=>{
+        const provider=byId.get(m.provider_id);
+        return provider?[{id:provider.id,name:provider.name,role:m.role,verified:true}]:[];
+      });
+      return res.json({ok:true,providers:results,user_id:req.user.sub});
     } catch(error) {return handleError(res,error,'me');}
   });
 
@@ -218,7 +223,7 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
         const status={
           INVALID_ID:400,INVALID_QUOTE:400,
           PARTNER_ACCESS_DENIED:403,LEAD_NOT_ASSIGNED:403,
-          REQUEST_CLOSED:409,QUOTE_ALREADY_EXISTS:409
+          REQUEST_CLOSED:409,REQUEST_DATE_PASSED:409,QUOTE_ALREADY_EXISTS:409
         }[data?.error]||409;
         return res.status(status).json({ok:false,error:data?.error||'QUOTE_NOT_SAVED'});
       }
@@ -230,6 +235,7 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
   app.use('/api/partner',partner);
 
   const operations=express.Router();
+  operations.use((_req,res,next)=>{res.set('Cache-Control','private, no-store');next();});
   operations.use(requireRuntimeConfig,requireAuth,requireAdmin);
   operations.get('/overview',async(_req,res)=>{
     const definitions=[
@@ -354,7 +360,7 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       if(!result?.ok){
         const status={
           INVALID_ASSIGNMENT:400,ADMIN_ONLY:403,
-          REQUEST_CLOSED:409,PARTNER_ELIGIBILITY_CHANGED:409
+          REQUEST_CLOSED:409,REQUEST_DATE_PASSED:409,PARTNER_ELIGIBILITY_CHANGED:409
         }[result?.error]||409;
         return res.status(status).json({ok:false,error:result?.error||'ASSIGNMENT_NOT_SAVED'});
       }
