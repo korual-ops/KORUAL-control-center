@@ -92,5 +92,22 @@
   // Do not persist name, phone, or consent field values in browser storage.
   form.addEventListener('input',()=>{pending=null;});
   refresh.addEventListener('click',poll);
+  async function prepareRealMarketplace(){
+    try{
+      const data=await api('real_marketplace_readiness',{});
+      if(!data.real_request_enabled){
+        for(const control of form.querySelectorAll('input,select,button[type=submit]')){
+          control.disabled=true;
+        }
+        show('현재 검증된 실제 제휴업체가 없어 신규 견적 요청을 받지 않습니다. AI 예상가격은 참고용입니다.');
+      }
+    }catch(error){
+      for(const control of form.querySelectorAll('input,select,button[type=submit]')){
+        control.disabled=true;
+      }
+      show('실제 제휴업체 확인이 불가능해 개인정보 입력을 제한했습니다. 나중에 다시 확인해주세요.',true);
+    }
+  }
+  prepareRealMarketplace();
   if(sessionStorage.getItem(REQUEST_KEY))poll();
 })();
