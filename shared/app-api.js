@@ -82,9 +82,9 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       return null;
     }
     const {data: provider,error: providerError} = await db.from('providers')
-      .select('id,name,active,verified').eq('id',providerId).maybeSingle();
+      .select('id,name,active,verified,is_demo').eq('id',providerId).maybeSingle();
     if (providerError) {handleError(res,providerError,'provider');return null;}
-    if (!provider?.active || !provider?.verified) {
+    if (!provider?.active || !provider?.verified || provider?.is_demo) {
       res.status(403).json({ok:false,error:'PROVIDER_NOT_VERIFIED'});
       return null;
     }
@@ -98,9 +98,9 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       if (error) return handleError(res,error,'memberships');
       const results = await Promise.all((memberships || []).map(async m => {
         const {data, error: e} = await db.from('providers')
-          .select('id,name,active,verified').eq('id',m.provider_id).maybeSingle();
+          .select('id,name,active,verified,is_demo').eq('id',m.provider_id).maybeSingle();
         if (e) throw e;
-        if (!data?.active || !data.verified) return null;
+        if (!data?.active || !data.verified || data.is_demo) return null;
         return {id:data.id,name:data.name,role:m.role,verified:true};
       }));
       res.set('Cache-Control','no-store');
