@@ -6,6 +6,7 @@
 import express from 'express';
 import { authorizePartner } from './partner-access.js';
 import { eligiblePartners } from './lead-routing.js';
+import { validatePartnerApplication, isReviewTransitionAllowed } from './partner-application.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const OPEN_REQUESTS = ['NEW', 'MATCHING', 'QUOTED'];
@@ -68,6 +69,44 @@ function safeOriginAndJson(req, res, next) {
 
 export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRuntimeConfig }) {
   const partner = express.Router();
+  // Public application does NOT create verified companies or grant provider access.
+  // Pilot-only per-process throttling: replace with shared persistent rate limiting
+  // and bot protection before public launch.
+  const intakeRate = new Map();
+  partner.post('/applications', requireRuntimeConfig, async(req,res)=>{
+    if(!req.is('application/json') || req.get('x-korual-app')!=='partner'){
+      return res.status(415).json({ok:false,error:'JSON_APPLICATION_REQUIRED'});
+    }
+    const origin=req.get('origin');
+    if(!origin)return res.status(403).json({ok:false,error:'ORIGIN_REQUIRED'});
+    try {
+      const url=new URL(origin);
+      if(url.host!==req.get('host') || !['http:','https:'].includes(url.protocol)){
+        return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});
+      }
+    }catch{return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
+    const ip=req.ip||req.socket.remoteAddress||'unknown';
+    const now=Date.now();
+    if(intakeRate.size>10000){
+      for(const [k,v] of intakeRate){if(now-v.windowStart>3600000)intakeRate.delete(k);}
+    }
+    const rate=intakeRate.get(ip);
+    if(rate&&now-rate.windowStart<3600000&&rate.count>=3){
+      return res.status(429).json({ok:false,error:'APPLICATION_RATE_LIMITED'});
+    }
+    intakeRate.set(ip,rate&&now-rate.windowStart<3600000
+      ?{count:rate.count+1,windowStart:rate.windowStart}
+      :{count:1,windowStart:now});
+    const parsed=validatePartnerApplication(req.body);
+    if(parsed.error)return res.status(400).json({ok:false,error:parsed.error});
+    try{
+      const {error}=await db.from('partner_applications').insert(parsed.value);
+      if(error)return handleError(res,error,'partner_apply');
+      res.set('Cache-Control','no-store');
+      return res.status(202).json({ok:true,status:'received'});
+    }catch(error){return handleError(res,error,'partner_apply');}
+  });
+
   // Recheck the account status on every request so deactivation is immediate
   // even when an otherwise valid short-lived JWT is still cached.
   partner.use(requireRuntimeConfig, requireAuth, async (req,res,next)=>{
@@ -243,6 +282,52 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       res.set('Cache-Control','no-store');
       return res.json({ok:true,counts:Object.fromEntries(result),at:new Date().toISOString()});
     }catch(error){return handleError(res,error,'operations');}
+  });
+
+  operations.get('/applications', async(_req,res)=>{
+    try{
+      const {data,error}=await db.from('partner_applications')
+        .select('id,company_name,contact_email,region,service_category,status,created_at,purge_after')
+        .order('created_at',{ascending:false}).limit(50);
+      if(error)return handleError(res,error,'admin_intake_list');
+      res.set('Cache-Control','no-store');
+      return res.json({ok:true,applications:data||[]});
+    }catch(error){return handleError(res,error,'admin_intake_list');}
+  });
+
+  operations.post('/applications/:id/review', async(req,res)=>{
+    const id=String(req.params.id||'');
+    if(!UUID.test(id))return res.status(400).json({ok:false,error:'INVALID_ID'});
+    if(req.get('x-korual-app')!=='operations'||!req.is('application/json')){
+      return res.status(403).json({ok:false,error:'OPERATOR_ACTION_REQUIRED'});
+    }
+    const origin=req.get('origin');
+    if(!origin)return res.status(403).json({ok:false,error:'ORIGIN_REQUIRED'});
+    try{if(new URL(origin).host!==req.get('host'))return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
+    catch{return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
+    const next=String(req.body?.status||'');
+    try{
+      const {data:current,error:readError}=await db.from('partner_applications')
+        .select('id,status').eq('id',id).maybeSingle();
+      if(readError)throw readError;
+      if(!current)return res.status(404).json({ok:false,error:'NOT_FOUND'});
+      if(!isReviewTransitionAllowed(current.status,next)){
+        return res.status(409).json({ok:false,error:'INVALID_REVIEW_TRANSITION'});
+      }
+      // Optimistic transition guard. A concurrent reviewer cannot silently
+      // override the status set by a previous reviewer.
+      const {data:updated,error:updateError}=await db.from('partner_applications')
+        .update({status:next,reviewer_id:req.user.sub,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+        .eq('id',id).eq('status',current.status).select('id,status').maybeSingle();
+      if(updateError)throw updateError;
+      if(!updated)return res.status(409).json({ok:false,error:'REVIEW_CONFLICT'});
+      const {error:auditError}=await db.from('admin_actions').insert({
+        actor_user_id:req.user.sub,action:'REVIEW_PARTNER_APPLICATION',
+        meta:{application_id:id,from:current.status,to:next}
+      });
+      if(auditError)console.error('KORUAL_PORTAL application_audit_failed',auditError.message);
+      return res.json({ok:true,application:updated,verification_granted:false});
+    }catch(error){return handleError(res,error,'admin_intake_review');}
   });
 
   operations.get('/requests',async(_req,res)=>{
