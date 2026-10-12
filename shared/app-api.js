@@ -343,25 +343,23 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       if(membershipError)return handleError(res,membershipError,'assign_memberships');
       const selected=eligiblePartners({request,providers,memberProviderIds:new Set((memberships||[]).map(m=>m.provider_id))});
       if(!selected.length)return res.status(409).json({ok:false,error:'NO_ELIGIBLE_PARTNERS'});
-      const rows=selected.map(p=>({request_id:requestId,provider_id:p.provider_id,match_score:p.match_score,status:'pending'}));
-      const {data:inserted,error:insertError}=await db.from('service_request_matches')
-        .upsert(rows,{onConflict:'request_id,provider_id',ignoreDuplicates:true})
-        .select('provider_id');
-      if(insertError)throw insertError;
-      // Only count rows INSERTED by this attempt, not already assigned providers.
-      const newlyAssigned=(inserted||[]).map(row=>row.provider_id);
-      if(newlyAssigned.length){
-        const {error:auditError}=await db.from('admin_actions').insert({
-          actor_user_id:req.user.sub,action:'ASSIGN_SERVICE_LEADS',
-          meta:{request_id:requestId,provider_ids:newlyAssigned,source:'korual_operations'}
-        });
-        if(auditError)console.error('KORUAL_PORTAL assignment_audit_failed',auditError.message);
-      }
-      return res.json({
-        ok:true,assigned:newlyAssigned.length,
-        already_assigned:selected.length-newlyAssigned.length,
-        provider_ids:newlyAssigned
+      // The atomic DB function rechecks admin/real-provider eligibility,
+      // serializes with quote submission and makes the audit part of the write.
+      const {data:result,error:assignError}=await db.rpc('assign_partner_leads_v1',{
+        p_actor_id:req.user.sub,p_request_id:requestId,
+        p_provider_ids:selected.map(p=>p.provider_id),
+        p_scores:selected.map(p=>p.match_score)
       });
+      if(assignError)return handleError(res,assignError,'atomic_assign');
+      if(!result?.ok){
+        const status={
+          INVALID_ASSIGNMENT:400,ADMIN_ONLY:403,
+          REQUEST_CLOSED:409,PARTNER_ELIGIBILITY_CHANGED:409
+        }[result?.error]||409;
+        return res.status(status).json({ok:false,error:result?.error||'ASSIGNMENT_NOT_SAVED'});
+      }
+      res.set('Cache-Control','no-store');
+      return res.json(result);
     }catch(error){return handleError(res,error,'assign_lead');}
   });
 
