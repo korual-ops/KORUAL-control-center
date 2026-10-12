@@ -7,6 +7,7 @@ import express from 'express';
 import { authorizePartner } from './partner-access.js';
 import { eligiblePartners } from './lead-routing.js';
 import { validatePartnerApplication, isReviewTransitionAllowed } from './partner-application.js';
+import { checkRequestOrigin } from './request-origin.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const OPEN_REQUESTS = ['NEW', 'MATCHING', 'QUOTED'];
@@ -49,21 +50,15 @@ export function sameQuote(existing,input) {
 
 function handleError(res, error, label) {
   console.error('KORUAL_PORTAL', label, error?.message || 'unknown');
-  if (error?.code === '42P01') return res.status(503).json({ ok: false, error: 'PARTNER_SETUP_REQUIRED' });
+  if (['42P01','42883','PGRST202'].includes(error?.code)) return res.status(503).json({ ok: false, error: 'PARTNER_SETUP_REQUIRED' });
   return res.status(500).json({ ok: false, error: 'PORTAL_UNAVAILABLE' });
 }
 
 function safeOriginAndJson(req, res, next) {
   if (req.get('x-korual-app') !== 'partner') return res.status(403).json({ok:false,error:'APP_HEADER_REQUIRED'});
   if (!req.is('application/json')) return res.status(415).json({ok:false,error:'JSON_REQUIRED'});
-  const origin = req.get('origin');
-  if (origin) {
-    try {
-      if (new URL(origin).host !== req.get('host') || !['http:', 'https:'].includes(new URL(origin).protocol)) {
-        return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});
-      }
-    } catch { return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'}); }
-  }
+  const originError = checkRequestOrigin(req);
+  if (originError) return res.status(403).json({ok:false,error:originError});
   return next();
 }
 
@@ -77,14 +72,8 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
     if(!req.is('application/json') || req.get('x-korual-app')!=='partner'){
       return res.status(415).json({ok:false,error:'JSON_APPLICATION_REQUIRED'});
     }
-    const origin=req.get('origin');
-    if(!origin)return res.status(403).json({ok:false,error:'ORIGIN_REQUIRED'});
-    try {
-      const url=new URL(origin);
-      if(url.host!==req.get('host') || !['http:','https:'].includes(url.protocol)){
-        return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});
-      }
-    }catch{return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
+    const originError=checkRequestOrigin(req);
+    if(originError)return res.status(403).json({ok:false,error:originError});
     const ip=req.ip||req.socket.remoteAddress||'unknown';
     const now=Date.now();
     if(intakeRate.size>10000){
@@ -207,57 +196,35 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
   partner.post('/quotes',safeOriginAndJson,async(req,res)=>{
     const valid=validateQuoteInput(req.body);
     if(valid.error)return res.status(400).json({ok:false,error:valid.error});
-    try {
+    try{
       const input=valid.value;
-      const scoped=await membership(req,res,'quote.create');if(!scoped)return;
-      const {data:match,error:matchError}=await db.from('service_request_matches')
-        .select('id,status').eq('provider_id',scoped.provider.id)
-        .eq('request_id',input.request_id).maybeSingle();
-      if(matchError)throw matchError;
-      if(!match || !['pending','contacted','quoted'].includes(match.status)) {
-        return res.status(403).json({ok:false,error:'LEAD_NOT_ASSIGNED'});
+      const scoped=await membership(req,res,'quote.create');
+      if(!scoped)return;
+      // Never use read-then-insert for financial/booking-adjacent transitions.
+      // This service-role-only RPC locks the request row and atomically validates
+      // actor membership + assignment + request status + idempotency.
+      // If the staging RPC has not been deployed, fail closed (503).
+      const {data,error}=await db.rpc('submit_partner_quote_v1',{
+        p_actor_id:req.user.sub,
+        p_provider_id:scoped.provider.id,
+        p_request_id:input.request_id,
+        p_amount:input.amount,
+        p_duration:input.estimated_duration_minutes,
+        p_warranty:input.warranty_days,
+        p_message:input.message
+      });
+      if(error)return handleError(res,error,'atomic_quote');
+      if(!data?.ok){
+        const status={
+          INVALID_ID:400,INVALID_QUOTE:400,
+          PARTNER_ACCESS_DENIED:403,LEAD_NOT_ASSIGNED:403,
+          REQUEST_CLOSED:409,QUOTE_ALREADY_EXISTS:409
+        }[data?.error]||409;
+        return res.status(status).json({ok:false,error:data?.error||'QUOTE_NOT_SAVED'});
       }
-      const {data:request,error:requestError}=await db.from('service_requests')
-        .select('id,status').eq('id',input.request_id).maybeSingle();
-      if(requestError)throw requestError;
-      if(!request || !OPEN_REQUESTS.includes(request.status)) {
-        return res.status(409).json({ok:false,error:'REQUEST_CLOSED'});
-      }
-      const existingQuery=()=>db.from('provider_quotes').select('id,amount,status,message,estimated_duration_minutes,warranty_days')
-        .eq('provider_id',scoped.provider.id).eq('request_id',input.request_id).maybeSingle();
-      const existing=await existingQuery();
-      if(existing.error)throw existing.error;
-      if(existing.data) {
-        const unchanged=sameQuote(existing.data,input);
-        return res.status(unchanged?200:409).json({
-          ok:unchanged,idempotent:unchanged,error:unchanged?undefined:'QUOTE_ALREADY_EXISTS',
-          quote:unchanged?existing.data:undefined
-        });
-      }
-      const {data:quote,error:insertError}=await db.from('provider_quotes').insert({
-        provider_id:scoped.provider.id, request_id:input.request_id,
-        amount:input.amount,estimated_duration_minutes:input.estimated_duration_minutes,
-        warranty_days:input.warranty_days,message:input.message,status:'submitted',
-        quote_snapshot:{source:'korual_partner_portal',version:'1.0'}
-      }).select('id,request_id,amount,status,created_at').single();
-      if(insertError) {
-        // Race between repeated requests: unique(provider_id,request_id) is the arbiter.
-        if(insertError.code==='23505'){
-          const check=await existingQuery();
-          if(check.error)throw check.error;
-          if(sameQuote(check.data,input)){
-            return res.json({ok:true,idempotent:true,quote:check.data});
-          }
-          return res.status(409).json({ok:false,error:'QUOTE_ALREADY_EXISTS'});
-        }
-        throw insertError;
-      }
-      const updated=await db.from('service_request_matches').update({
-        status:'quoted',responded_at:new Date().toISOString()
-      }).eq('id',match.id).eq('provider_id',scoped.provider.id);
-      if(updated.error)console.error('KORUAL_PORTAL match_update_failed',updated.error.message);
-      return res.status(201).json({ok:true,idempotent:false,quote});
-    }catch(error){return handleError(res,error,'create_quote');}
+      res.set('Cache-Control','no-store');
+      return res.status(data.idempotent?200:201).json(data);
+    }catch(error){return handleError(res,error,'atomic_quote');}
   });
 
   app.use('/api/partner',partner);
@@ -311,10 +278,8 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
     if(req.get('x-korual-app')!=='operations'||!req.is('application/json')){
       return res.status(403).json({ok:false,error:'OPERATOR_ACTION_REQUIRED'});
     }
-    const origin=req.get('origin');
-    if(!origin)return res.status(403).json({ok:false,error:'ORIGIN_REQUIRED'});
-    try{if(new URL(origin).host!==req.get('host'))return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
-    catch{return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
+    const originError=checkRequestOrigin(req);
+    if(originError)return res.status(403).json({ok:false,error:originError});
     const next=String(req.body?.status||'');
     try{
       const {data:current,error:readError}=await db.from('partner_applications')
@@ -357,11 +322,8 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
     if(req.get('x-korual-app')!=='operations'||!req.is('application/json')){
       return res.status(403).json({ok:false,error:'OPERATOR_ACTION_HEADER_REQUIRED'});
     }
-    const origin=req.get('origin');
-    if(origin){
-      try{if(new URL(origin).host!==req.get('host'))return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
-      catch{return res.status(403).json({ok:false,error:'ORIGIN_MISMATCH'});}
-    }
+    const originError=checkRequestOrigin(req);
+    if(originError)return res.status(403).json({ok:false,error:originError});
     const requestId=String(req.body?.request_id||'');
     if(!UUID.test(requestId))return res.status(400).json({ok:false,error:'INVALID_ID'});
     try {
@@ -382,15 +344,24 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       const selected=eligiblePartners({request,providers,memberProviderIds:new Set((memberships||[]).map(m=>m.provider_id))});
       if(!selected.length)return res.status(409).json({ok:false,error:'NO_ELIGIBLE_PARTNERS'});
       const rows=selected.map(p=>({request_id:requestId,provider_id:p.provider_id,match_score:p.match_score,status:'pending'}));
-      const {error:insertError}=await db.from('service_request_matches')
-        .upsert(rows,{onConflict:'request_id,provider_id',ignoreDuplicates:true});
+      const {data:inserted,error:insertError}=await db.from('service_request_matches')
+        .upsert(rows,{onConflict:'request_id,provider_id',ignoreDuplicates:true})
+        .select('provider_id');
       if(insertError)throw insertError;
-      const {error:auditError}=await db.from('admin_actions').insert({
-        actor_user_id:req.user.sub,action:'ASSIGN_SERVICE_LEADS',
-        meta:{request_id:requestId,provider_ids:selected.map(p=>p.provider_id),source:'korual_operations'}
+      // Only count rows INSERTED by this attempt, not already assigned providers.
+      const newlyAssigned=(inserted||[]).map(row=>row.provider_id);
+      if(newlyAssigned.length){
+        const {error:auditError}=await db.from('admin_actions').insert({
+          actor_user_id:req.user.sub,action:'ASSIGN_SERVICE_LEADS',
+          meta:{request_id:requestId,provider_ids:newlyAssigned,source:'korual_operations'}
+        });
+        if(auditError)console.error('KORUAL_PORTAL assignment_audit_failed',auditError.message);
+      }
+      return res.json({
+        ok:true,assigned:newlyAssigned.length,
+        already_assigned:selected.length-newlyAssigned.length,
+        provider_ids:newlyAssigned
       });
-      if(auditError)console.error('KORUAL_PORTAL assignment_audit_failed',auditError.message);
-      return res.json({ok:true,assigned:selected.length,provider_ids:selected.map(p=>p.provider_id)});
     }catch(error){return handleError(res,error,'assign_lead');}
   });
 
