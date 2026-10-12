@@ -1,6 +1,6 @@
 # KORUAL Three-App Operating Model — 2026-10-13
 
-> Status: architecture proposal on a feature branch. This document does **not** mean that a Partner app, payments, settlement, or new auth/RLS policy is live.
+> Status: architecture + Partner/Admin beta implementations on a feature branch. Neither app nor its membership schema is deployed to production. Payments and settlement are not implemented.
 
 ## Executive decision
 
@@ -19,7 +19,7 @@ Publish each as its own PWA / app package and its own manifest, install identity
 
 - The current customer UI is a static/PWA surface under `platform/index.html` and `platform/site.js` with Supabase public API integration.
 - Root `server.js` and existing admin routes handle operator identity and user administration.
-- A complete Partner tenant membership / independent merchant console is not yet present.
+- An independent Partner console and membership model have been implemented on this feature branch, pending SQL migration, rollout and real provider onboarding.
 - The active KORUAL Supabase schema has `providers`, `service_request_matches`, `provider_quotes`, `service_requests`, `bookings`; but the checked database has no tenant-to-provider membership table.
 - Observed counts at inspection: providers = 3; recommendation_runs = 196; recommendation_events = 413; service_requests = 0; bookings = 0. These are not proof of conversion, revenue or real supplier activation.
 - The existing `profiles.role` CHECK allows ADMIN/MANAGER/GUEST, not partner tenancy. **Do not** simply add PARTNER to global roles as a replacement for per-provider ownership checks.
@@ -95,7 +95,7 @@ Add later (after staging schema review):
 
 RLS: every exposed table RLS enabled; restrict partner membership reads to own identity, and require verified membership for provider-scoped reads. Current transactional tables already use restrictive server-only RLS, so implement partner reads through a narrow **authenticated server API** first, without blanket table grants. Backend service role must be kept secret. Add tests for cross-tenant reads, guessed booking IDs, role escalation, stale sessions and revoked provider membership.
 
-Reference implementation spec: `shared/partner-access.js` is a pure permission helper and **not wired into live routes**. Trust only actors resolved by the server; never client-provided role/membership claims.
+Implementation: `shared/partner-access.js` is integrated into `shared/app-api.js` on this feature branch. It is not deployed to the live API. Trust only actors resolved by the server; never client-provided role/membership claims.
 
 ## Business model: sequence, not everything at once
 
@@ -145,4 +145,4 @@ Week 4: controlled pilot, attribution + unit economics dashboard, security revie
 - Legal and privacy notices approved for launch.
 
 ### Scope of this feature branch
-Architecture, a portable scope-guard helper, and automated tests only. **No** SQL migration, live admin changes, production app or permission change was performed.
+Architecture, Partner/Operations app code and PWA manifests, server-scoped API handlers, lead-routing policy, a proposed SQL migration file and automated tests. **No** production SQL migration, live app deployment, payment or settlement changes were performed. See `docs/three-app-implementation-and-rollout.md`.
