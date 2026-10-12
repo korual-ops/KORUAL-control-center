@@ -78,7 +78,7 @@ async function refresh(){
  msg('');
  try{
   const result=await api('/api/operations/overview');
-  Object.entries(result.counts||{}).forEach(([k,v])=>{const el=document.querySelector('[data-count="'+k+'"]');if(el)el.textContent=Number(v).toLocaleString('ko-KR');});
+  Object.entries(result.counts||{}).forEach(([k,v])=>{const el=document.querySelector('[data-count="'+k+'"]');if(el)el.textContent=v==null?'미설정':Number(v).toLocaleString('ko-KR');});
   $('#fetchedAt').textContent='갱신 '+new Date(result.at).toLocaleString('ko-KR');
   insights(result.counts||{});
   await Promise.all([requests(), applications()]);
