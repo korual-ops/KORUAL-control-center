@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateQuoteInput } from '../shared/app-api.js';
+import { validateQuoteInput, sameQuote } from '../shared/app-api.js';
 import { authorizePartner } from '../shared/partner-access.js';
 
 const p='11111111-1111-4111-8111-111111111111';
@@ -22,4 +22,12 @@ test('cross-tenant and viewer quote writes must fail',()=>{
   assert.equal(authorizePartner({principal,providerId:r,action:'quote.create'}),false);
   principal.memberships[0].role='VIEWER';
   assert.equal(authorizePartner({principal,providerId:p,action:'quote.create'}),false);
+});
+
+test('idempotent quote retry must match all business terms',()=>{
+ const existing={status:'submitted',amount:120000,message:valid.message,estimated_duration_minutes:180,warranty_days:7};
+ assert.equal(sameQuote(existing,validateQuoteInput(valid).value),true);
+ assert.equal(sameQuote({...existing,message:'different scope'},validateQuoteInput(valid).value),false);
+ assert.equal(sameQuote({...existing,warranty_days:0},validateQuoteInput(valid).value),false);
+ assert.equal(sameQuote({...existing,amount:160000},validateQuoteInput(valid).value),false);
 });
