@@ -66,6 +66,34 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()
 $('#providerSelect').addEventListener('change',selectProvider);
 $('#refresh').addEventListener('click',load);
 $('#cancelQuote').addEventListener('click',()=>$('#quoteDialog').close());
+$('#applyForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const form=e.currentTarget,button=form.querySelector('[type=submit]');
+ const note=$('#applyFeedback');note.textContent='';
+ if(!form.reportValidity())return;
+ const fields=new FormData(form);
+ const payload={
+  company_name:String(fields.get('company_name')||''),
+  contact_email:String(fields.get('contact_email')||''),
+  region:String(fields.get('region')||''),
+  service_category:String(fields.get('service_category')||''),
+  website:String(fields.get('website')||''),
+  privacy_consent:fields.get('privacy_consent')==='on',
+  terms_acknowledged:fields.get('terms_acknowledged')==='on'
+ };
+ button.disabled=true;
+ try{
+  await api('/api/partner/applications',{method:'POST',headers:{'content-type':'application/json','x-korual-app':'partner'},body:JSON.stringify(payload)});
+  note.textContent='신청 접수가 완료되었습니다. 운영팀 심사 후 별도로 연락드릴 수 있으며, 현재 사업자 권한은 부여되지 않았습니다.';
+  form.reset();
+ }catch(err){
+  note.textContent=err.message==='PARTNER_SETUP_REQUIRED'
+   ?'입점 신청 접수 기능을 준비 중입니다. 운영팀에 문의하세요.'
+   :err.message==='APPLICATION_RATE_LIMITED'
+   ?'신청 횟수가 제한됐습니다. 나중에 다시 시도해주세요.'
+   :'접수되지 않았습니다: '+err.message;
+ }finally{button.disabled=false;}
+});
 $('#loginForm').addEventListener('submit',async e=>{
  e.preventDefault();$('#loginError').textContent='';
  try{await api('/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:$('#username').value,password:$('#password').value})});$('#password').value='';await load();}
