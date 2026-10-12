@@ -33,6 +33,47 @@ async function requests(){
     }
   }catch(e){target.append(pair('확인 불가',e.message));}
 }
+async function applications(){
+ const target=$('#applicationList');
+ if(!target)return;
+ target.replaceChildren();
+ const statuses={received:'접수',reviewing:'검토 중',needs_documents:'서류 추가 확인',rejected:'심사 종료'};
+ try{
+  const data=await api('/api/operations/applications');
+  if(!data.applications?.length){
+    target.append(pair('현재 접수','신규 입점 신청이 없습니다.'));
+    return;
+  }
+  const options={received:[['검토 시작','reviewing']],reviewing:[['추가 서류 필요','needs_documents'],['심사 종료','rejected']],needs_documents:[['검토 재개','reviewing'],['심사 종료','rejected']]};
+  for(const application of data.applications){
+    const card=document.createElement('div');card.className='row';
+    const details=document.createElement('div');
+    const title=document.createElement('strong');title.textContent=application.company_name;
+    const metadata=document.createElement('p');metadata.className='sub';metadata.style.fontSize='12px';
+    metadata.textContent=[application.service_category,application.region,application.contact_email,statuses[application.status]||application.status].join(' · ');
+    details.append(title,metadata);card.append(details);
+    const buttons=document.createElement('div');buttons.className='actions';
+    for(const [label,status] of options[application.status]||[]){
+      const button=document.createElement('button');button.type='button';button.className='btn';button.textContent=label;
+      button.addEventListener('click',async()=>{
+        if(!confirm('신청 상태를 "'+label+'"로 변경하시겠습니까? 업체 등록이나 인증은 별도로 진행해야 합니다.'))return;
+        button.disabled=true;
+        try{
+          await api('/api/operations/applications/'+encodeURIComponent(application.id)+'/review',{
+            method:'POST',headers:{'content-type':'application/json','x-korual-app':'operations'},
+            body:JSON.stringify({status})
+          });
+          msg('신청 상태가 변경됐습니다. 외부 알림이나 자동 업체 승인은 발생하지 않습니다.');
+          await applications();
+        }catch(error){msg('신청 심사 업데이트 실패: '+error.message,true);}
+        finally{button.disabled=false;}
+      });
+      buttons.append(button);
+    }
+    card.append(buttons);target.append(card);
+  }
+ }catch(e){target.append(pair('심사 데이터 오류',e.message));}
+}
 async function refresh(){
  msg('');
  try{
@@ -40,7 +81,7 @@ async function refresh(){
   Object.entries(result.counts||{}).forEach(([k,v])=>{const el=document.querySelector('[data-count="'+k+'"]');if(el)el.textContent=Number(v).toLocaleString('ko-KR');});
   $('#fetchedAt').textContent='갱신 '+new Date(result.at).toLocaleString('ko-KR');
   insights(result.counts||{});
-  await requests();
+  await Promise.all([requests(), applications()]);
   visible(true);
  }catch(e){if(e.status===401||e.status===403){visible(false);$('#loginError').textContent=e.status===403?'관리자 권한이 없습니다.':'로그인이 필요합니다.';}else msg('실제 운영 데이터를 불러오지 못했습니다: '+e.message,true);}
 }
