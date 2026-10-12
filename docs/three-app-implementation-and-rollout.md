@@ -62,6 +62,30 @@ The routing engine is **conservative**, based on exact category labels and prefi
 - Membership SQL enables RLS and revokes ordinary client grants; service-role access stays on backend.
 - No refund, payout, payment capture, password handling, or auto-sent external messages are implemented.
 
+## v2.1 — transaction logic hardening (2026-10-13)
+
+**Code added to this feature branch only. Production database untouched.**
+
+### New fail-closed transaction contracts
+
+1. `shared/request-origin.js`: every Partner/Admin state-changing API now requires a same-origin `Origin` header; a custom app header alone is not treated as an auth or CSRF mechanism.
+2. `platform/db/proposals/atomic-partner-quote-v1.sql`: one `SECURITY INVOKER`, `service_role`-only PostgreSQL RPC verifies active member/provider, locks the request/assigned lead, checks open status and requested service date (Asia/Seoul), deduplicates by all quote terms, and creates quote + match/request state in a single DB transaction. New quotes expire after 48 hours. The root API uses this RPC, no unsafe read-then-insert fallback.
+3. `platform/db/proposals/atomic-admin-assignment-v1.sql`: one operator-only atomic RPC locks the request, re-verifies real suppliers and active staff, inserts a maximum of three assigned leads, and audits those new assignments in the same transaction. Repeated calls report **0 new assignments**, not fabricated new work.
+4. `platform/supabase/functions/korual-public-api/index.ts`: customer idempotency retries compare stored service/date/region/name/phone before returning a prior request, otherwise return `IDEMPOTENCY_CONFLICT`. Customer personal fields never echo to the client.
+5. `shared/lead-routing.js`: only full-scope-capable real suppliers qualify for one combined quote. Region boundaries avoid ambiguous prefix matches. Any multi-provider bundle must use explicit child service requests.
+6. `shared/app-api.js`: private no-store Partner/Admin headers, one batched provider profile fetch instead of up to 40 individual queries, consistent business error statuses, and no duplicate-quote changes.
+
+### How to rollout, safely
+
+- This repository's `platform/db/proposals/*.sql` are **review artifacts, not ready-to-run deployed migrations**. Use the Supabase CLI to generate official migration files, inspect the final scripts with code review, and run on **staging** after `partner_memberships` and `partner_applications`.
+- Apply both RPCs together with their `REVOKE ALL ... FROM PUBLIC,anon,authenticated` and service-role-only grants. The function must remain `SECURITY INVOKER` and the server-held service role key must never reach any public PWA.
+- The new API fails closed with HTTP 503 (`PARTNER_SETUP_REQUIRED`) if an atomic RPC is unavailable; do not deploy the new server without preparing staging.
+- Stage at least two verified, non-demo, separately authenticated partners and one deliberately disabled user. Confirm that a malicious cross-tenant quote fails.
+- Race-condition exercise: parallel duplicate quote requests must create exactly one quote; changed price/message/terms on retry must return conflict. A concurrent cancellation must not allow a quote after terminal status.
+- Race-condition exercise: two operators assigning the same provider/request simultaneously must create one match with audit exactly once; a cancelled/past-date request must be rejected.
+- Verify full booking and financial reconciliation separately. **No new payment or settlement state machine was activated in this hardening.**
+- Supabase database migrations, staging concurrency executions, and external privacy/legal reviews remain uncompleted in this branch.
+
 ## Deployment and data setup (not executed)
 
 1. Prepare a separate Supabase staging branch/project. Run/validate `platform/db/migrations/20261013_partner_memberships.sql` there before deploying the app. Use the Supabase migration workflow; this branch does not mutate production data.
