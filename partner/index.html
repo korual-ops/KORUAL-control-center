@@ -42,7 +42,22 @@ h1{font-size:clamp(32px,5vw,49px);line-height:1.08;letter-spacing:-.055em;margin
 <main class="main">
 <header class="topline"><div><span class="eyebrow">KORUAL · BUSINESS OPERATING SYSTEM</span></div><div class="right"><span class="pill" id="status">인증 확인 중</span><button class="btn" id="logout" type="button" hidden>로그아웃</button></div></header>
 <div id="loginView" class="login-wrap" hidden><section class="panel login"><div class="eyebrow">SECURE BUSINESS LOGIN</div><h1>파트너 로그인</h1><p class="lead">KORUAL 승인 사업자 계정으로 로그인하세요. 별도 인증되지 않은 업체는 거래를 조회할 수 없습니다.</p>
-<form id="loginForm" class="stack"><label class="field">이메일 또는 사용자명<input id="username" autocomplete="username" required></label><label class="field">비밀번호<input id="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">안전하게 로그인</button></form><p id="loginError" role="alert" class="small"></p></section></div>
+<form id="loginForm" class="stack"><label class="field">이메일 또는 사용자명<input id="username" autocomplete="username" required></label><label class="field">비밀번호<input id="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">안전하게 로그인</button></form><p id="loginError" role="alert" class="small"></p></section>
+<section class="panel login" aria-labelledby="applyTitle" style="margin-top:18px">
+<div class="eyebrow">NEW PARTNER APPLICATION</div><h2 id="applyTitle">KORUAL 입점 신청</h2>
+<p class="small muted">사업자명과 업무용 이메일, 서비스 종류·지역만 제출합니다. 신청으로 업체 인증이나 거래 권한이 부여되지는 않습니다.</p>
+<form id="applyForm" class="stack" autocomplete="on">
+<label class="field">사업자명 또는 상호<input name="company_name" maxlength="80" minlength="2" required></label>
+<label class="field">업무용 이메일<input name="contact_email" type="email" maxlength="180" autocomplete="email" required></label>
+<div class="form-grid"><label class="field">서비스 운영 지역<input name="region" maxlength="80" placeholder="예: 인천" required></label>
+<label class="field">주요 서비스<select name="service_category" required><option value="">선택</option><option>입주청소</option><option>이사</option><option>에어컨 청소</option><option>인터넷/TV</option><option>정수기 렌탈</option><option>인테리어</option><option>수리·시공</option><option>여행 서비스</option><option>웰니스</option><option>기타</option></select></label></div>
+<div style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label>website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+<label class="small muted"><input type="checkbox" name="privacy_consent" required> 필수: 입점 신청 처리를 위해 상호·이메일·지역·서비스 분야 정보를 수집하는 데 동의합니다.</label>
+<label class="small muted"><input type="checkbox" name="terms_acknowledged" required> 신청 후 별도 사업자 검증·심사가 필요하며 입점이 보장되지 않음을 확인합니다.</label>
+<p class="small muted">신청정보는 운영팀에만 공개됩니다. 정식 운영 전 보유기간, 삭제 절차 및 개인정보처리방침 심사 예정입니다.</p>
+<button class="btn primary" type="submit">입점 심사 신청</button>
+<p id="applyFeedback" class="small" role="status" aria-live="polite"></p>
+</form></section></div>
 <div id="appView" hidden>
 <div class="eyebrow">ONE WORKSPACE · EVERY CUSTOMER REQUEST</div><h1 id="pageTitle">오늘의 수주 기회</h1><p class="lead" id="pageIntro">고객 요청부터 견적·예약까지 한 곳에서 처리합니다.</p>
 <div class="actions" style="margin-bottom:22px"><label class="field" style="width:min(100%,320px)">운영할 사업장<select id="providerSelect"></select></label><button class="btn" id="refresh" type="button">새로고침</button></div>
