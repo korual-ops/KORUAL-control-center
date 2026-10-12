@@ -50,3 +50,23 @@ test('Edge API forbids changing request payload on idempotency retry',async()=>{
  assert.match(edge,/existing\.phone === phone/);
  assert.match(edge,/existing\.desired_date === desiredDate/);
 });
+
+test('atomic transitions deny past service dates in Korean local time',async()=>{
+ for(const sqlPath of [
+  'platform/db/proposals/atomic-partner-quote-v1.sql',
+  'platform/db/proposals/atomic-admin-assignment-v1.sql'
+ ]){
+  const sql=await readFile(sqlPath,'utf8');
+  assert.match(sql,/SELECT status,desired_date INTO v_status,v_desired_date/);
+  assert.match(sql,/REQUEST_DATE_PASSED/);
+  assert.match(sql,/Asia\/Seoul/);
+  assert.match(sql,/FOR UPDATE/);
+ }
+});
+
+test('private Partner and Admin responses cannot be cached and Partner list is batched',async()=>{
+ const api=await readFile('shared/app-api.js','utf8');
+ assert.ok((api.match(/Cache-Control','private, no-store'/g)||[]).length>=2);
+ assert.match(api,/Single provider lookup replaces up to 40 sequential N\+1 reads/);
+ assert.match(api,/\.in\('id',ids\)/);
+});
