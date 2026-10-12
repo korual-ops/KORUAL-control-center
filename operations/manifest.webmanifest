@@ -1,0 +1,1 @@
+{"name":"KORUAL Admin Control Center","short_name":"KORUAL Admin","start_url":"/operations/","scope":"/operations/","display":"standalone","theme_color":"#0d1220","background_color":"#0c1220","description":"KORUAL의 인증된 관리자 전용 거래 지표 모니터링","icons":[{"src":"/operations/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}

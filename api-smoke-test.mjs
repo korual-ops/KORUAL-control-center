@@ -44,3 +44,43 @@ test('service request validation rejects missing fields before database access',
   assert.equal(result.body.ok, false);
   assert.equal(result.body.error, 'INVALID_REGION');
 });
+
+test('partner and admin APIs reject anonymous access',async()=>{
+  for (const path of ['/api/partner/me','/api/partner/leads?provider_id=11111111-1111-4111-8111-111111111111','/api/operations/overview']) {
+    const res=await request(path);
+    assert.equal(res.status,401,path);
+    assert.equal(res.body.error,'UNAUTHENTICATED');
+  }
+});
+test('quote mutations reject anonymous access before touching DB',async()=>{
+  const res=await request('/api/partner/quotes',{
+    method:'POST',
+    headers:{'content-type':'application/json','x-korual-app':'partner'},
+    body:JSON.stringify({provider_id:'11111111-1111-4111-8111-111111111111',request_id:'22222222-2222-4222-8222-222222222222',amount:55000,message:'견적 내역'})
+  });
+  assert.equal(res.status,401);
+});
+
+test('public partner application rejects missing same-origin proof before DB access',async()=>{
+  const result=await request('/api/partner/applications',{
+    method:'POST',headers:{'content-type':'application/json','x-korual-app':'partner'},
+    body:JSON.stringify({company_name:'Test Company',contact_email:'test@example.com',service_category:'입주청소',region:'인천',privacy_consent:true,terms_acknowledged:true})
+  });
+  assert.equal(result.status,403);
+  assert.equal(result.body.error,'ORIGIN_REQUIRED');
+});
+test('public partner application requires the dedicated app header',async()=>{
+  const result=await request('/api/partner/applications',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({company_name:'Test Company',contact_email:'test@example.com',service_category:'입주청소',region:'인천',privacy_consent:false,terms_acknowledged:true})
+  });
+  assert.equal(result.status,415);
+  assert.equal(result.body.error,'JSON_APPLICATION_REQUIRED');
+});
+test('admin application review and queue refuse unauthenticated access',async()=>{
+  const reviewId='11111111-1111-4111-8111-111111111111';
+  for(const path of ['/api/operations/applications','/api/operations/applications/'+reviewId+'/review']){
+    const result=await request(path);
+    assert.equal(result.status,401,path);
+  }
+});

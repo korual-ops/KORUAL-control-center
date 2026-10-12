@@ -1,0 +1,373 @@
+/**
+ * KORUAL BFF APIs for independently installed Partner and Admin apps.
+ * Identity is ALWAYS derived from the verified httpOnly login cookie;
+ * provider ID in the request is never treated as proof of ownership.
+ */
+import express from 'express';
+import { authorizePartner } from './partner-access.js';
+import { eligiblePartners } from './lead-routing.js';
+import { validatePartnerApplication, isReviewTransitionAllowed } from './partner-application.js';
+import { checkRequestOrigin } from './request-origin.js';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const OPEN_REQUESTS = ['NEW', 'MATCHING', 'QUOTED'];
+
+export function validateQuoteInput(value) {
+  if (!UUID.test(String(value?.provider_id || '')) || !UUID.test(String(value?.request_id || ''))) {
+    return { error: 'INVALID_ID' };
+  }
+  const amount = Number(value?.amount);
+  if (!Number.isSafeInteger(amount) || amount < 1000 || amount > 100000000) {
+    return { error: 'INVALID_AMOUNT' };
+  }
+  const duration = value?.estimated_duration_minutes == null || value.estimated_duration_minutes === ''
+    ? null : Number(value.estimated_duration_minutes);
+  const warranty = value?.warranty_days == null || value.warranty_days === ''
+    ? null : Number(value.warranty_days);
+  if (duration != null && (!Number.isSafeInteger(duration) || duration < 1 || duration > 10080)) {
+    return { error: 'INVALID_DURATION' };
+  }
+  if (warranty != null && (!Number.isSafeInteger(warranty) || warranty < 0 || warranty > 3650)) {
+    return { error: 'INVALID_WARRANTY' };
+  }
+  if (typeof value?.message !== 'string' || value.message.length > 600) return { error: 'INVALID_MESSAGE' };
+  if (!String(value.message || '').trim()) return { error: 'MESSAGE_REQUIRED' };
+  return { value: {
+    provider_id: value.provider_id, request_id: value.request_id, amount,
+    estimated_duration_minutes: duration, warranty_days: warranty,
+    message: value.message.trim()
+  }};
+}
+
+export function sameQuote(existing,input) {
+  return Boolean(existing && input
+    && existing.status === 'submitted'
+    && Number(existing.amount) === input.amount
+    && (existing.message||'') === input.message
+    && (existing.estimated_duration_minutes??null) === input.estimated_duration_minutes
+    && (existing.warranty_days??null) === input.warranty_days);
+}
+
+function handleError(res, error, label) {
+  console.error('KORUAL_PORTAL', label, error?.message || 'unknown');
+  if (['42P01','42883','PGRST202'].includes(error?.code)) return res.status(503).json({ ok: false, error: 'PARTNER_SETUP_REQUIRED' });
+  return res.status(500).json({ ok: false, error: 'PORTAL_UNAVAILABLE' });
+}
+
+function safeOriginAndJson(req, res, next) {
+  if (req.get('x-korual-app') !== 'partner') return res.status(403).json({ok:false,error:'APP_HEADER_REQUIRED'});
+  if (!req.is('application/json')) return res.status(415).json({ok:false,error:'JSON_REQUIRED'});
+  const originError = checkRequestOrigin(req);
+  if (originError) return res.status(403).json({ok:false,error:originError});
+  return next();
+}
+
+export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRuntimeConfig }) {
+  const partner = express.Router();
+  partner.use((_req,res,next)=>{res.set('Cache-Control','private, no-store');next();});
+  // Public application does NOT create verified companies or grant provider access.
+  // Pilot-only per-process throttling: replace with shared persistent rate limiting
+  // and bot protection before public launch.
+  const intakeRate = new Map();
+  partner.post('/applications', requireRuntimeConfig, async(req,res)=>{
+    if(!req.is('application/json') || req.get('x-korual-app')!=='partner'){
+      return res.status(415).json({ok:false,error:'JSON_APPLICATION_REQUIRED'});
+    }
+    const originError=checkRequestOrigin(req);
+    if(originError)return res.status(403).json({ok:false,error:originError});
+    const ip=req.ip||req.socket.remoteAddress||'unknown';
+    const now=Date.now();
+    if(intakeRate.size>10000){
+      for(const [k,v] of intakeRate){if(now-v.windowStart>3600000)intakeRate.delete(k);}
+    }
+    const rate=intakeRate.get(ip);
+    if(rate&&now-rate.windowStart<3600000&&rate.count>=3){
+      return res.status(429).json({ok:false,error:'APPLICATION_RATE_LIMITED'});
+    }
+    intakeRate.set(ip,rate&&now-rate.windowStart<3600000
+      ?{count:rate.count+1,windowStart:rate.windowStart}
+      :{count:1,windowStart:now});
+    const parsed=validatePartnerApplication(req.body);
+    if(parsed.error)return res.status(400).json({ok:false,error:parsed.error});
+    try{
+      const {error}=await db.from('partner_applications').insert(parsed.value);
+      if(error)return handleError(res,error,'partner_apply');
+      res.set('Cache-Control','no-store');
+      return res.status(202).json({ok:true,status:'received'});
+    }catch(error){return handleError(res,error,'partner_apply');}
+  });
+
+  // Recheck the account status on every request so deactivation is immediate
+  // even when an otherwise valid short-lived JWT is still cached.
+  partner.use(requireRuntimeConfig, requireAuth, async (req,res,next)=>{
+    try{
+      const {data,error}=await db.from('profiles')
+        .select('id,active').eq('id',req.user.sub).maybeSingle();
+      if(error)return handleError(res,error,'active_profile');
+      if(!data?.active)return res.status(403).json({ok:false,error:'ACCOUNT_DISABLED'});
+      return next();
+    }catch(error){return handleError(res,error,'active_profile');}
+  });
+
+  async function membership(req, res, action) {
+    const providerId = req.method === 'POST' ? req.body?.provider_id : req.query?.provider_id;
+    if (!UUID.test(String(providerId || ''))) {
+      res.status(400).json({ok:false,error:'INVALID_PROVIDER'});
+      return null;
+    }
+    const {data, error} = await db.from('partner_memberships')
+      .select('provider_id,user_id,role,active')
+      .eq('provider_id', providerId).eq('user_id', req.user.sub)
+      .eq('active', true).maybeSingle();
+    if (error) {
+      handleError(res,error,'membership');
+      return null;
+    }
+    const principal = {authenticated:true,id:req.user.sub,memberships:data ? [
+      {providerId:data.provider_id,userId:data.user_id,role:data.role,active:data.active}
+    ] : []};
+    if (!authorizePartner({principal,providerId,action})) {
+      res.status(403).json({ok:false,error:'PARTNER_ACCESS_DENIED'});
+      return null;
+    }
+    const {data: provider,error: providerError} = await db.from('providers')
+      .select('id,name,active,verified,is_demo').eq('id',providerId).maybeSingle();
+    if (providerError) {handleError(res,providerError,'provider');return null;}
+    if (!provider?.active || !provider?.verified || provider?.is_demo) {
+      res.status(403).json({ok:false,error:'PROVIDER_NOT_VERIFIED'});
+      return null;
+    }
+    return {provider, membership:data};
+  }
+
+  partner.get('/me', async (req,res) => {
+    try {
+      const {data: memberships,error} = await db.from('partner_memberships')
+        .select('provider_id,role,active').eq('user_id', req.user.sub).eq('active', true).limit(40);
+      if (error) return handleError(res,error,'memberships');
+      const ids=(memberships||[]).map(m=>m.provider_id);
+      if(!ids.length)return res.json({ok:true,providers:[],user_id:req.user.sub});
+      // Single provider lookup replaces up to 40 sequential N+1 reads.
+      const {data:providers,error:providerError}=await db.from('providers')
+        .select('id,name,active,verified,is_demo')
+        .in('id',ids).eq('active',true).eq('verified',true).eq('is_demo',false);
+      if(providerError)throw providerError;
+      const byId=new Map((providers||[]).map(p=>[p.id,p]));
+      const results=(memberships||[]).flatMap(m=>{
+        const provider=byId.get(m.provider_id);
+        return provider?[{id:provider.id,name:provider.name,role:m.role,verified:true}]:[];
+      });
+      return res.json({ok:true,providers:results,user_id:req.user.sub});
+    } catch(error) {return handleError(res,error,'me');}
+  });
+
+  partner.get('/leads', async(req,res)=>{
+    try {
+      const scoped=await membership(req,res,'lead.read');if(!scoped)return;
+      const {data,error}=await db.from('service_request_matches')
+        .select('id,request_id,provider_id,match_score,status,created_at,service_requests(id,request_code,services,region,desired_date,status,created_at)')
+        .eq('provider_id',scoped.provider.id)
+        .order('created_at',{ascending:false}).limit(50);
+      if(error)throw error;
+      // Only non-sensitive request fields above. Never return customer name/phone.
+      return res.json({ok:true,leads:data||[]});
+    }catch(error){return handleError(res,error,'leads');}
+  });
+
+  partner.get('/quotes', async(req,res)=>{
+    try {
+      const scoped=await membership(req,res,'quote.read');if(!scoped)return;
+      const {data,error}=await db.from('provider_quotes')
+        .select('id,request_id,provider_id,amount,estimated_duration_minutes,warranty_days,message,status,quote_expires_at,created_at')
+        .eq('provider_id',scoped.provider.id)
+        .order('created_at',{ascending:false}).limit(50);
+      if(error)throw error;
+      return res.json({ok:true,quotes:data||[]});
+    }catch(error){return handleError(res,error,'quotes');}
+  });
+
+  partner.get('/bookings', async(req,res)=>{
+    try {
+      const scoped=await membership(req,res,'booking.read');if(!scoped)return;
+      const {data,error}=await db.from('bookings')
+        .select('id,request_id,status,scheduled_at,confirmation_status,confirmation_deadline,recovery_status,created_at')
+        .eq('provider_id',scoped.provider.id)
+        .order('created_at',{ascending:false}).limit(50);
+      if(error)throw error;
+      return res.json({ok:true,bookings:data||[]});
+    }catch(error){return handleError(res,error,'bookings');}
+  });
+
+  partner.post('/quotes',safeOriginAndJson,async(req,res)=>{
+    const valid=validateQuoteInput(req.body);
+    if(valid.error)return res.status(400).json({ok:false,error:valid.error});
+    try{
+      const input=valid.value;
+      const scoped=await membership(req,res,'quote.create');
+      if(!scoped)return;
+      // Never use read-then-insert for financial/booking-adjacent transitions.
+      // This service-role-only RPC locks the request row and atomically validates
+      // actor membership + assignment + request status + idempotency.
+      // If the staging RPC has not been deployed, fail closed (503).
+      const {data,error}=await db.rpc('submit_partner_quote_v1',{
+        p_actor_id:req.user.sub,
+        p_provider_id:scoped.provider.id,
+        p_request_id:input.request_id,
+        p_amount:input.amount,
+        p_duration:input.estimated_duration_minutes,
+        p_warranty:input.warranty_days,
+        p_message:input.message
+      });
+      if(error)return handleError(res,error,'atomic_quote');
+      if(!data?.ok){
+        const status={
+          INVALID_ID:400,INVALID_QUOTE:400,
+          PARTNER_ACCESS_DENIED:403,LEAD_NOT_ASSIGNED:403,
+          REQUEST_CLOSED:409,REQUEST_DATE_PASSED:409,QUOTE_ALREADY_EXISTS:409
+        }[data?.error]||409;
+        return res.status(status).json({ok:false,error:data?.error||'QUOTE_NOT_SAVED'});
+      }
+      res.set('Cache-Control','no-store');
+      return res.status(data.idempotent?200:201).json(data);
+    }catch(error){return handleError(res,error,'atomic_quote');}
+  });
+
+  app.use('/api/partner',partner);
+
+  const operations=express.Router();
+  operations.use((_req,res,next)=>{res.set('Cache-Control','private, no-store');next();});
+  operations.use(requireRuntimeConfig,requireAuth,requireAdmin);
+  operations.get('/overview',async(_req,res)=>{
+    const definitions=[
+      ['service_requests','requests'],
+      ['service_request_matches','assigned_leads'],
+      ['provider_quotes','quotes'],
+      ['bookings','bookings'],
+      ['providers','providers'],
+      ['recommendation_runs','recommendation_runs']
+    ];
+    try {
+      const result=await Promise.all(definitions.map(async([table,key])=>{
+        const {count,error}=await db.from(table).select('id',{count:'exact',head:true});
+        if(error)throw error;
+        return [key,count??0];
+      }));
+      const counts=Object.fromEntries(result);
+      const [verifiedReal,pendingIntake]=await Promise.all([
+        db.from('providers').select('id',{count:'exact',head:true})
+          .eq('active',true).eq('verified',true).eq('is_demo',false),
+        db.from('partner_applications').select('id',{count:'exact',head:true})
+          .in('status',['received','reviewing','needs_documents'])
+      ]);
+      // A missing intake migration must not break existing read-only KPIs.
+      counts.verified_real_providers=verifiedReal.error?null:verifiedReal.count??0;
+      counts.pending_applications=pendingIntake.error?null:pendingIntake.count??0;
+      res.set('Cache-Control','no-store');
+      return res.json({ok:true,counts,at:new Date().toISOString()});
+    }catch(error){return handleError(res,error,'operations');}
+  });
+
+  operations.get('/applications', async(_req,res)=>{
+    try{
+      const {data,error}=await db.from('partner_applications')
+        .select('id,company_name,contact_email,region,service_category,status,created_at,purge_after')
+        .order('created_at',{ascending:false}).limit(50);
+      if(error)return handleError(res,error,'admin_intake_list');
+      res.set('Cache-Control','no-store');
+      return res.json({ok:true,applications:data||[]});
+    }catch(error){return handleError(res,error,'admin_intake_list');}
+  });
+
+  operations.post('/applications/:id/review', async(req,res)=>{
+    const id=String(req.params.id||'');
+    if(!UUID.test(id))return res.status(400).json({ok:false,error:'INVALID_ID'});
+    if(req.get('x-korual-app')!=='operations'||!req.is('application/json')){
+      return res.status(403).json({ok:false,error:'OPERATOR_ACTION_REQUIRED'});
+    }
+    const originError=checkRequestOrigin(req);
+    if(originError)return res.status(403).json({ok:false,error:originError});
+    const next=String(req.body?.status||'');
+    try{
+      const {data:current,error:readError}=await db.from('partner_applications')
+        .select('id,status').eq('id',id).maybeSingle();
+      if(readError)throw readError;
+      if(!current)return res.status(404).json({ok:false,error:'NOT_FOUND'});
+      if(!isReviewTransitionAllowed(current.status,next)){
+        return res.status(409).json({ok:false,error:'INVALID_REVIEW_TRANSITION'});
+      }
+      // Optimistic transition guard. A concurrent reviewer cannot silently
+      // override the status set by a previous reviewer.
+      const {data:updated,error:updateError}=await db.from('partner_applications')
+        .update({status:next,reviewer_id:req.user.sub,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+        .eq('id',id).eq('status',current.status).select('id,status').maybeSingle();
+      if(updateError)throw updateError;
+      if(!updated)return res.status(409).json({ok:false,error:'REVIEW_CONFLICT'});
+      const {error:auditError}=await db.from('admin_actions').insert({
+        actor_user_id:req.user.sub,action:'REVIEW_PARTNER_APPLICATION',
+        meta:{application_id:id,from:current.status,to:next}
+      });
+      if(auditError)console.error('KORUAL_PORTAL application_audit_failed',auditError.message);
+      return res.json({ok:true,application:updated,verification_granted:false});
+    }catch(error){return handleError(res,error,'admin_intake_review');}
+  });
+
+  operations.get('/requests',async(_req,res)=>{
+    try {
+      const {data,error}=await db.from('service_requests')
+        .select('id,request_code,services,region,desired_date,status,created_at')
+        .in('status',OPEN_REQUESTS)
+        .order('created_at',{ascending:false}).limit(30);
+      if(error)throw error;
+      res.set('Cache-Control','no-store');
+      return res.json({ok:true,requests:data||[]});
+    }catch(error){return handleError(res,error,'admin_requests');}
+  });
+
+  operations.post('/assign',async(req,res)=>{
+    // This is an explicit, authenticated operator action. No money movement.
+    if(req.get('x-korual-app')!=='operations'||!req.is('application/json')){
+      return res.status(403).json({ok:false,error:'OPERATOR_ACTION_HEADER_REQUIRED'});
+    }
+    const originError=checkRequestOrigin(req);
+    if(originError)return res.status(403).json({ok:false,error:originError});
+    const requestId=String(req.body?.request_id||'');
+    if(!UUID.test(requestId))return res.status(400).json({ok:false,error:'INVALID_ID'});
+    try {
+      const {data:request,error:requestError}=await db.from('service_requests')
+        .select('id,services,region,status').eq('id',requestId).maybeSingle();
+      if(requestError)throw requestError;
+      if(!request||!OPEN_REQUESTS.includes(request.status))return res.status(409).json({ok:false,error:'REQUEST_CLOSED'});
+      const {data:providers,error:providerError}=await db.from('providers')
+        .select('id,active,verified,is_demo,service_categories,regions,korual_score')
+        .eq('active',true).eq('verified',true).eq('is_demo',false).limit(150);
+      if(providerError)throw providerError;
+      if(!providers?.length)return res.status(409).json({ok:false,error:'NO_VERIFIED_SUPPLY'});
+      const {data:memberships,error:membershipError}=await db.from('partner_memberships')
+        .select('provider_id').eq('active',true)
+        .in('role',['OWNER','OPERATOR'])
+        .in('provider_id',providers.map(p=>p.id)).limit(500);
+      if(membershipError)return handleError(res,membershipError,'assign_memberships');
+      const selected=eligiblePartners({request,providers,memberProviderIds:new Set((memberships||[]).map(m=>m.provider_id))});
+      if(!selected.length)return res.status(409).json({ok:false,error:'NO_ELIGIBLE_PARTNERS'});
+      // The atomic DB function rechecks admin/real-provider eligibility,
+      // serializes with quote submission and makes the audit part of the write.
+      const {data:result,error:assignError}=await db.rpc('assign_partner_leads_v1',{
+        p_actor_id:req.user.sub,p_request_id:requestId,
+        p_provider_ids:selected.map(p=>p.provider_id),
+        p_scores:selected.map(p=>p.match_score)
+      });
+      if(assignError)return handleError(res,assignError,'atomic_assign');
+      if(!result?.ok){
+        const status={
+          INVALID_ASSIGNMENT:400,ADMIN_ONLY:403,
+          REQUEST_CLOSED:409,REQUEST_DATE_PASSED:409,PARTNER_ELIGIBILITY_CHANGED:409
+        }[result?.error]||409;
+        return res.status(status).json({ok:false,error:result?.error||'ASSIGNMENT_NOT_SAVED'});
+      }
+      res.set('Cache-Control','no-store');
+      return res.json(result);
+    }catch(error){return handleError(res,error,'assign_lead');}
+  });
+
+  app.use('/api/operations',operations);
+}

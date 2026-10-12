@@ -295,10 +295,17 @@ function rankingSensitivity(candidates: any[]) {
   };
 }
 
+function canonicalServiceCategory(value: unknown) {
+  const service=cleanText(value,60);
+  if (service === "에어컨 청소") return "에어컨";
+  if (service === "인터넷/TV") return "인터넷 설치";
+  return service;
+}
+
 function providerCoverage(provider: any, services: string[]) {
   const categories = new Set(
     (Array.isArray(provider?.service_categories) ? provider.service_categories : [])
-      .map((x: unknown) => cleanText(x, 60))
+      .map((x: unknown) => canonicalServiceCategory(x))
   );
 
   const items = services.map((service) => {
@@ -645,6 +652,8 @@ async function checkRate(ipHash: string, action: string) {
     action === "book" || action === "book_bundle" ? 8 :
     action === "hold_bundle_slot" ? 60 :
     action === "bundle_plan" || action === "bundle_status" ? 90 :
+    action === "submit_real_request" ? 5 :
+    action === "real_quote_status" ? 60 :
     action === "quotes" ? 120 :
     180;
   const { data, error } = await db.rpc("consume_api_rate_limit", {
@@ -790,6 +799,118 @@ Deno.serve(async (req: Request) => {
         atomic_bundle_booking: true,
         bundle_child_requests: true
       });
+    }
+
+    if (action === "real_market_ready") {
+      const {count,error}=await db.from("providers")
+        .select("id",{count:"exact",head:true})
+        .eq("active",true).eq("verified",true).eq("is_demo",false);
+      if(error)throw error;
+      return json(origin,{
+        ok:true,available_real_providers:count??0,
+        real_request_enabled:(count??0)>0
+      });
+    }
+
+    // REAL REQUEST FLOW: explicitly separate provider-submitted quotes from
+    // AI market estimates. Never save contact details without real supply.
+    if (action === "submit_real_request") {
+      const request = body?.request ?? {};
+      const customer = body?.customer ?? {};
+      const service = cleanText(request.service, 80);
+      const region = cleanText(request.region, 80);
+      const desiredDate = cleanText(request.desired_date, 10);
+      const name = cleanText(customer.name, 40);
+      const phone = cleanText(customer.phone, 24).replace(/[^0-9]/g, "");
+      const key = cleanText(body?.idempotency_key, 80);
+      if (customer.privacy_consent !== true) {
+        return json(origin,{ok:false,error:"CONSENT_REQUIRED"},400);
+      }
+      if (!/^[A-Za-z0-9_-]{8,80}$/.test(key)) {
+        return json(origin,{ok:false,error:"IDEMPOTENCY_INVALID"},400);
+      }
+      if (!service || !region || region.length < 2) {
+        return json(origin,{ok:false,error:"SERVICE_REGION_REQUIRED"},400);
+      }
+      if (!validateDate(desiredDate))return json(origin,{ok:false,error:"DATE_INVALID"},400);
+      if (name.length < 2 || phone.length < 10 || phone.length > 11) {
+        return json(origin,{ok:false,error:"CUSTOMER_INFO_INVALID"},400);
+      }
+      const intent = detectServiceIntent({ service });
+      if (!intent.matched || intent.services.length !== 1) {
+        return json(origin,{ok:false,error:"SERVICE_NOT_SUPPORTED"},400);
+      }
+      const services = intent.services;
+      const {data:providerRows,error:providerError} = await db.from("providers")
+        .select("id,service_categories,regions,active,verified,is_demo")
+        .eq("active",true).eq("verified",true).eq("is_demo",false);
+      if (providerError)throw providerError;
+      const eligible = (providerRows ?? []).filter((p:any) =>
+        providerSupports(p,services) && providerCoversRegion(p,region));
+      if (!eligible.length) {
+        return json(origin,{ok:false,error:"NO_VERIFIED_SUPPLY"},409);
+      }
+      const {data:created,error:createError} = await db.from("service_requests").insert({
+        services,region,desired_date:desiredDate,
+        customer_name:name,phone,session_id:sessionId,
+        idempotency_key:key,source:"platform_real_quote_request",
+        status:"NEW"
+      }).select("id,request_code,status,created_at").single();
+      if (createError) {
+        if (createError.code==="23505") {
+          const {data:existing,error:readError}=await db.from("service_requests")
+            .select("id,request_code,status,created_at,services,region,desired_date,customer_name,phone")
+            .eq("session_id",sessionId).eq("idempotency_key",key).maybeSingle();
+          if (readError)throw readError;
+          if (existing) {
+            const sameTerms =
+              Array.isArray(existing.services) &&
+              existing.services.length === services.length &&
+              existing.services.every((s:string,i:number)=>s===services[i]) &&
+              existing.region === region &&
+              existing.desired_date === desiredDate &&
+              existing.customer_name === name &&
+              existing.phone === phone;
+            if (!sameTerms) {
+              return json(origin,{ok:false,error:"IDEMPOTENCY_CONFLICT"},409);
+            }
+            // No PII is echoed to the browser, even for owned duplicate requests.
+            const {id,request_code,status,created_at}=existing;
+            return json(origin,{ok:true,idempotent:true,request:{id,request_code,status,created_at}});
+          }
+        }
+        throw createError;
+      }
+      return json(origin,{ok:true,idempotent:false,request:created},201);
+    }
+
+    if (action === "real_quote_status") {
+      const id = cleanText(body?.request_id,80);
+      if (!/^[0-9a-f-]{36}$/i.test(id)) {
+        return json(origin,{ok:false,error:"REQUEST_ID_INVALID"},400);
+      }
+      const {data:owned,error:readError}=await db.from("service_requests")
+        .select("id,request_code,status,services,region,desired_date")
+        .eq("id",id).eq("session_id",sessionId).maybeSingle();
+      if (readError)throw readError;
+      if (!owned)return json(origin,{ok:false,error:"REQUEST_NOT_OWNED"},403);
+      const {data:quoteRows,error:quoteError}=await db.from("provider_quotes")
+        .select("id,amount,message,status,quote_expires_at,created_at,providers(name,active,verified,is_demo)")
+        .eq("request_id",id).eq("status","submitted")
+        .order("created_at",{ascending:false}).limit(20);
+      if (quoteError)throw quoteError;
+      const now=Date.now();
+      const quotes=(quoteRows??[]).filter((q:any)=>
+        q.providers?.active===true && q.providers?.verified===true &&
+        q.providers?.is_demo===false &&
+        (!q.quote_expires_at || new Date(q.quote_expires_at).getTime()>now))
+        .map((q:any)=>({
+          id:q.id,amount:q.amount,message:q.message,
+          provider_name:q.providers.name,quote_expires_at:q.quote_expires_at,
+          submitted_at:q.created_at
+        }));
+      return json(origin,{ok:true,request:owned,real_quotes:quotes,
+        notice:quotes.length?"REAL_QUOTES_AVAILABLE":"WAITING_FOR_REAL_PROVIDER_QUOTES"});
     }
 
     if (action === "quotes") {

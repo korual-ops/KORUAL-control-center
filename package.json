@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test api-smoke-test.mjs",
+    "test": "node --test api-smoke-test.mjs test/*.test.js",
     "check": "npm test"
   },
   "dependencies": {

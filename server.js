@@ -5,11 +5,14 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
+import { registerAppApis } from './shared/app-api.js';
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use(express.static('public'));
+app.use('/partner', express.static('partner'));
+app.use('/operations', express.static('operations'));
 app.use('/travel', express.static('korual-travel-mvp'));
 
 const PORT = process.env.PORT || 8080;
@@ -131,6 +134,9 @@ async function requireAdmin(req, res, next) {
     return res.status(500).json({ ok: false, error: 'AUTH_CHECK_FAILED' });
   }
 }
+
+// Register verified Partner tenant APIs and read-only Admin operations.
+registerAppApis(app, { db: supabaseAdmin, requireAuth, requireAdmin, requireRuntimeConfig });
 
 const SERVICE_NAMES = new Set(['입주청소', '이사', '인터넷', '정수기', '인테리어', '수리·시공']);
 const quoteRate = new Map();
@@ -292,6 +298,7 @@ app.get('/marketplace/summary', async (req, res) => {
       .select('id,name,rating,review_count,verified,korual_score,avg_response_minutes,completed_jobs,service_categories,regions')
       .eq('active', true)
       .eq('verified', true)
+      .eq('is_demo', false)
       .order('korual_score', { ascending: false })
       .order('rating', { ascending: false })
       .limit(3);
@@ -309,7 +316,7 @@ app.get('/marketplace/summary', async (req, res) => {
     const [providersResult, benchmarkResult, providerCountResult, benchmarkCountResult] = await Promise.all([
       providersQuery,
       benchmarkQuery.maybeSingle(),
-      supabaseAdmin.from('providers').select('id', { count: 'exact', head: true }).eq('active', true).eq('verified', true),
+      supabaseAdmin.from('providers').select('id', { count: 'exact', head: true }).eq('active', true).eq('verified', true).eq('is_demo', false),
       supabaseAdmin.from('price_benchmarks').select('id', { count: 'exact', head: true })
     ]);
 

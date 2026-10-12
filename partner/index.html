@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101b30"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KORUAL Partner">
+<link rel="manifest" href="/partner/manifest.webmanifest"><link rel="icon" href="/partner/icon.svg" type="image/svg+xml">
+<title>KORUAL PARTNER — 사업자 업무 공간</title>
+<style>
+:root{font-family:Inter,Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#12213b;background:#f6f7fa;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
+.shell{min-height:100vh;display:grid;grid-template-columns:240px minmax(0,1fr)}.rail{padding:32px 18px;background:#101b30;color:white;display:flex;flex-direction:column;gap:32px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:850;letter-spacing:.04em}.brand-mark{display:grid;place-items:center;width:43px;height:43px;border-radius:13px;background:linear-gradient(135deg,#eecf95,#bc9057);color:#101b30;font-size:25px}
+.brand small{display:block;color:#aebdd5;font-size:10px;letter-spacing:.12em;margin-top:3px}.nav{display:grid;gap:6px}.nav button{width:100%;text-align:left;display:flex;align-items:center;gap:11px;padding:13px 16px;border:0;border-radius:12px;color:#bbcadc;background:transparent;font-weight:600}
+.nav button.active,.nav button:hover{background:#243650;color:white}.rail-foot{margin-top:auto;color:#98a9bf;font-size:12px;line-height:1.6;padding:12px}
+.main{max-width:1280px;width:100%;padding:28px clamp(20px,4vw,55px) 65px;margin:auto}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:36px}.eyebrow{font-size:11px;letter-spacing:.17em;color:#8e714d;font-weight:800}
+.topline .right{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.pill{padding:10px 14px;border:1px solid #dfe4ed;border-radius:30px;font-size:12px;color:#4c627f;background:white}
+h1{font-size:clamp(32px,5vw,49px);line-height:1.08;letter-spacing:-.055em;margin:8px 0 12px}h2{font-size:20px;letter-spacing:-.035em;margin:0 0 8px}
+.lead{color:#66778e;font-size:15px;margin:0 0 26px;line-height:1.7}.panel{background:white;border:1px solid #e3e8ef;border-radius:20px;padding:24px;box-shadow:0 15px 55px rgba(21,40,71,.035)}.panel h3{font-size:17px;margin:0 0 12px;letter-spacing:-.025em}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0}
+.metric{background:white;border:1px solid #e3e8ef;border-radius:16px;padding:24px}.metric b{font-size:31px;letter-spacing:-.06em}.metric small{display:block;color:#697a8e;font-size:12px;margin-bottom:12px}
+.stack{display:grid;gap:14px}.muted{color:#657991}.small{font-size:12px}.line{border-top:1px solid #e6eaf0;padding-top:15px;margin-top:15px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.btn{border:1px solid #d7dfeb;background:white;border-radius:12px;padding:12px 16px;font-weight:750;color:#182f52}
+.btn.primary{background:#13233d;border-color:#13233d;color:white}.btn:disabled{opacity:.48;cursor:not-allowed}
+.field{display:grid;gap:8px;font-size:13px;font-weight:750}.field input,.field select,.field textarea{width:100%;min-height:45px;border-radius:10px;border:1px solid #d6dfeb;padding:11px 12px;background:white;color:#172640;font-weight:450}.field textarea{min-height:85px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.wide{grid-column:1/-1}.cards{display:grid;gap:12px}.item{border:1px solid #e4eaf2;border-radius:16px;padding:19px;background:white}.item-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.item strong{font-size:16px}
+.state{font-size:11px;border-radius:999px;background:#edf5ec;color:#397143;padding:7px 9px;font-weight:800}.notice{padding:15px;border-radius:14px;background:#eaf1fc;color:#25466f;font-size:13px;line-height:1.55}.danger{background:#fff0ef;color:#993d38}
+.login-wrap{min-height:63vh;display:grid;place-items:center}.login{width:min(100%,460px)}.login .field{margin-bottom:17px}.login .btn{width:100%}
+.empty{padding:34px;text-align:center;border:1px dashed #cbd5e3;border-radius:16px;color:#627791;background:#fbfcfe}.empty b{display:block;color:#304869;margin:7px}
+.hidden,[hidden]{display:none!important}.table{width:100%;border-collapse:collapse}.table th{text-align:left;color:#697b91;font-weight:650;font-size:12px}.table td{font-size:13px}.table th,.table td{padding:12px 8px;border-bottom:1px solid #edf0f5}.spinner{color:#687e99}
+@media(max-width:850px){.shell{display:block}.rail{position:fixed;z-index:20;inset:auto 0 0;padding:8px;border-top:1px solid #304058}.rail .brand,.rail-foot{display:none}.rail .nav{display:flex;gap:3px;justify-content:space-around}.nav button{padding:11px 5px;text-align:center;justify-content:center;font-size:12px}.main{padding:24px 16px 95px}.topline{margin-bottom:26px}.stats{gap:7px}.metric{padding:17px 12px}.metric b{font-size:25px}}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.panel{padding:18px}.main{padding-left:13px;padding-right:13px}.item-head{align-items:start}.pill{font-size:11px}}
+</style></head><body>
+<div class="shell"><aside class="rail">
+<div class="brand"><span class="brand-mark">K</span><div>KORUAL <small>PARTNER OS</small></div></div>
+<nav class="nav" aria-label="사업자 메뉴">
+<button type="button" data-tab="home" class="active">⌂ · 홈</button>
+<button type="button" data-tab="leads">◎ · 수주함</button>
+<button type="button" data-tab="quotes">≡ · 견적</button>
+<button type="button" data-tab="bookings">▣ · 예약</button>
+<button type="button" data-tab="account">◉ · 사업장</button>
+</nav><div class="rail-foot">KORUAL PARTNER v1.0<br>업체별 데이터 접근 권한을 검증합니다.</div></aside>
+<main class="main">
+<header class="topline"><div><span class="eyebrow">KORUAL · BUSINESS OPERATING SYSTEM</span></div><div class="right"><span class="pill" id="status">인증 확인 중</span><button class="btn" id="logout" type="button" hidden>로그아웃</button></div></header>
+<div id="loginView" class="login-wrap" hidden><section class="panel login"><div class="eyebrow">SECURE BUSINESS LOGIN</div><h1>파트너 로그인</h1><p class="lead">KORUAL 승인 사업자 계정으로 로그인하세요. 별도 인증되지 않은 업체는 거래를 조회할 수 없습니다.</p>
+<form id="loginForm" class="stack"><label class="field">이메일 또는 사용자명<input id="username" autocomplete="username" required></label><label class="field">비밀번호<input id="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">안전하게 로그인</button></form><p id="loginError" role="alert" class="small"></p></section>
+<section class="panel login" aria-labelledby="applyTitle" style="margin-top:18px">
+<div class="eyebrow">NEW PARTNER APPLICATION</div><h2 id="applyTitle">KORUAL 입점 신청</h2>
+<p class="small muted">사업자명과 업무용 이메일, 서비스 종류·지역만 제출합니다. 신청으로 업체 인증이나 거래 권한이 부여되지는 않습니다.</p>
+<form id="applyForm" class="stack" autocomplete="on">
+<label class="field">사업자명 또는 상호<input name="company_name" maxlength="80" minlength="2" required></label>
+<label class="field">업무용 이메일<input name="contact_email" type="email" maxlength="180" autocomplete="email" required></label>
+<div class="form-grid"><label class="field">서비스 운영 지역<input name="region" maxlength="80" placeholder="예: 인천" required></label>
+<label class="field">주요 서비스<select name="service_category" required><option value="">선택</option><option>입주청소</option><option>이사</option><option>에어컨 청소</option><option>인터넷/TV</option><option>정수기 렌탈</option><option>인테리어</option><option>수리·시공</option><option>여행 서비스</option><option>웰니스</option><option>기타</option></select></label></div>
+<div style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label>website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+<label class="small muted"><input type="checkbox" name="privacy_consent" required> 필수: 입점 신청 처리를 위해 상호·이메일·지역·서비스 분야 정보를 수집하는 데 동의합니다.</label>
+<label class="small muted"><input type="checkbox" name="terms_acknowledged" required> 신청 후 별도 사업자 검증·심사가 필요하며 입점이 보장되지 않음을 확인합니다.</label>
+<p class="small muted">신청정보는 운영팀에만 공개됩니다. 정식 운영 전 보유기간, 삭제 절차 및 개인정보처리방침 심사 예정입니다.</p>
+<button class="btn primary" type="submit">입점 심사 신청</button>
+<p id="applyFeedback" class="small" role="status" aria-live="polite"></p>
+</form></section></div>
+<div id="appView" hidden>
+<div class="eyebrow">ONE WORKSPACE · EVERY CUSTOMER REQUEST</div><h1 id="pageTitle">오늘의 수주 기회</h1><p class="lead" id="pageIntro">고객 요청부터 견적·예약까지 한 곳에서 처리합니다.</p>
+<div class="actions" style="margin-bottom:22px"><label class="field" style="width:min(100%,320px)">운영할 사업장<select id="providerSelect"></select></label><button class="btn" id="refresh" type="button">새로고침</button></div>
+<div id="feedback" role="status" aria-live="polite"></div>
+<section id="home" data-panel><div class="stats"><div class="metric"><small>배정된 요청</small><b id="leadCount">—</b></div><div class="metric"><small>제출 견적</small><b id="quoteCount">—</b></div><div class="metric"><small>예약 현황</small><b id="bookingCount">—</b></div></div><div class="panel"><h3>오늘 처리할 일</h3><div id="todo"></div></div></section>
+<section id="leads" data-panel hidden><div class="panel"><h3>배정된 견적 요청</h3><p class="small muted">실제로 매칭된 요청만 표시됩니다. 고객 연락처는 견적 단계에서 제공하지 않습니다.</p><div id="leadList" class="cards"></div></div></section>
+<section id="quotes" data-panel hidden><div class="panel"><h3>제출한 견적</h3><p class="small muted">이미 제출한 견적은 자동으로 수정되지 않습니다. 변경은 운영팀 검토가 필요합니다.</p><div id="quoteList" class="cards"></div></div></section>
+<section id="bookings" data-panel hidden><div class="panel"><h3>예약 진행 현황</h3><p class="small muted">자기 사업장 예약의 날짜와 상태만 조회할 수 있습니다.</p><div id="bookingList" class="cards"></div></div></section>
+<section id="account" data-panel hidden><div class="panel"><h3>사업장 정보</h3><div id="businessDetails"></div><div class="notice" style="margin-top:20px">사업장 추가·권한 부여는 KORUAL 관리자 검토 후 처리합니다. 본 화면은 정산과 실제 결제를 실행하지 않습니다.</div></div></section>
+</div>
+<dialog id="quoteDialog" style="width:min(100% - 28px,520px);border:1px solid #dce2ea;border-radius:20px;padding:25px;box-shadow:0 20px 80px #19253655"><form id="quoteForm" class="stack"><h2>견적 제출</h2><p id="quoteRequest" class="muted small"></p><label class="field">총 견적 금액 (원)<input name="amount" type="number" min="1000" max="100000000" step="1" required></label><div class="form-grid"><label class="field">예상 소요시간 (분)<input name="estimated_duration_minutes" type="number" min="1" max="10080"></label><label class="field">보증기간 (일)<input name="warranty_days" type="number" min="0" max="3650"></label></div><label class="field">작업 범위·제외 항목·추가 비용 안내<textarea name="message" required minlength="5" maxlength="600" placeholder="포함 서비스, 방문비, 추가 비용 조건을 구체적으로 작성하세요."></textarea></label><div class="notice">제출 시 견적이 실제 DB에 기록됩니다. 가격·작업 범위를 검토한 뒤 제출하세요.</div><div class="actions"><button type="button" class="btn" id="cancelQuote">취소</button><button type="submit" class="btn primary">견적 제출</button></div></form></dialog>
+</main></div><script type="module" src="/partner/app.js"></script></body></html>
