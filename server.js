@@ -298,6 +298,7 @@ app.get('/marketplace/summary', async (req, res) => {
       .select('id,name,rating,review_count,verified,korual_score,avg_response_minutes,completed_jobs,service_categories,regions')
       .eq('active', true)
       .eq('verified', true)
+      .eq('is_demo', false)
       .order('korual_score', { ascending: false })
       .order('rating', { ascending: false })
       .limit(3);
@@ -315,7 +316,7 @@ app.get('/marketplace/summary', async (req, res) => {
     const [providersResult, benchmarkResult, providerCountResult, benchmarkCountResult] = await Promise.all([
       providersQuery,
       benchmarkQuery.maybeSingle(),
-      supabaseAdmin.from('providers').select('id', { count: 'exact', head: true }).eq('active', true).eq('verified', true),
+      supabaseAdmin.from('providers').select('id', { count: 'exact', head: true }).eq('active', true).eq('verified', true).eq('is_demo', false),
       supabaseAdmin.from('price_benchmarks').select('id', { count: 'exact', head: true })
     ]);
 
