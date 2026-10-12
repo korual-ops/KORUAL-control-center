@@ -1,0 +1,21 @@
+/* KORUAL: distinguish real provider quotes from algorithmic price estimates. */
+.real-quote-panel{margin:24px 0 104px;padding:clamp(16px,4vw,28px);border:1px solid rgba(62,98,157,.25);
+background:linear-gradient(150deg,#f9fbff,#edf3fa);border-radius:24px;color:#1b3556}
+.real-quote-panel h3{font-size:clamp(19px,4vw,25px);letter-spacing:-.035em;margin:7px 0 9px}
+.real-quote-panel p{font-size:13px;line-height:1.65;color:#617590}
+.real-quote-eyebrow{font-size:10px;letter-spacing:.14em;font-weight:900;color:#456cba}
+.real-quote-form{display:grid;gap:14px;margin-top:20px}
+.real-quote-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.real-quote-grid label{display:grid;gap:6px;font-size:12px;color:#3a5272;font-weight:800}
+.real-quote-grid input,.real-quote-grid select{width:100%;min-width:0;border:1px solid #ccdaeb;border-radius:12px;background:white;color:#213652;font:inherit;font-size:14px;padding:12px}
+.real-quote-consent{display:flex;gap:8px;align-items:start;font-size:12px;color:#455f80;line-height:1.6}
+.real-quote-consent input{flex:none;margin-top:3px}
+.real-quote-actions{display:flex;gap:8px;flex-wrap:wrap}.real-quote-actions button{border:1px solid #1d385f;background:#1d385f;color:white;border-radius:12px;padding:12px 16px;font-size:13px;font-weight:800}
+.real-quote-actions button+button{color:#1d385f;background:#fff}
+.real-quote-actions button:disabled{opacity:.5}.real-quote-status{min-height:20px;font-size:12px;color:#385e88;line-height:1.6}
+.real-quote-status[data-error=true]{color:#b74142}.real-quote-results{display:grid;gap:10px}
+.real-quote-result{border:1px solid #d5e1ee;border-radius:14px;padding:16px;background:white;display:grid;gap:6px}
+.real-quote-result strong{color:#1d3454}.real-quote-result b{font-size:21px;color:#182f51}
+.real-quote-result p{margin:2px 0;color:#455c78}.real-quote-result small{color:#74859a}
+.real-quote-disclaimer,.real-quote-empty{border:1px dashed #b7c7db;border-radius:12px;padding:14px}
+@media(max-width:440px){.real-quote-grid{grid-template-columns:1fr}.real-quote-actions button{width:100%}}
