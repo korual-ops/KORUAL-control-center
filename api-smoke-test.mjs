@@ -69,13 +69,13 @@ test('public partner application rejects missing same-origin proof before DB acc
   assert.equal(result.status,403);
   assert.equal(result.body.error,'ORIGIN_REQUIRED');
 });
-test('public partner application validates consent before database write',async()=>{
+test('public partner application requires the dedicated app header',async()=>{
   const result=await request('/api/partner/applications',{
-    method:'POST',headers:{'content-type':'application/json','x-korual-app':'partner',origin:'http://127.0.0.1'},
+    method:'POST',headers:{'content-type':'application/json'},
     body:JSON.stringify({company_name:'Test Company',contact_email:'test@example.com',service_category:'입주청소',region:'인천',privacy_consent:false,terms_acknowledged:true})
   });
-  // Origin host includes the ephemeral port, so this request must be denied.
-  assert.equal(result.status,403);
+  assert.equal(result.status,415);
+  assert.equal(result.body.error,'JSON_APPLICATION_REQUIRED');
 });
 test('admin application review and queue refuse unauthenticated access',async()=>{
   const reviewId='11111111-1111-4111-8111-111111111111';
