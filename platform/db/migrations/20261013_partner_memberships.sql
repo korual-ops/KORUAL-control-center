@@ -23,3 +23,6 @@ REVOKE ALL ON TABLE public.partner_memberships FROM PUBLIC, anon, authenticated;
 
 COMMENT ON TABLE public.partner_memberships IS
   'Private mapping between authenticated users and verified merchant tenants. Assign via trusted backoffice only.';
+
+-- The backend's service role is the only data-access principal for this table.
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.partner_memberships TO service_role;
