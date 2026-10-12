@@ -18,8 +18,15 @@ export function eligiblePartners({request,providers,memberProviderIds,max=3}) {
     .map(p=>{
       const cats=Array.isArray(p.service_categories)?p.service_categories.map(normalizeService):[];
       const regions=Array.isArray(p.regions)?p.regions.map(clean):[];
-      const categoryMatch=services.some(service=>cats.includes(service));
-      const regionMatch=regions.some(r=>r==='전국' || region===r || region.startsWith(r+' ') || region.startsWith(r+'시') || region.startsWith(r+'광역시'));
+      // A partner must be able to deliver EVERY scope item for a bundled
+      // request, not just one matched service while quoting for the full job.
+      const categoryMatch=services.every(service=>cats.includes(service));
+      const regionMatch=regions.some(r=>
+        r==='전국' || region===r || region.startsWith(r+' ') ||
+        region===r+'시' || region.startsWith(r+'시 ') ||
+        region===r+'광역시' || region.startsWith(r+'광역시 ') ||
+        region===r+'특별시' || region.startsWith(r+'특별시 ')
+      );
       if(!categoryMatch||!regionMatch)return null;
       const quality=Math.max(0,Math.min(100,Number(p.korual_score)||0));
       return {provider_id:p.id, match_score:Math.round(60+quality*0.4)};
