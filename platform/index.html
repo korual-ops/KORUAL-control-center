@@ -231,6 +231,32 @@
           </article>
         </div>
 
+        <section class="real-quote-panel" aria-labelledby="realQuoteTitle">
+          <div class="real-quote-eyebrow">KORUAL · VERIFIED PARTNER MARKETPLACE</div>
+          <h3 id="realQuoteTitle">AI 예상가와 실제 업체 견적은 다릅니다.</h3>
+          <p>실제 사업자에게 견적을 요청할 수 있습니다. 현재 제휴 실사업자가 없으면 개인정보는 저장하지 않고 요청이 접수되지 않습니다.</p>
+          <form id="realQuoteRequestForm" class="real-quote-form">
+            <div class="real-quote-grid">
+              <label>서비스 종류<select name="service" required>
+                <option value="">선택하세요</option><option>입주청소</option><option>이사</option><option>에어컨 청소</option><option>인터넷 설치</option><option>인테리어</option><option>수리·시공</option>
+              </select></label>
+              <label>서비스 지역<input name="region" required maxlength="80" minlength="2" placeholder="예: 인천 영종도"></label>
+              <label>희망일<input name="desired_date" type="date" required></label>
+              <label>예약자 이름<input name="name" autocomplete="name" required minlength="2" maxlength="40"></label>
+              <label>연락처<input name="phone" type="tel" autocomplete="tel" inputmode="tel" required placeholder="01012345678" maxlength="16"></label>
+            </div>
+            <label class="real-quote-consent"><input type="checkbox" name="privacy_consent" required>
+              선택한 서비스의 견적 제공·상담 접수를 위해 이름·연락처·지역·희망일을 수집하는 데 동의합니다. 별도 보유기간·제3자 제공 고지는 정식 운영 전에 확정합니다.
+            </label>
+            <div class="real-quote-actions">
+              <button type="submit">실제 업체 견적 요청</button>
+              <button id="realQuoteRefresh" type="button">내 요청·실제 견적 확인</button>
+            </div>
+            <div id="realQuoteFeedback" class="real-quote-status" role="status" aria-live="polite"></div>
+          </form>
+          <div id="realQuoteList" class="real-quote-results"></div>
+        </section>
+
         <div id="quoteSticky" class="sticky-action">
           <div><small>SELECTED</small><strong id="stickyQuoteName">견적을 선택하세요</strong></div>
           <div><span id="stickyQuotePrice">—</span><button id="bookSelected" type="button" disabled>예약</button></div>
@@ -516,5 +542,6 @@
   <script src="/ui-v6.js" defer></script>
   <script src="/ui-v7.js" defer></script>
   <script src="/success-layer.js?v=1.0.1" defer></script>
+  <script src="/real-requests.js" defer></script>
 </body>
 </html>
