@@ -8,7 +8,7 @@ test('quote persistence uses a single atomic service-role RPC and no open-loop i
  assert.match(app,/db\.rpc\('submit_partner_quote_v1'/);
  assert.doesNotMatch(app,/\.from\('provider_quotes'\)\.insert\(/);
  assert.match(sql,/FOR UPDATE/);
- assert.match(sql,/JOIN public\.partner_memberships/);
+ assert.match(sql,/FROM public\.partner_memberships/);
  assert.match(sql,/public\.profiles/);
  assert.match(sql,/provider\.is_demo = false/);
  assert.match(sql,/UPDATE public\.service_request_matches/);
