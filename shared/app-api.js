@@ -37,6 +37,15 @@ export function validateQuoteInput(value) {
   }};
 }
 
+export function sameQuote(existing,input) {
+  return Boolean(existing && input
+    && existing.status === 'submitted'
+    && Number(existing.amount) === input.amount
+    && (existing.message||'') === input.message
+    && (existing.estimated_duration_minutes??null) === input.estimated_duration_minutes
+    && (existing.warranty_days??null) === input.warranty_days);
+}
+
 function handleError(res, error, label) {
   console.error('KORUAL_PORTAL', label, error?.message || 'unknown');
   if (error?.code === '42P01') return res.status(503).json({ ok: false, error: 'PARTNER_SETUP_REQUIRED' });
@@ -175,12 +184,12 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
       if(!request || !OPEN_REQUESTS.includes(request.status)) {
         return res.status(409).json({ok:false,error:'REQUEST_CLOSED'});
       }
-      const existingQuery=()=>db.from('provider_quotes').select('id,amount,status')
+      const existingQuery=()=>db.from('provider_quotes').select('id,amount,status,message,estimated_duration_minutes,warranty_days')
         .eq('provider_id',scoped.provider.id).eq('request_id',input.request_id).maybeSingle();
       const existing=await existingQuery();
       if(existing.error)throw existing.error;
       if(existing.data) {
-        const unchanged=existing.data.amount===input.amount && existing.data.status==='submitted';
+        const unchanged=sameQuote(existing.data,input);
         return res.status(unchanged?200:409).json({
           ok:unchanged,idempotent:unchanged,error:unchanged?undefined:'QUOTE_ALREADY_EXISTS',
           quote:unchanged?existing.data:undefined
@@ -197,7 +206,7 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
         if(insertError.code==='23505'){
           const check=await existingQuery();
           if(check.error)throw check.error;
-          if(check.data?.amount===input.amount && check.data.status==='submitted'){
+          if(sameQuote(check.data,input)){
             return res.json({ok:true,idempotent:true,quote:check.data});
           }
           return res.status(409).json({ok:false,error:'QUOTE_ALREADY_EXISTS'});
