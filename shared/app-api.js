@@ -279,8 +279,18 @@ export function registerAppApis(app, { db, requireAuth, requireAdmin, requireRun
         if(error)throw error;
         return [key,count??0];
       }));
+      const counts=Object.fromEntries(result);
+      const [verifiedReal,pendingIntake]=await Promise.all([
+        db.from('providers').select('id',{count:'exact',head:true})
+          .eq('active',true).eq('verified',true).eq('is_demo',false),
+        db.from('partner_applications').select('id',{count:'exact',head:true})
+          .in('status',['received','reviewing','needs_documents'])
+      ]);
+      // A missing intake migration must not break existing read-only KPIs.
+      counts.verified_real_providers=verifiedReal.error?null:verifiedReal.count??0;
+      counts.pending_applications=pendingIntake.error?null:pendingIntake.count??0;
       res.set('Cache-Control','no-store');
-      return res.json({ok:true,counts:Object.fromEntries(result),at:new Date().toISOString()});
+      return res.json({ok:true,counts,at:new Date().toISOString()});
     }catch(error){return handleError(res,error,'operations');}
   });
 
