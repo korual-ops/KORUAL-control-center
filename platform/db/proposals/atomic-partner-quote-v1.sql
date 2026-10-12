@@ -24,6 +24,7 @@ AS $$
 DECLARE
   v_eligible boolean;
   v_status text;
+  v_desired_date date;
   v_match_status text;
   v_existing public.provider_quotes%ROWTYPE;
   v_created public.provider_quotes%ROWTYPE;
@@ -56,10 +57,14 @@ BEGIN
 
   -- Lock request before checking the state and writing quote + assignment.
   -- Updates to the same request row are serialized across transactions.
-  SELECT status INTO v_status FROM public.service_requests
+  SELECT status,desired_date INTO v_status,v_desired_date FROM public.service_requests
     WHERE id = p_request_id FOR UPDATE;
   IF NOT FOUND OR v_status NOT IN ('NEW', 'MATCHING', 'QUOTED') THEN
     RETURN jsonb_build_object('ok', false, 'error', 'REQUEST_CLOSED');
+  END IF;
+
+  IF v_desired_date < (now() AT TIME ZONE 'Asia/Seoul')::date THEN
+    RETURN jsonb_build_object('ok',false,'error','REQUEST_DATE_PASSED');
   END IF;
 
   SELECT status INTO v_match_status FROM public.service_request_matches
