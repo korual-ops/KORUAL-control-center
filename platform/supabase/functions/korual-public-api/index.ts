@@ -801,6 +801,17 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (action === "real_marketplace_readiness") {
+      const {count,error}=await db.from("providers")
+        .select("id",{count:"exact",head:true})
+        .eq("active",true).eq("verified",true).eq("is_demo",false);
+      if(error)throw error;
+      return json(origin,{
+        ok:true,available_real_providers:count??0,
+        real_request_enabled:(count??0)>0
+      });
+    }
+
     // REAL REQUEST FLOW: explicitly separate provider-submitted quotes from
     // AI market estimates. Never save contact details without real supply.
     if (action === "submit_real_request") {
