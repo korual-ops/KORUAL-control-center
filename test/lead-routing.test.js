@@ -17,3 +17,18 @@ test('at most three providers, ranking has stable ordering',()=>{
   assert.deepEqual(out.map(x=>x.provider_id),['a','b','c']);
   assert.equal(out.length,3);
 });
+
+test('service taxonomy aliases resolve to the same actual supplier category',()=>{
+ const provider={...p('aircon'),service_categories:['에어컨 청소']};
+ const assigned=eligiblePartners({
+   request:{services:['에어컨'],region:'인천 영종도'},
+   providers:[provider],memberProviderIds:new Set(['aircon'])
+ });
+ assert.equal(assigned.length,1);
+ const internet={...p('internet'),service_categories:['인터넷/TV']};
+ const matched=eligiblePartners({
+   request:{services:['인터넷 설치'],region:'인천 영종도'},
+   providers:[internet],memberProviderIds:new Set(['internet'])
+ });
+ assert.equal(matched.length,1);
+});
