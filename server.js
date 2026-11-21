@@ -436,7 +436,7 @@ app.get('/admin/service-requests', requireAuth, requireAdmin, async (req, res) =
   if (status && !SERVICE_REQUEST_STATUSES.has(status)) {
     return res.status(400).json({ ok: false, error: 'INVALID_STATUS' });
   }
-  if (!/^\\d{1,3}$/.test(limitRaw) || !/^\\d{1,5}$/.test(pageRaw)) {
+  if (!/^\d{1,3}$/.test(limitRaw) || !/^\d{1,5}$/.test(pageRaw)) {
     return res.status(400).json({ ok: false, error: 'INVALID_PAGINATION' });
   }
   const limit = Number(limitRaw);
