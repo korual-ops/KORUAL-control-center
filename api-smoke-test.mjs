@@ -94,3 +94,15 @@ test('operator queue HTML includes Seoul-time priority and safe stale-response h
   assert.match(serverSource, /if\(current!==controller\)return;/);
   assert.match(serverSource, /if\(current===controller && error\.name/);
 });
+
+test('operator desk local search and export honor least-privilege fields', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('./server.js', import.meta.url), 'utf8');
+  assert.ok(source.includes('id="localSearch"'));
+  assert.ok(source.includes('id="exportCsv"'));
+  assert.ok(source.includes("localSearch.addEventListener('input',renderItems)"));
+  assert.ok(source.includes('visibleItems=list'));
+  assert.ok(source.includes('function escapeCsvCell(value)'));
+  assert.ok(source.includes('String.fromCharCode(39)+raw'));
+  assert.ok(source.includes("select('id,request_code,status,services,region,desired_date,created_at'"));
+});
