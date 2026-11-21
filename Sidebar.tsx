@@ -45,6 +45,7 @@ export default function Sidebar() {
             <Link
               key={m.path}
               href={m.path}
+              aria-current={active ? "page" : undefined}
               className={`
                 flex items-center gap-2 px-3 py-2 rounded-xl
                 transition-all duration-150
@@ -62,10 +63,10 @@ export default function Sidebar() {
 
       <div className="mt-auto pt-4 border-t border-[var(--border)] text-xs text-[var(--text-soft)]">
         <div className="flex items-center gap-2 mb-1">
-          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>API 연결 상태</span>
+          <span className="inline-flex h-2 w-2 rounded-full bg-amber-400/70" aria-hidden="true" />
+          <span>연결 상태 미검증</span>
         </div>
-        <div className="opacity-70">© 2025 KORUAL · All Systems Automated</div>
+        <div className="opacity-70">© KORUAL · Control Center</div>
       </div>
     </aside>
   );
