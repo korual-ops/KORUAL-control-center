@@ -191,6 +191,45 @@ app.get('/', (_req, res) => {
     @media(max-width:1100px){.modules{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{grid-template-columns:repeat(4,minmax(0,1fr))}}
     @media(max-width:760px){.app{display:block}.rail{display:none}.workspace{padding:0 14px 88px}.topbar{min-height:72px}.topbar h1{font-size:19px}.status-pill{min-height:34px;padding:0 10px}.hero{grid-template-columns:1fr}.hero-main{min-height:240px;padding:22px}.health-card{padding:17px}.modules{grid-template-columns:1fr 1fr;gap:8px}.module{min-height:138px;padding:15px}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.mobile-dock{position:fixed;inset:auto 0 0;z-index:50;display:grid;grid-template-columns:repeat(4,1fr);padding:7px 8px calc(7px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:rgba(8,10,12,.96);backdrop-filter:blur(18px)}.mobile-dock a{display:grid;place-items:center;min-height:46px;border-radius:9px;color:#90979a;font-size:10px}.mobile-dock a.active{color:var(--gold2);background:rgba(201,164,94,.08)}}
     @media(max-width:420px){.modules{grid-template-columns:1fr}.hero-main h2{font-size:34px}}
+
+    /* KORUAL 2026: polished operational overview, intentionally lightweight */
+    :root{--gold:#c6a36c;--gold2:#edce94;--line:#30302e;--radius:20px}
+    body{background:radial-gradient(ellipse at 78% -12%,rgba(198,163,108,.12),transparent 35%),#0b0b0d}
+    .rail{background:linear-gradient(180deg,#131313,#0d0d0f);border-right-color:rgba(236,210,164,.12)}
+    .brand .mark{font-family:Georgia,serif;font-size:22px;border-radius:11px;background:linear-gradient(145deg,#363027,#181615)}
+    .brand b{font-family:Georgia,serif;letter-spacing:.13em}
+    .topbar{border-bottom-color:rgba(236,210,164,.13)}
+    .hero-main{background:radial-gradient(circle at 95% 0%,rgba(228,190,120,.16),transparent 33%),linear-gradient(120deg,#29231e,#151517 68%);border-color:rgba(219,185,129,.21)}
+    .hero-main:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(125deg,transparent 40%,rgba(255,255,255,.028) 52%,transparent 65%)}
+    .hero-main h2{font-family:Georgia,"Noto Serif KR",serif;font-weight:600;line-height:1.13;letter-spacing:-.035em}
+    .hero-main p{color:#c9c0b4}
+    .health-card,.module,.model{background:linear-gradient(160deg,#1e1d1c,#141416);border-color:rgba(237,207,154,.12)}
+    .module{position:relative;overflow:hidden}
+    .module:before{content:"";pointer-events:none;position:absolute;left:16px;right:16px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(235,202,147,.28),transparent)}
+    .module[hidden]{display:none !important}
+    .module-search{display:flex;align-items:center;gap:9px;min-height:46px;padding:0 14px;border:1px solid rgba(235,202,147,.24);border-radius:12px;background:#1b1a19;color:#d5cabc;max-width:315px}
+    .module-search:focus-within{border-color:var(--gold2);box-shadow:0 0 0 3px rgba(198,163,108,.12)}
+    .module-search input{min-width:0;width:100%;height:44px;border:0;outline:0;background:transparent;color:#f5f1e9;font:inherit;font-size:13px}
+    .module-search input::placeholder{color:#b6ab9b}
+    .module-result{font-size:12px;color:#bbb0a0;margin:8px 0 0}
+    .module-empty{border:1px dashed rgba(235,202,147,.24);border-radius:14px;padding:22px;color:#cfc5b6;margin-top:12px}
+    .module-empty[hidden]{display:none}
+    .action,.nav a,.mobile-dock a{outline-offset:3px}
+    :where(a,input):focus-visible{outline:2px solid var(--gold2)}
+    @media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+      .module,.health-card{transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}
+      .module:hover,.health-card:hover{transform:translateY(-3px);border-color:rgba(235,202,147,.33);box-shadow:0 18px 35px rgba(0,0,0,.19)}
+      .action{transition:transform .2s ease,background-color .2s ease}
+      .action:hover{transform:translateY(-2px)}
+    }
+    @media(prefers-reduced-motion:no-preference){
+      @keyframes korual-appear{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+      .hero,.modules{animation:korual-appear .48s ease-out both}
+      .modules{animation-delay:.08s}
+    }
+    @media(max-width:760px){.module-search{max-width:none;width:100%}.hero-main h2{line-height:1.17}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero,.modules{animation:none!important}}
+
   </style>
 </head>
 <body>
@@ -202,6 +241,7 @@ app.get('/', (_req, res) => {
         <a href="#modules">Modules</a>
         <a href="/platform/summary">Platform API</a>
         <a href="/travel">Travel</a>
+        <a href="/admin/service-requests/view">신청 업무함 (관리자)</a>
       </nav>
       <div class="rail-foot"><div class="live"><span id="rail-dot" class="dot"></span><span id="rail-status">상태 확인 중</span></div><small>Live platform health</small></div>
     </aside>
@@ -219,13 +259,13 @@ app.get('/', (_req, res) => {
           <h3>Live system</h3>
           <div class="health-grid">
             <div class="health-row"><span>Runtime</span><strong id="runtime-state">확인 중</strong></div>
-            <div class="health-row"><span>Database</span><strong id="database-state">확인 중</strong></div>
+            <div class="health-row"><span>Database config</span><strong id="database-state">확인 중</strong></div>
             <div class="health-row"><span>Platform</span><strong id="platform-version">확인 중</strong></div>
             <div class="health-row"><span>Modules</span><strong id="module-count">확인 중</strong></div>
           </div>
         </aside>
       </section>
-      <div id="modules" class="section-head"><div><h3>Core modules</h3><p>운영 우선순위에 맞춘 핵심 플랫폼 영역</p></div><span>Connected architecture</span></div>
+      <div id="modules" class="section-head"><div><h3>Core modules</h3><p>운영 우선순위에 맞춘 핵심 플랫폼 영역</p><div id="module-result" class="module-result" aria-live="polite">8개 영역</div></div><label class="module-search"><span aria-hidden="true">⌕</span><input id="module-filter" type="search" placeholder="모듈 검색 · Commerce, Travel..." aria-label="운영 모듈 검색" autocomplete="off"></label></div>
       <section class="modules">
         <article class="module"><span class="icon">01</span><h4>Commerce</h4><p>상품·주문·공급처·마진 의사결정과 판매 자동화.</p><small>Cashflow</small></article>
         <article class="module"><span class="icon">02</span><h4>Travel</h4><p>AI 일정, 항공·호텔·동선·파트너 예약 연결.</p><small>Network</small></article>
@@ -236,6 +276,7 @@ app.get('/', (_req, res) => {
         <article class="module"><span class="icon">07</span><h4>Life Services</h4><p>입주청소·이사·렌탈·수리 등 비교 견적 네트워크.</p><small>Marketplace</small></article>
         <article class="module"><span class="icon">08</span><h4>Data Layer</h4><p>운영 로그와 고객·상품·거래 데이터를 장기 자산화.</p><small>Asset</small></article>
       </section>
+      <div class="module-empty" id="module-empty" role="status" hidden>검색 결과가 없습니다. 다른 모듈 이름이나 키워드를 입력하세요.</div>
       <section class="model">
         <div class="section-head" style="margin:0"><div><h3>Operating model</h3><p>KORUAL 성장 프레임</p></div></div>
         <div class="flow"><span>현금흐름</span><span>레버리지</span><span>시스템화</span><span>자동화</span><span>자산화</span><span>네트워크 효과</span><span>장기 복리</span><span>리스크 차단</span></div>
@@ -245,6 +286,25 @@ app.get('/', (_req, res) => {
   <nav class="mobile-dock" aria-label="모바일 메뉴"><a class="active" href="#overview">홈</a><a href="#modules">모듈</a><a href="/platform/summary">API</a><a href="/travel">여행</a></nav>
   <script>
     (function(){
+
+      var moduleInput=document.getElementById('module-filter');
+      var moduleCards=Array.from(document.querySelectorAll('.modules .module'));
+      var moduleResult=document.getElementById('module-result');
+      var moduleEmpty=document.getElementById('module-empty');
+      function filterModules(){
+        var q=(moduleInput.value||'').trim().toLocaleLowerCase('ko-KR');
+        var count=0;
+        moduleCards.forEach(function(card){
+          var hit=card.textContent.toLocaleLowerCase('ko-KR').includes(q);
+          card.hidden=!hit;
+          if(hit)count+=1;
+        });
+        moduleResult.textContent='표시 중 '+count+'개 / 전체 '+moduleCards.length+'개';
+        moduleEmpty.hidden=count>0;
+      }
+      moduleInput.addEventListener('input',filterModules);
+      filterModules();
+
       var dots=[document.getElementById('rail-dot'),document.getElementById('top-dot')];
       var statuses=[document.getElementById('rail-status'),document.getElementById('top-status')];
       function setState(ok,label){dots.forEach(function(el){if(!el)return;el.className='dot '+(ok?'good':'bad')});statuses.forEach(function(el){if(el)el.textContent=label})}
@@ -255,7 +315,7 @@ app.get('/', (_req, res) => {
         var health=result[0],summary=result[1]||{};
         setState(Boolean(health.ok && health.data && health.data.ok),health.ok?'System online':'Config check');
         document.getElementById('runtime-state').textContent=health.ok?'Online':'Check';
-        document.getElementById('database-state').textContent=(health.data&&health.data.database)||'Unknown';
+        document.getElementById('database-state').textContent=(health.data&&health.data.database)==='supabase'?'Configured · 미검증':'미설정';
         document.getElementById('platform-version').textContent=summary.version?'v'+summary.version:'Unknown';
         document.getElementById('module-count').textContent=Array.isArray(summary.modules)?String(summary.modules.length):'Unknown';
       }).catch(function(){setState(false,'Connection check');document.getElementById('runtime-state').textContent='Unavailable'});
@@ -360,6 +420,278 @@ app.post('/service-requests', async (req, res) => {
   } catch (error) {
     console.error('service request error:', error.message);
     return res.status(500).json({ ok: false, error: 'SERVICE_REQUEST_FAILED' });
+  }
+});
+
+
+/**
+ * Read-only operational queue. PII is excluded by design.
+ * Access: authenticated, active ADMIN only. Bounded pagination prevents full-table scans.
+ */
+const SERVICE_REQUEST_STATUSES = new Set(['OPEN','QUOTING','QUOTED','BOOKED','COMPLETED','CANCELLED']);
+
+/**
+ * Server-authorized, read-only request desk.
+ * Unlike dashboard.html, this page never treats localStorage as an access token.
+ */
+app.get('/admin/service-requests/view', requireAuth, requireAdmin, (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('X-Content-Type-Options', 'nosniff');
+  return res.type('html').send(`<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>KORUAL · 서비스 신청 업무함</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark;--bg:#101012;--panel:#1b1b1e;--border:#39342d;--gold:#e1c18a;--text:#f5f1e9;--muted:#c5beb3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,rgba(211,173,106,.07),transparent 35%),var(--bg);color:var(--text)}
+a{color:var(--gold)}main{max-width:1130px;margin:0 auto;padding:32px 20px 90px}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:23px}
+.brand{font-family:Georgia,serif;letter-spacing:.16em;color:var(--gold);font-size:20px}
+.eyebrow{font-size:11px;color:var(--gold);letter-spacing:.17em}
+h1{font-size:clamp(26px,4vw,40px);margin:7px 0 8px;font-weight:600;letter-spacing:-.04em}
+p{color:var(--muted);line-height:1.6}.panel{border:1px solid var(--border);border-radius:18px;background:var(--panel);padding:22px;margin-top:24px}
+.controls{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+label{display:grid;gap:7px;font-size:12px;color:var(--muted)}
+select,input[type="search"],button{font:inherit;border:1px solid #5b4a35;border-radius:10px;min-height:44px;padding:0 14px;background:#27231e;color:var(--text)}
+input[type="search"]{min-width:220px;max-width:330px;background:#222125}button{cursor:pointer}button:hover:not(:disabled){border-color:var(--gold);background:#30291f}
+button:disabled{opacity:.48;cursor:not-allowed}
+:where(button,select,input,a):focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.table-scroll{overflow-x:auto}
+table{width:100%;min-width:680px;border-collapse:collapse}th,td{padding:14px 12px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:top}
+th{color:var(--gold);font-weight:600}td{color:var(--muted)}
+td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gold);font-weight:600}
+.status{display:inline-flex;padding:4px 9px;border-radius:20px;background:rgba(225,193,138,.09);color:var(--gold);font-size:12px}
+.footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px}
+#feedback{min-height:24px;color:var(--muted);font-size:13px}
+.empty{padding:25px 12px;text-align:center;color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+.priority-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 12px;padding:12px;background:#222023;border:1px solid var(--border);border-radius:12px}
+.priority-controls label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)}
+.priority-controls input{width:18px;height:18px;accent-color:var(--gold)}
+.priority-chip{display:inline-block;padding:4px 9px;border:1px solid #665338;border-radius:9px;font-size:12px;color:var(--gold)}
+.priority-chip[data-level="high"]{color:#ffb0a0;border-color:#995343}
+.priority-chip[data-level="normal"]{color:#c7c1b6;border-color:#59534b}
+.priority-explain{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+
+@media(max-width:600px){main{padding:20px 13px 60px}.panel{padding:14px}h1{font-size:27px}.controls>*{flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body><main>
+<header><span class="brand">KORUAL</span><a href="/">운영 홈으로</a></header>
+<section aria-labelledby="page-title"><p class="eyebrow">CONTROL CENTER / SERVICE REQUESTS</p>
+<h1 id="page-title">서비스 신청 업무함</h1>
+<p>실제 DB 조회 결과만 표시하며 고객 이름과 연락처는 제공하지 않습니다. 상태 변경은 이 화면에서 실행할 수 없습니다.</p></section>
+<section class="panel" aria-label="서비스 신청 조회">
+<div class="controls">
+<label for="status">신청 상태<select id="status"><option value="">전체</option><option value="OPEN">접수 OPEN</option><option value="QUOTING">견적 진행 QUOTING</option><option value="QUOTED">견적 완료 QUOTED</option><option value="BOOKED">예약 BOOKED</option><option value="COMPLETED">완료 COMPLETED</option><option value="CANCELLED">취소 CANCELLED</option></select></label>
+<label for="localSearch">현재 페이지 검색<input id="localSearch" type="search" maxlength="100" placeholder="신청 코드·서비스·지역" autocomplete="off"></label>
+<button id="reload" type="button">새로고침</button>
+<button id="exportCsv" type="button" disabled>현재 표시 목록 CSV 저장</button>
+</div>
+<div class="priority-controls"><label for="priorityFirst"><input type="checkbox" id="priorityFirst" checked>현재 페이지 내 긴급 건 먼저 보기</label><span class="note">신청일·희망일 기준 추천이며 실제 SLA 판정이 아닙니다.</span></div>
+<div id="feedback" role="status" aria-live="polite">조회 준비 중</div>
+<div class="table-scroll"><table><caption class="note" style="text-align:left;padding-bottom:10px">서비스 신청 내역 · 서버 인증 필요</caption>
+<thead><tr><th>신청 코드</th><th>서비스</th><th>지역</th><th>희망일</th><th>상태</th><th>처리 권장</th><th>접수 시각</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="empty" id="empty" hidden>조회된 신청이 없습니다.</div>
+<div class="footer"><span id="pagination" class="note">—</span><div><button id="prev" type="button" disabled>이전</button> <button id="next" type="button" disabled>다음</button></div></div>
+</section></main>
+<script>
+(function(){
+  'use strict';
+  var status = document.getElementById('status');
+  var feedback = document.getElementById('feedback');
+  var rows = document.getElementById('rows');
+  var empty = document.getElementById('empty');
+  var pagination = document.getElementById('pagination');
+  var prev = document.getElementById('prev');
+  var next = document.getElementById('next');
+  var reload = document.getElementById('reload');
+  var localSearch = document.getElementById('localSearch');
+  var exportCsv = document.getElementById('exportCsv');
+  var visibleItems = [];
+  var page = 1, pageSize = 20, controller = null;
+  function cell(row, value) {
+    var td = document.createElement('td');
+    td.textContent = value == null ? '—' : String(value);
+    row.appendChild(td);
+    return td;
+  }
+
+  var priorityFirst=document.getElementById('priorityFirst');
+  var activeItems=[];
+  // Transparent rule-based triage. Dates use Korea local calendar days.
+  function koreaDayNumber(date){
+    var fields=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+    var data={};
+    fields.forEach(function(part){data[part.type]=part.value;});
+    return Math.floor(Date.UTC(Number(data.year),Number(data.month)-1,Number(data.day))/86400000);
+  }
+  function parseCalendarDay(input){
+    if(typeof input!=='string')return NaN;
+    var match=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(input);
+    if(!match)return NaN;
+    var y=Number(match[1]),m=Number(match[2]),d=Number(match[3]);
+    var parsed=new Date(Date.UTC(y,m-1,d));
+    if(parsed.getUTCFullYear()!==y||parsed.getUTCMonth()!==m-1||parsed.getUTCDate()!==d)return NaN;
+    return Math.floor(parsed.getTime()/86400000);
+  }
+  function classifyPriority(item,now){
+    var state=String(item.status||'').toUpperCase();
+    if(state==='COMPLETED'||state==='CANCELLED'||state==='BOOKED')
+      return {level:'normal',rank:0,reason:'후속 처리 상태'};
+    var due=parseCalendarDay(item.desired_date);
+    var today=koreaDayNumber(now);
+    if(Number.isFinite(due)&&due<today)
+      return {level:'high',rank:3,reason:'요청 희망일 경과'};
+    if(Number.isFinite(due)&&due<=today+2)
+      return {level:'high',rank:2,reason:'희망일 2일 이내'};
+    var created=Date.parse(item.created_at||'');
+    if((state==='OPEN'||state==='QUOTING')&&Number.isFinite(created)&&created<=now.getTime()&&now.getTime()-created>=48*3600000)
+      return {level:'review',rank:1,reason:'접수 후 48시간 경과'};
+    return {level:'normal',rank:0,reason:'일반 확인'};
+  }
+  function renderItems(){
+    rows.replaceChildren();
+    var now=new Date();
+    var query=localSearch.value.trim().toLocaleLowerCase('ko-KR');
+    var list=activeItems.filter(function(item){
+      var searchable=[item.request_code,item.id,item.region,Array.isArray(item.services)?item.services.join(' '):item.services].map(function(v){return String(v||'')}).join(' ').toLocaleLowerCase('ko-KR');
+      return searchable.includes(query);
+    }).map(function(item,idx){return {item:item,idx:idx,priority:classifyPriority(item,now)}});
+    if(priorityFirst.checked)list.sort(function(a,b){return b.priority.rank-a.priority.rank || a.idx-b.idx});
+    visibleItems=list;
+    exportCsv.disabled=list.length===0;
+    empty.hidden=list.length!==0;
+    empty.textContent=activeItems.length===0?'조회된 신청이 없습니다.':'현재 검색 조건에 맞는 신청이 없습니다.';
+    list.forEach(function(entry){
+      var item=entry.item;
+      var tr=document.createElement('tr');
+      cell(tr,item.request_code||item.id);
+      cell(tr,Array.isArray(item.services)?item.services.join(', '):item.services);
+      cell(tr,item.region);
+      cell(tr,item.desired_date);
+      var statusCell=cell(tr,item.status);
+      statusCell.dataset.status=String(item.status||'');
+      var td=document.createElement('td'),chip=document.createElement('span');
+      chip.className='priority-chip';chip.dataset.level=entry.priority.level;
+      chip.textContent=entry.priority.rank>=2?'우선 확인':entry.priority.rank===1?'재확인':'일반';
+      var reason=document.createElement('span');reason.className='priority-explain';reason.textContent=entry.priority.reason;
+      td.append(chip,reason);tr.appendChild(td);
+      cell(tr,item.created_at?new Date(item.created_at).toLocaleString('ko-KR'):null);
+      rows.appendChild(tr);
+    });
+  }
+  priorityFirst.addEventListener('change',renderItems);
+  localSearch.addEventListener('input',renderItems);
+
+
+  // Only already-authorized, currently displayed fields are exported; no customer PII.
+  function escapeCsvCell(value){
+    var raw=String(value == null ? '' : value);
+    var trimmed=raw.trimStart();
+    if(['=','+','-','@'].includes(trimmed.charAt(0)))raw=String.fromCharCode(39)+raw;
+    return '"' + raw.replace(/"/g,'""') + '"';
+  }
+  exportCsv.addEventListener('click',function(){
+    if(!visibleItems.length)return;
+    var header=['신청코드','서비스','지역','희망일','상태','처리권장','판단근거','접수시각'];
+    var now=new Date();
+    var records=visibleItems.map(function(entry){
+      var item=entry.item;
+      return [item.request_code||item.id,Array.isArray(item.services)?item.services.join(' / '):item.services,item.region,item.desired_date,item.status,entry.priority.rank>=2?'우선 확인':entry.priority.rank===1?'재확인':'일반',entry.priority.reason,item.created_at||''];
+    });
+    var content='\uFEFF'+[header].concat(records).map(function(line){return line.map(escapeCsvCell).join(',')}).join('\\r\\n');
+    var blob=new Blob([content],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='korual-service-requests-page-'+now.toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    feedback.textContent='현재 표시된 '+visibleItems.length+'건 CSV 다운로드 요청 완료 · 전체 DB 내보내기가 아닙니다.';
+  });
+
+  async function load(){
+    if (controller) controller.abort();
+    controller = new AbortController();
+    var current = controller;
+    feedback.textContent = '서버에서 신청 정보를 조회하는 중…';
+    reload.disabled = true; status.disabled = true; prev.disabled = true; next.disabled = true;
+    rows.replaceChildren(); activeItems=[];visibleItems=[];exportCsv.disabled=true; empty.hidden = true;
+    var query = new URLSearchParams({page:String(page),limit:String(pageSize)});
+    if (status.value) query.set('status',status.value);
+    try{
+      var response = await fetch('/admin/service-requests?' + query.toString(), {credentials:'same-origin',cache:'no-store',signal:current.signal,headers:{accept:'application/json'}});
+      if(!response.ok){
+        feedback.textContent = response.status === 401 || response.status === 403
+          ? '인증 또는 접근 권한을 확인해 주세요.' : '조회 실패 (' + response.status + '). 다시 시도해 주세요.';
+        pagination.textContent = '조회할 수 없음';
+        return;
+      }
+      var data = await response.json();
+      if(current!==controller)return;
+      if(!data.ok || !Array.isArray(data.requests) || !data.pagination) throw new Error('INVALID_RESPONSE');
+      activeItems=data.requests;
+      renderItems();
+      empty.hidden = visibleItems.length !== 0;
+      pagination.textContent = page + '페이지 · 전체 ' + data.pagination.total + '건';
+      feedback.textContent = '서버 조회 완료 · 현재 페이지 검색 결과 ' + visibleItems.length + '건 / 조회 ' + data.requests.length + '건';
+      prev.disabled = page <= 1;
+      next.disabled = !data.pagination.has_more;
+    }catch(error){
+      if(current===controller && error.name !== 'AbortError'){feedback.textContent='연결에 실패했습니다. 새로고침을 눌러 다시 시도해 주세요.';pagination.textContent='조회할 수 없음';}
+    }finally{
+      if(current === controller){reload.disabled=false;status.disabled=false;}
+    }
+  }
+  status.addEventListener('change',function(){page=1;load()});
+  reload.addEventListener('click',load);
+  prev.addEventListener('click',function(){if(page>1){page-=1;load()}});
+  next.addEventListener('click',function(){page+=1;load()});
+  load();
+})();
+</script></body></html>`);
+});
+
+app.get('/admin/service-requests', requireAuth, requireAdmin, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const status = String(req.query.status || '').trim().toUpperCase();
+  const limitRaw = String(req.query.limit ?? '25');
+  const pageRaw = String(req.query.page ?? '1');
+  if (status && !SERVICE_REQUEST_STATUSES.has(status)) {
+    return res.status(400).json({ ok: false, error: 'INVALID_STATUS' });
+  }
+  if (!/^\d{1,3}$/.test(limitRaw) || !/^\d{1,5}$/.test(pageRaw)) {
+    return res.status(400).json({ ok: false, error: 'INVALID_PAGINATION' });
+  }
+  const limit = Number(limitRaw);
+  const page = Number(pageRaw);
+  if (limit < 1 || limit > 50 || page < 1 || page > 10000) {
+    return res.status(400).json({ ok: false, error: 'INVALID_PAGINATION' });
+  }
+  try {
+    const from = (page - 1) * limit;
+    let query = supabaseAdmin.from('service_requests')
+      .select('id,request_code,status,services,region,desired_date,created_at', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, from + limit - 1);
+    if (status) query = query.eq('status', status);
+    const { data, count, error } = await query;
+    if (error) throw error;
+    return res.json({
+      ok: true,
+      source: 'database',
+      status: status || null,
+      pagination: { page, limit, total: count ?? 0, has_more: from + (data?.length || 0) < (count ?? 0) },
+      requests: data || []
+    });
+  } catch (error) {
+    console.error('admin service request list failed:', error.message);
+    return res.status(500).json({ ok: false, error: 'SERVICE_REQUEST_LIST_FAILED' });
   }
 });
 

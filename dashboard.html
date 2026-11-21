@@ -716,6 +716,147 @@
         justify-content: space-between;
       }
     }
+
+    /* KORUAL 2.0 — refined admin experience */
+    :root {
+      --bg:#0d0e10; --bg-soft:#161719; --panel:#1b1b1d; --panel-strong:#19191b;
+      --line:rgba(228,207,169,.12); --line-strong:rgba(228,207,169,.23);
+      --text:#f4f0e8; --text-muted:#c9c2b7; --text-soft:#a59d90;
+      --primary:#d4b77d; --primary-strong:#b99a65; --accent:#e5ce9d;
+      --gold:#d4b77d; --shadow-lg:0 16px 45px rgba(0,0,0,.25);
+      --shadow-md:0 7px 24px rgba(0,0,0,.15); --sidebar-width:256px;
+      --radius-xl:20px; --radius-lg:16px; --radius-md:12px; --radius-sm:10px;
+    }
+    body { background:#0d0e10; line-height:1.55; -webkit-font-smoothing:antialiased; }
+    .sidebar { background:#121315; border-right:1px solid var(--line); padding:22px 14px; gap:14px; }
+    .brand { padding:8px 12px 18px; gap:12px; }
+    .brand-mark { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,#ead6ac,#b89962); box-shadow:none; color:#171514; font-family:Georgia,serif; }
+    .brand-text strong { font-family:Georgia,serif; letter-spacing:.08em; }
+    .nav-group { gap:4px; }
+    .nav-title { font-size:11px; letter-spacing:.15em; padding:8px 12px 5px; }
+    .nav-item { min-height:44px; border-radius:10px; padding:0 12px; }
+    .nav-item:hover, .nav-item.is-active { background:rgba(212,183,125,.09); border-color:rgba(212,183,125,.18); }
+    .nav-icon { background:rgba(212,183,125,.08); color:var(--gold); border-radius:8px; }
+    .security-card, .card { background:#1b1b1d; border:1px solid var(--line); box-shadow:none; backdrop-filter:none; }
+    .main { gap:18px; padding:24px clamp(16px,3vw,36px); min-width:0; }
+    .topbar { background:linear-gradient(110deg,#25221e,#1b1b1e 60%); border-color:var(--line); box-shadow:none; }
+    .eyebrow { color:var(--gold); border-color:rgba(212,183,125,.2); background:rgba(212,183,125,.07); }
+    .metric-icon { color:var(--gold); background:rgba(212,183,125,.08); border-color:var(--line); }
+    .btn-primary { color:#191511; background:linear-gradient(135deg,#ead6a9,#c1a16a); box-shadow:none; }
+    .btn-primary:hover { box-shadow:0 8px 22px rgba(212,183,125,.14); }
+    .btn, .pill { border-radius:10px; }
+    .card, .security-card { border-radius:16px; }
+    :where(a,button,input,select):focus-visible { outline:2px solid #e5ce9d; outline-offset:3px; }
+    .demo-notice { display:inline-flex; align-items:center; gap:8px; padding:7px 11px; border:1px solid rgba(212,183,125,.25); background:rgba(212,183,125,.08); color:#e7d2ab; border-radius:9px; font-size:12px; font-weight:600; margin-top:10px; }
+    @media (max-width:1080px) {
+      .sidebar { position:relative; height:auto; }
+      .nav-group { grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
+      .nav-title { grid-column:1/-1; }
+      .main { padding:16px; }
+    }
+    @media (max-width:720px) {
+      .sidebar { padding:16px; }
+      .nav-item { min-height:44px; font-size:13px; padding:0 9px; gap:7px; }
+      .nav-icon { width:25px; height:25px; font-size:11px; }
+      .brand { padding-bottom:8px; }
+      .topbar { padding:20px 16px; }
+      .grid-4 { gap:12px; }
+      .card { padding:17px; }
+      .topbar-right { display:flex; flex-direction:column; gap:7px; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+    }
+
+
+    /* Local reservation discovery: clearly scoped to displayed sample rows */
+    .reservation-tools { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 14px; }
+    .reservation-tools label { color:var(--text-muted); font-size:12px; font-weight:600; }
+    .reservation-tools input, .reservation-tools select {
+      min-height:44px; background:#131416; border:1px solid var(--line-strong);
+      border-radius:10px; color:var(--text); padding:0 12px; font:inherit; font-size:13px;
+    }
+    .reservation-tools input { flex:1 1 185px; min-width:0; }
+    .reservation-tools select { flex:0 1 150px; }
+    .reservation-meta { margin:0 0 10px; font-size:12px; color:var(--text-soft); }
+    .reservation-empty { padding:22px 12px; text-align:center; color:var(--text-muted); font-size:13px; }
+    @media(max-width:720px) {
+      .reservation-tools { align-items:stretch; }
+      .reservation-tools label { width:100%; }
+      .reservation-tools input, .reservation-tools select { flex:1 1 100%; width:100%; }
+    }
+
+
+    /* KORUAL demo provenance + action-first queue */
+    .demo-notice { display:flex; align-items:flex-start; line-height:1.55; max-width:800px; }
+    .demo-notice strong { color:#f1d9a8; }
+    .metric-card .metric-label::after { content:" · 예시"; font-size:11px; font-weight:500; color:var(--gold); }
+    .action-queue { display:grid; gap:10px; padding:20px 22px; background:#19191b; border:1px solid var(--line); border-radius:16px; }
+    .action-queue-head { display:flex; justify-content:space-between; align-items:start; gap:12px; flex-wrap:wrap; }
+    .action-queue-head h2 { margin:0; font-size:19px; }
+    .action-queue-head p { margin:5px 0 0; font-size:13px; color:var(--text-muted); }
+    .action-queue-items { display:flex; gap:10px; flex-wrap:wrap; }
+    .action-queue-items button { min-height:44px; padding:10px 14px; border:1px solid var(--line-strong); border-radius:10px; color:var(--text); background:rgba(212,183,125,.055); font-weight:600; }
+    .action-queue-items button:hover { background:rgba(212,183,125,.14); }
+    .action-queue-items button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    .action-queue-meta { font-size:12px; color:var(--text-soft); }
+    @media(max-width:720px) { .action-queue {padding:16px;} .action-queue-items button { flex:1 1 100%; } }
+
+
+
+/* KORUAL Premium Motion v1: restrained, composited, accessible */
+@keyframes korual-rise {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes korual-line-reveal {
+  from { opacity: .35; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .topbar, .hero { animation: korual-rise .48s cubic-bezier(.2,.7,.2,1) both; }
+  .grid-4, .stats-grid { animation: korual-rise .56s .07s cubic-bezier(.2,.7,.2,1) both; }
+  .grid-2, .layout-2, .action-queue { animation: korual-rise .58s .12s cubic-bezier(.2,.7,.2,1) both; }
+  .line-svg { animation: korual-line-reveal .8s ease-out both; }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .metric-card, .stat-card, .section-card, .action-queue, .glass-card {
+    transition: transform .24s cubic-bezier(.2,.7,.2,1), border-color .24s ease, box-shadow .24s ease;
+  }
+  .metric-card:hover, .stat-card:hover, .section-card:hover, .action-queue:hover, .glass-card:hover {
+    transform: translate3d(0,-3px,0);
+    border-color: rgba(220,190,134,.3);
+    box-shadow: 0 17px 38px rgba(0,0,0,.22), 0 0 0 1px rgba(220,190,134,.045) inset;
+  }
+  .nav-item, .mini-btn, .btn, .action-queue-items button {
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
+  }
+  .nav-item:hover, .mini-btn:hover, .action-queue-items button:hover { transform: translateX(2px); }
+}
+.metric-value, .stat-value { font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
+.metric-card, .stat-card { position: relative; isolation: isolate; }
+.metric-card::before, .stat-card::before {
+  content: ""; pointer-events: none; position: absolute; inset: 0;
+  border-radius: inherit; opacity: .8;
+  background: linear-gradient(135deg, rgba(226,194,135,.065), transparent 42%, rgba(255,255,255,.016));
+}
+.topbar, .hero { position: relative; isolation: isolate; }
+.topbar::after, .hero::after {
+  content: ""; pointer-events:none; position:absolute; top:0; left:8%; width:36%; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(232,199,141,.48),transparent);
+}
+:where(.btn,.mini-btn,.nav-item,.action-queue-items button):focus-visible {
+  outline: 2px solid #edcf96; outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .topbar,.hero,.grid-4,.stats-grid,.grid-2,.layout-2,.action-queue,.line-svg {
+    animation:none !important; transform:none !important;
+  }
+  .metric-card,.stat-card,.section-card,.action-queue,.glass-card,.nav-item,.mini-btn,.btn {
+    transition:none !important;
+  }
+}
+
   </style>
 </head>
 <body>
@@ -731,13 +872,13 @@
 
       <div class="security-card">
         <div class="security-title">
-          <span>보안 접속 상태</span>
+          <span>브라우저 데모 설정</span>
           <span class="status-dot" id="vpnDot"></span>
         </div>
         <div class="security-meta">
-          <div>VPN 상태: <strong id="vpnText">확인 중</strong></div>
+          <div>VPN 설정값: <strong id="vpnText">확인 중</strong></div>
           <div>관리자 역할: <strong id="roleText">확인 중</strong></div>
-          <div>세션 상태: <strong id="authText">확인 중</strong></div>
+          <div>인증 설정값: <strong id="authText">확인 중</strong></div>
         </div>
       </div>
 
@@ -791,13 +932,26 @@
       <section class="topbar">
         <div class="topbar-left">
           <span class="eyebrow">ADMIN CONTROL CENTER</span>
-          <h1>KORUAL Space 운영 대시보드</h1>
-          <p>공간, 예약, 호스트, 보안, 리뷰, 신고 처리 현황을 한 화면에서 관리하는 MVP 운영자 패널입니다.</p>
+          <h1>KORUAL 운영 대시보드</h1><div class="demo-notice" role="note"><strong>데모 화면</strong> · 통계·차트·예약·알림은 실제 서버 데이터로 검증되지 않은 예시입니다. 브라우저 저장값은 서버 인증이나 VPN 연결을 증명하지 않습니다.</div>
+          <p>공간·예약·호스트 현황과 처리할 업무를 한눈에 확인하는 운영자 화면입니다.</p>
         </div>
         <div class="topbar-right">
           <div class="pill">관리자 <strong id="adminName">admin</strong></div>
           <div class="pill">역할 <strong id="adminRoleView">admin</strong></div>
-          <div class="pill">마지막 로그인 <strong>2026-03-10 20:00</strong></div>
+          <div class="pill">데모 세션 <strong id="headerAuthState">확인 중</strong></div>
+        </div>
+      </section>
+
+      <section class="action-queue" aria-labelledby="actionQueueTitle">
+        <div class="action-queue-head">
+          <div><h2 id="actionQueueTitle">처리 대기 업무 · 예시</h2>
+          <p>아래 건수는 화면에 포함된 예약 샘플에서만 계산되며 실제 업무량이 아닙니다.</p></div>
+          <span class="action-queue-meta" id="actionQueueSummary" aria-live="polite">예시 예약 확인 중</span>
+        </div>
+        <div class="action-queue-items" role="group" aria-label="예약 예시 빠른 필터">
+          <button type="button" data-queue-status="승인대기">승인대기 <span data-queue-count="승인대기">—</span>건 보기</button>
+          <button type="button" data-queue-status="취소요청">취소요청 <span data-queue-count="취소요청">—</span>건 보기</button>
+          <button type="button" data-queue-status="검토중">검토중 <span data-queue-count="검토중">—</span>건 보기</button>
         </div>
       </section>
 
@@ -926,13 +1080,27 @@
           <div class="section-head">
             <div>
               <h2>최근 예약</h2>
-              <p>실시간 예약 및 승인 상태</p>
+              <p>화면에 표시된 예약 예시를 검색하고 상태별로 확인합니다.</p>
             </div>
             <div class="mini-actions">
               <button class="mini-btn">전체 보기</button>
             </div>
           </div>
 
+          <div class="reservation-tools" role="search" aria-label="예약 예시 검색">
+            <label for="reservationQuery">예약 목록 검색</label>
+            <input id="reservationQuery" type="search" placeholder="예약번호 · 공간명 · 이용자" autocomplete="off" />
+            <label for="reservationStatus">상태</label>
+            <select id="reservationStatus" aria-label="예약 상태">
+              <option value="">전체 상태</option>
+              <option value="확정">확정</option>
+              <option value="승인대기">승인대기</option>
+              <option value="검토중">검토중</option>
+              <option value="취소요청">취소요청</option>
+            </select>
+          </div>
+          <p id="reservationResultCount" class="reservation-meta" aria-live="polite"></p>
+          <div id="reservationEmpty" class="reservation-empty" hidden role="status">일치하는 예약이 없습니다. 검색어 또는 상태를 변경해 보세요.</div>
           <div class="table-wrap">
             <table>
               <thead>
@@ -1142,6 +1310,63 @@
       const roleText = document.getElementById("roleText");
       const authText = document.getElementById("authText");
       const adminRoleView = document.getElementById("adminRoleView");
+      const headerAuthState = document.getElementById("headerAuthState");
+
+      // Filters only the visible sample rows; no backend or personal data query occurs.
+      const reservationQuery = document.getElementById("reservationQuery");
+      const reservationStatus = document.getElementById("reservationStatus");
+      const reservationResultCount = document.getElementById("reservationResultCount");
+      const reservationEmpty = document.getElementById("reservationEmpty");
+      const reservationTable = reservationQuery?.closest(".section-card")?.querySelector("table");
+      const reservationRows = Array.from(reservationTable?.querySelectorAll("tbody tr") || []);
+      function filterSampleReservations() {
+        const query = (reservationQuery?.value || "").trim().toLocaleLowerCase("ko-KR");
+        const status = reservationStatus?.value || "";
+        let matched = 0;
+        for (const row of reservationRows) {
+          const cells = row.querySelectorAll("td");
+          const searchText = [cells[0], cells[1], cells[2]]
+            .map((cell) => cell?.textContent || "").join(" ").toLocaleLowerCase("ko-KR");
+          const rowStatus = cells[3]?.textContent?.trim() || "";
+          const visible = searchText.includes(query) && (!status || rowStatus === status);
+          row.hidden = !visible;
+          row.style.display = visible ? "" : "none";
+          if (visible) matched += 1;
+        }
+        if (reservationResultCount) reservationResultCount.textContent =
+          `표시 중인 예시 예약 ${matched}건 / 전체 ${reservationRows.length}건`;
+        if (reservationEmpty) reservationEmpty.hidden = matched !== 0;
+        if (reservationTable) reservationTable.hidden = matched === 0;
+      }
+      reservationQuery?.addEventListener("input", filterSampleReservations);
+      reservationStatus?.addEventListener("change", filterSampleReservations);
+      filterSampleReservations();
+
+
+      // Derive the action queue strictly from the existing visible sample dataset.
+      const queueSummary = document.getElementById("actionQueueSummary");
+      const queueStatusList = ["승인대기", "취소요청", "검토중"];
+      const queueCounts = Object.fromEntries(queueStatusList.map((name) => [name, 0]));
+      for (const row of reservationRows) {
+        const status = row.querySelectorAll("td")[3]?.textContent?.trim() || "";
+        if (Object.prototype.hasOwnProperty.call(queueCounts, status)) queueCounts[status] += 1;
+      }
+      for (const name of queueStatusList) {
+        const node = document.querySelector('[data-queue-count="' + name + '"]');
+        if (node) node.textContent = String(queueCounts[name]);
+      }
+      if (queueSummary) queueSummary.textContent =
+        "예시 처리 대기 " + Object.values(queueCounts).reduce((a,b) => a+b,0) + "건";
+      document.querySelectorAll("[data-queue-status]").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (reservationStatus) reservationStatus.value = button.getAttribute("data-queue-status") || "";
+          if (reservationQuery) reservationQuery.value = "";
+          filterSampleReservations();
+          reservationQuery?.closest(".section-card")?.scrollIntoView({behavior:"smooth",block:"start"});
+          reservationStatus?.focus({preventScroll:true});
+        });
+      });
+
       const logoutBtn = document.getElementById("logoutBtn");
       const goIndexBtn = document.getElementById("goIndexBtn");
 
@@ -1152,10 +1377,11 @@
         const role = localStorage.getItem(STORAGE_KEYS.role) || "guest";
         const isAuthed = localStorage.getItem(STORAGE_KEYS.auth) === "true";
 
-        vpnText.textContent = hasVpn ? "연결됨" : "미연결";
+        vpnText.textContent = hasVpn ? "허용(데모)" : "해제(데모)";
         roleText.textContent = role;
-        authText.textContent = isAuthed ? "인증됨" : "미인증";
+        authText.textContent = isAuthed ? "허용(데모)" : "해제(데모)";
         adminRoleView.textContent = role;
+        if (headerAuthState) headerAuthState.textContent = isAuthed ? "허용(데모)" : "해제(데모)";
 
         if (hasVpn) {
           vpnDot.classList.add("ok");

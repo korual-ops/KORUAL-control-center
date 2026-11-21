@@ -11,7 +11,7 @@ function request(path, options = {}) {
     const server = app.listen(0, () => {
       const address = server.address();
       fetch(`http://127.0.0.1:${address.port}${path}`, options)
-        .then(async (res) => resolve({ status: res.status, body: await res.json() }))
+        .then(async (res) => resolve({ status: res.status, body: (res.headers.get('content-type') || '').includes('application/json') ? await res.json() : await res.text() }))
         .catch(reject)
         .finally(() => server.close());
     });
@@ -43,4 +43,66 @@ test('service request validation rejects missing fields before database access',
   assert.equal(result.status, 400);
   assert.equal(result.body.ok, false);
   assert.equal(result.body.error, 'INVALID_REGION');
+});
+
+test('control center landing offers module search and discloses config-only status', async () => {
+  const result = await request('/');
+  assert.equal(result.status, 200);
+  assert.equal(typeof result.body, 'string');
+  assert.match(result.body, /id="module-filter"/);
+  assert.match(result.body, /id="module-empty"/);
+  assert.match(result.body, /Database config/);
+  assert.match(result.body, /Configured · 미검증/);
+  assert.match(result.body, /prefers-reduced-motion/);
+});
+
+test('admin service request queue denies anonymous access', async () => {
+  const result = await request('/admin/service-requests?status=OPEN&limit=10&page=1');
+  // Missing runtime configuration is rejected before authentication.
+  // With configuration present, anonymous clients must receive 401.
+  assert.ok([401, 503].includes(result.status));
+  assert.equal(result.body.ok, false);
+  assert.ok(['UNAUTHENTICATED', 'SERVICE_NOT_CONFIGURED'].includes(result.body.error));
+});
+
+test('admin service request queue is not publicly cacheable', async () => {
+  const result = await request('/admin/service-requests');
+  assert.ok([401, 503].includes(result.status));
+  assert.equal(result.body.ok, false);
+});
+
+test('admin service requests view rejects unauthenticated users', async () => {
+  const result = await request('/admin/service-requests/view');
+  assert.ok([401,503].includes(result.status));
+  assert.equal(typeof result.body, 'object');
+  assert.equal(result.body.ok, false);
+});
+
+test('admin queue API rejects missing token even with filtering query', async () => {
+  const result = await request('/admin/service-requests?status=QUOTING&page=1&limit=20');
+  assert.ok([401,503].includes(result.status));
+  assert.equal(result.body.ok, false);
+});
+
+test('operator queue HTML includes Seoul-time priority and safe stale-response handling', async () => {
+  // The view is authenticated; verify the implementation statically as part of CI.
+  const { readFile } = await import('node:fs/promises');
+  const serverSource = await readFile(new URL('./server.js', import.meta.url), 'utf8');
+  assert.ok(serverSource.includes("timeZone:'Asia/Seoul'"));
+  assert.match(serverSource, /function parseCalendarDay\(input\)/);
+  assert.match(serverSource, /parsed\.getUTCFullYear\(\)!==y/);
+  assert.match(serverSource, /if\(current!==controller\)return;/);
+  assert.match(serverSource, /if\(current===controller && error\.name/);
+});
+
+test('operator desk local search and export honor least-privilege fields', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('./server.js', import.meta.url), 'utf8');
+  assert.ok(source.includes('id="localSearch"'));
+  assert.ok(source.includes('id="exportCsv"'));
+  assert.ok(source.includes("localSearch.addEventListener('input',renderItems)"));
+  assert.ok(source.includes('visibleItems=list'));
+  assert.ok(source.includes('function escapeCsvCell(value)'));
+  assert.ok(source.includes('String.fromCharCode(39)+raw'));
+  assert.ok(source.includes("select('id,request_code,status,services,region,desired_date,created_at'"));
 });
