@@ -422,6 +422,50 @@ app.post('/service-requests', async (req, res) => {
   }
 });
 
+
+/**
+ * Read-only operational queue. PII is excluded by design.
+ * Access: authenticated, active ADMIN only. Bounded pagination prevents full-table scans.
+ */
+const SERVICE_REQUEST_STATUSES = new Set(['OPEN','QUOTING','QUOTED','BOOKED','COMPLETED','CANCELLED']);
+app.get('/admin/service-requests', requireAuth, requireAdmin, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const status = String(req.query.status || '').trim().toUpperCase();
+  const limitRaw = String(req.query.limit ?? '25');
+  const pageRaw = String(req.query.page ?? '1');
+  if (status && !SERVICE_REQUEST_STATUSES.has(status)) {
+    return res.status(400).json({ ok: false, error: 'INVALID_STATUS' });
+  }
+  if (!/^\\d{1,3}$/.test(limitRaw) || !/^\\d{1,5}$/.test(pageRaw)) {
+    return res.status(400).json({ ok: false, error: 'INVALID_PAGINATION' });
+  }
+  const limit = Number(limitRaw);
+  const page = Number(pageRaw);
+  if (limit < 1 || limit > 50 || page < 1 || page > 10000) {
+    return res.status(400).json({ ok: false, error: 'INVALID_PAGINATION' });
+  }
+  try {
+    const from = (page - 1) * limit;
+    let query = supabaseAdmin.from('service_requests')
+      .select('id,request_code,status,services,region,desired_date,created_at', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, from + limit - 1);
+    if (status) query = query.eq('status', status);
+    const { data, count, error } = await query;
+    if (error) throw error;
+    return res.json({
+      ok: true,
+      source: 'database',
+      status: status || null,
+      pagination: { page, limit, total: count ?? 0, has_more: from + (data?.length || 0) < (count ?? 0) },
+      requests: data || []
+    });
+  } catch (error) {
+    console.error('admin service request list failed:', error.message);
+    return res.status(500).json({ ok: false, error: 'SERVICE_REQUEST_LIST_FAILED' });
+  }
+});
+
 app.post('/auth/login', async (req, res) => {
   try {
     const { username, password } = req.body || {};
