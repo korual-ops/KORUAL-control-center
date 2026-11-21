@@ -518,20 +518,34 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
 
   var priorityFirst=document.getElementById('priorityFirst');
   var activeItems=[];
-  // Explainable heuristic, not a prediction, approval, or confirmed SLA violation.
+  // Transparent rule-based triage. Dates use Korea local calendar days.
+  function koreaDayNumber(date){
+    var fields=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);
+    var data={};
+    fields.forEach(function(part){data[part.type]=part.value;});
+    return Math.floor(Date.UTC(Number(data.year),Number(data.month)-1,Number(data.day))/86400000);
+  }
+  function parseCalendarDay(input){
+    if(typeof input!=='string')return NaN;
+    var match=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(input);
+    if(!match)return NaN;
+    var y=Number(match[1]),m=Number(match[2]),d=Number(match[3]);
+    var parsed=new Date(Date.UTC(y,m-1,d));
+    if(parsed.getUTCFullYear()!==y||parsed.getUTCMonth()!==m-1||parsed.getUTCDate()!==d)return NaN;
+    return Math.floor(parsed.getTime()/86400000);
+  }
   function classifyPriority(item,now){
     var state=String(item.status||'').toUpperCase();
     if(state==='COMPLETED'||state==='CANCELLED'||state==='BOOKED')
       return {level:'normal',rank:0,reason:'후속 처리 상태'};
-    var due=typeof item.desired_date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(item.desired_date)
-      ? Date.parse(item.desired_date+'T00:00:00Z') : NaN;
-    var today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
-    if(Number.isFinite(due) && due<today)
+    var due=parseCalendarDay(item.desired_date);
+    var today=koreaDayNumber(now);
+    if(Number.isFinite(due)&&due<today)
       return {level:'high',rank:3,reason:'요청 희망일 경과'};
-    if(Number.isFinite(due) && due<=today+2*86400000)
+    if(Number.isFinite(due)&&due<=today+2)
       return {level:'high',rank:2,reason:'희망일 2일 이내'};
     var created=Date.parse(item.created_at||'');
-    if((state==='OPEN'||state==='QUOTING') && Number.isFinite(created) && now.getTime()-created>=48*3600000)
+    if((state==='OPEN'||state==='QUOTING')&&Number.isFinite(created)&&created<=now.getTime()&&now.getTime()-created>=48*3600000)
       return {level:'review',rank:1,reason:'접수 후 48시간 경과'};
     return {level:'normal',rank:0,reason:'일반 확인'};
   }
@@ -578,7 +592,8 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
         return;
       }
       var data = await response.json();
-      if(!data.ok || !Array.isArray(data.requests)) throw new Error('INVALID_RESPONSE');
+      if(current!==controller)return;
+      if(!data.ok || !Array.isArray(data.requests) || !data.pagination) throw new Error('INVALID_RESPONSE');
       activeItems=data.requests;
       renderItems();
       empty.hidden = data.requests.length !== 0;
@@ -587,7 +602,7 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
       prev.disabled = page <= 1;
       next.disabled = !data.pagination.has_more;
     }catch(error){
-      if(error.name !== 'AbortError'){feedback.textContent='연결에 실패했습니다. 새로고침을 눌러 다시 시도해 주세요.';pagination.textContent='조회할 수 없음';}
+      if(current===controller && error.name !== 'AbortError'){feedback.textContent='연결에 실패했습니다. 새로고침을 눌러 다시 시도해 주세요.';pagination.textContent='조회할 수 없음';}
     }finally{
       if(current === controller){reload.disabled=false;status.disabled=false;}
     }
