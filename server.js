@@ -462,7 +462,7 @@ button:disabled{opacity:.48;cursor:not-allowed}
 .table-scroll{overflow-x:auto}
 table{width:100%;min-width:680px;border-collapse:collapse}th,td{padding:14px 12px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:top}
 th{color:var(--gold);font-weight:600}td{color:var(--muted)}
-td:first-child{color:var(--text);font-weight:600}
+td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gold);font-weight:600}
 .status{display:inline-flex;padding:4px 9px;border-radius:20px;background:rgba(225,193,138,.09);color:var(--gold);font-size:12px}
 .footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px}
 #feedback{min-height:24px;color:var(--muted);font-size:13px}
@@ -532,7 +532,7 @@ td:first-child{color:var(--text);font-weight:600}
         cell(tr,item.region);
         cell(tr,item.desired_date);
         var statusCell = cell(tr,item.status);
-        statusCell.className = 'status';
+        statusCell.dataset.status = String(item.status || '');
         cell(tr,item.created_at ? new Date(item.created_at).toLocaleString('ko-KR') : null);
         rows.appendChild(tr);
       });
