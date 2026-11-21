@@ -55,3 +55,18 @@ test('control center landing offers module search and discloses config-only stat
   assert.match(result.body, /Configured · 미검증/);
   assert.match(result.body, /prefers-reduced-motion/);
 });
+
+test('admin service request queue denies anonymous access', async () => {
+  const result = await request('/admin/service-requests?status=OPEN&limit=10&page=1');
+  // Missing runtime configuration is rejected before authentication.
+  // With configuration present, anonymous clients must receive 401.
+  assert.ok([401, 503].includes(result.status));
+  assert.equal(result.body.ok, false);
+  assert.ok(['UNAUTHENTICATED', 'SERVICE_NOT_CONFIGURED'].includes(result.body.error));
+});
+
+test('admin service request queue is not publicly cacheable', async () => {
+  const result = await request('/admin/service-requests');
+  assert.ok([401, 503].includes(result.status));
+  assert.equal(result.body.ok, false);
+});
