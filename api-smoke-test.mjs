@@ -88,7 +88,7 @@ test('operator queue HTML includes Seoul-time priority and safe stale-response h
   // The view is authenticated; verify the implementation statically as part of CI.
   const { readFile } = await import('node:fs/promises');
   const serverSource = await readFile(new URL('./server.js', import.meta.url), 'utf8');
-  assert.match(serverSource, /timeZone:'Asia\\/Seoul'/);
+  assert.ok(serverSource.includes("timeZone:'Asia/Seoul'"));
   assert.match(serverSource, /function parseCalendarDay\(input\)/);
   assert.match(serverSource, /parsed\.getUTCFullYear\(\)!==y/);
   assert.match(serverSource, /if\(current!==controller\)return;/);
