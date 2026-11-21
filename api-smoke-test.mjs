@@ -70,3 +70,16 @@ test('admin service request queue is not publicly cacheable', async () => {
   assert.ok([401, 503].includes(result.status));
   assert.equal(result.body.ok, false);
 });
+
+test('admin service requests view rejects unauthenticated users', async () => {
+  const result = await request('/admin/service-requests/view');
+  assert.ok([401,503].includes(result.status));
+  assert.equal(typeof result.body, 'object');
+  assert.equal(result.body.ok, false);
+});
+
+test('admin queue API rejects missing token even with filtering query', async () => {
+  const result = await request('/admin/service-requests?status=QUOTING&page=1&limit=20');
+  assert.ok([401,503].includes(result.status));
+  assert.equal(result.body.ok, false);
+});
