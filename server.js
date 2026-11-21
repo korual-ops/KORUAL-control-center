@@ -241,6 +241,7 @@ app.get('/', (_req, res) => {
         <a href="#modules">Modules</a>
         <a href="/platform/summary">Platform API</a>
         <a href="/travel">Travel</a>
+        <a href="/admin/service-requests/view">신청 업무함 (관리자)</a>
       </nav>
       <div class="rail-foot"><div class="live"><span id="rail-dot" class="dot"></span><span id="rail-status">상태 확인 중</span></div><small>Live platform health</small></div>
     </aside>
@@ -428,6 +429,133 @@ app.post('/service-requests', async (req, res) => {
  * Access: authenticated, active ADMIN only. Bounded pagination prevents full-table scans.
  */
 const SERVICE_REQUEST_STATUSES = new Set(['OPEN','QUOTING','QUOTED','BOOKED','COMPLETED','CANCELLED']);
+
+/**
+ * Server-authorized, read-only request desk.
+ * Unlike dashboard.html, this page never treats localStorage as an access token.
+ */
+app.get('/admin/service-requests/view', requireAuth, requireAdmin, (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('X-Content-Type-Options', 'nosniff');
+  return res.type('html').send(`<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>KORUAL · 서비스 신청 업무함</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark;--bg:#101012;--panel:#1b1b1e;--border:#39342d;--gold:#e1c18a;--text:#f5f1e9;--muted:#c5beb3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,rgba(211,173,106,.07),transparent 35%),var(--bg);color:var(--text)}
+a{color:var(--gold)}main{max-width:1130px;margin:0 auto;padding:32px 20px 90px}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:23px}
+.brand{font-family:Georgia,serif;letter-spacing:.16em;color:var(--gold);font-size:20px}
+.eyebrow{font-size:11px;color:var(--gold);letter-spacing:.17em}
+h1{font-size:clamp(26px,4vw,40px);margin:7px 0 8px;font-weight:600;letter-spacing:-.04em}
+p{color:var(--muted);line-height:1.6}.panel{border:1px solid var(--border);border-radius:18px;background:var(--panel);padding:22px;margin-top:24px}
+.controls{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+label{display:grid;gap:7px;font-size:12px;color:var(--muted)}
+select,button{font:inherit;border:1px solid #5b4a35;border-radius:10px;min-height:44px;padding:0 14px;background:#27231e;color:var(--text)}
+button{cursor:pointer}button:hover:not(:disabled){border-color:var(--gold);background:#30291f}
+button:disabled{opacity:.48;cursor:not-allowed}
+:where(button,select,a):focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.table-scroll{overflow-x:auto}
+table{width:100%;min-width:680px;border-collapse:collapse}th,td{padding:14px 12px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:top}
+th{color:var(--gold);font-weight:600}td{color:var(--muted)}
+td:first-child{color:var(--text);font-weight:600}
+.status{display:inline-flex;padding:4px 9px;border-radius:20px;background:rgba(225,193,138,.09);color:var(--gold);font-size:12px}
+.footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px}
+#feedback{min-height:24px;color:var(--muted);font-size:13px}
+.empty{padding:25px 12px;text-align:center;color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+@media(max-width:600px){main{padding:20px 13px 60px}.panel{padding:14px}h1{font-size:27px}.controls>*{flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body><main>
+<header><span class="brand">KORUAL</span><a href="/">운영 홈으로</a></header>
+<section aria-labelledby="page-title"><p class="eyebrow">CONTROL CENTER / SERVICE REQUESTS</p>
+<h1 id="page-title">서비스 신청 업무함</h1>
+<p>실제 DB 조회 결과만 표시하며 고객 이름과 연락처는 제공하지 않습니다. 상태 변경은 이 화면에서 실행할 수 없습니다.</p></section>
+<section class="panel" aria-label="서비스 신청 조회">
+<div class="controls">
+<label for="status">신청 상태<select id="status"><option value="">전체</option><option value="OPEN">접수 OPEN</option><option value="QUOTING">견적 진행 QUOTING</option><option value="QUOTED">견적 완료 QUOTED</option><option value="BOOKED">예약 BOOKED</option><option value="COMPLETED">완료 COMPLETED</option><option value="CANCELLED">취소 CANCELLED</option></select></label>
+<button id="reload" type="button">새로고침</button>
+</div>
+<div id="feedback" role="status" aria-live="polite">조회 준비 중</div>
+<div class="table-scroll"><table><caption class="note" style="text-align:left;padding-bottom:10px">서비스 신청 내역 · 서버 인증 필요</caption>
+<thead><tr><th>신청 코드</th><th>서비스</th><th>지역</th><th>희망일</th><th>상태</th><th>접수 시각</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="empty" id="empty" hidden>조회된 신청이 없습니다.</div>
+<div class="footer"><span id="pagination" class="note">—</span><div><button id="prev" type="button" disabled>이전</button> <button id="next" type="button" disabled>다음</button></div></div>
+</section></main>
+<script>
+(function(){
+  'use strict';
+  var status = document.getElementById('status');
+  var feedback = document.getElementById('feedback');
+  var rows = document.getElementById('rows');
+  var empty = document.getElementById('empty');
+  var pagination = document.getElementById('pagination');
+  var prev = document.getElementById('prev');
+  var next = document.getElementById('next');
+  var reload = document.getElementById('reload');
+  var page = 1, pageSize = 20, controller = null;
+  function cell(row, value) {
+    var td = document.createElement('td');
+    td.textContent = value == null ? '—' : String(value);
+    row.appendChild(td);
+    return td;
+  }
+  async function load(){
+    if (controller) controller.abort();
+    controller = new AbortController();
+    var current = controller;
+    feedback.textContent = '서버에서 신청 정보를 조회하는 중…';
+    reload.disabled = true; status.disabled = true; prev.disabled = true; next.disabled = true;
+    rows.replaceChildren(); empty.hidden = true;
+    var query = new URLSearchParams({page:String(page),limit:String(pageSize)});
+    if (status.value) query.set('status',status.value);
+    try{
+      var response = await fetch('/admin/service-requests?' + query.toString(), {credentials:'same-origin',cache:'no-store',signal:current.signal,headers:{accept:'application/json'}});
+      if(!response.ok){
+        feedback.textContent = response.status === 401 || response.status === 403
+          ? '인증 또는 접근 권한을 확인해 주세요.' : '조회 실패 (' + response.status + '). 다시 시도해 주세요.';
+        pagination.textContent = '조회할 수 없음';
+        return;
+      }
+      var data = await response.json();
+      if(!data.ok || !Array.isArray(data.requests)) throw new Error('INVALID_RESPONSE');
+      data.requests.forEach(function(item){
+        var tr = document.createElement('tr');
+        cell(tr,item.request_code || item.id);
+        cell(tr,Array.isArray(item.services) ? item.services.join(', ') : item.services);
+        cell(tr,item.region);
+        cell(tr,item.desired_date);
+        var statusCell = cell(tr,item.status);
+        statusCell.className = 'status';
+        cell(tr,item.created_at ? new Date(item.created_at).toLocaleString('ko-KR') : null);
+        rows.appendChild(tr);
+      });
+      empty.hidden = data.requests.length !== 0;
+      pagination.textContent = page + '페이지 · 전체 ' + data.pagination.total + '건';
+      feedback.textContent = '서버 조회 완료 · 현재 페이지 ' + data.requests.length + '건';
+      prev.disabled = page <= 1;
+      next.disabled = !data.pagination.has_more;
+    }catch(error){
+      if(error.name !== 'AbortError'){feedback.textContent='연결에 실패했습니다. 새로고침을 눌러 다시 시도해 주세요.';pagination.textContent='조회할 수 없음';}
+    }finally{
+      if(current === controller){reload.disabled=false;status.disabled=false;}
+    }
+  }
+  status.addEventListener('change',function(){page=1;load()});
+  reload.addEventListener('click',load);
+  prev.addEventListener('click',function(){if(page>1){page-=1;load()}});
+  next.addEventListener('click',function(){page+=1;load()});
+  load();
+})();
+</script></body></html>`);
+});
+
 app.get('/admin/service-requests', requireAuth, requireAdmin, async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const status = String(req.query.status || '').trim().toUpperCase();
