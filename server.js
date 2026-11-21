@@ -468,6 +468,14 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
 #feedback{min-height:24px;color:var(--muted);font-size:13px}
 .empty{padding:25px 12px;text-align:center;color:var(--muted)}
 .note{font-size:12px;color:var(--muted)}
+.priority-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 12px;padding:12px;background:#222023;border:1px solid var(--border);border-radius:12px}
+.priority-controls label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)}
+.priority-controls input{width:18px;height:18px;accent-color:var(--gold)}
+.priority-chip{display:inline-block;padding:4px 9px;border:1px solid #665338;border-radius:9px;font-size:12px;color:var(--gold)}
+.priority-chip[data-level="high"]{color:#ffb0a0;border-color:#995343}
+.priority-chip[data-level="normal"]{color:#c7c1b6;border-color:#59534b}
+.priority-explain{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+
 @media(max-width:600px){main{padding:20px 13px 60px}.panel{padding:14px}h1{font-size:27px}.controls>*{flex:1 1 100%}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
@@ -482,9 +490,10 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
 <label for="status">신청 상태<select id="status"><option value="">전체</option><option value="OPEN">접수 OPEN</option><option value="QUOTING">견적 진행 QUOTING</option><option value="QUOTED">견적 완료 QUOTED</option><option value="BOOKED">예약 BOOKED</option><option value="COMPLETED">완료 COMPLETED</option><option value="CANCELLED">취소 CANCELLED</option></select></label>
 <button id="reload" type="button">새로고침</button>
 </div>
+<div class="priority-controls"><label for="priorityFirst"><input type="checkbox" id="priorityFirst" checked>현재 페이지 내 긴급 건 먼저 보기</label><span class="note">신청일·희망일 기준 추천이며 실제 SLA 판정이 아닙니다.</span></div>
 <div id="feedback" role="status" aria-live="polite">조회 준비 중</div>
 <div class="table-scroll"><table><caption class="note" style="text-align:left;padding-bottom:10px">서비스 신청 내역 · 서버 인증 필요</caption>
-<thead><tr><th>신청 코드</th><th>서비스</th><th>지역</th><th>희망일</th><th>상태</th><th>접수 시각</th></tr></thead><tbody id="rows"></tbody></table></div>
+<thead><tr><th>신청 코드</th><th>서비스</th><th>지역</th><th>희망일</th><th>상태</th><th>처리 권장</th><th>접수 시각</th></tr></thead><tbody id="rows"></tbody></table></div>
 <div class="empty" id="empty" hidden>조회된 신청이 없습니다.</div>
 <div class="footer"><span id="pagination" class="note">—</span><div><button id="prev" type="button" disabled>이전</button> <button id="next" type="button" disabled>다음</button></div></div>
 </section></main>
@@ -506,13 +515,58 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
     row.appendChild(td);
     return td;
   }
+
+  var priorityFirst=document.getElementById('priorityFirst');
+  var activeItems=[];
+  // Explainable heuristic, not a prediction, approval, or confirmed SLA violation.
+  function classifyPriority(item,now){
+    var state=String(item.status||'').toUpperCase();
+    if(state==='COMPLETED'||state==='CANCELLED'||state==='BOOKED')
+      return {level:'normal',rank:0,reason:'후속 처리 상태'};
+    var due=typeof item.desired_date==='string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(item.desired_date)
+      ? Date.parse(item.desired_date+'T00:00:00Z') : NaN;
+    var today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+    if(Number.isFinite(due) && due<today)
+      return {level:'high',rank:3,reason:'요청 희망일 경과'};
+    if(Number.isFinite(due) && due<=today+2*86400000)
+      return {level:'high',rank:2,reason:'희망일 2일 이내'};
+    var created=Date.parse(item.created_at||'');
+    if((state==='OPEN'||state==='QUOTING') && Number.isFinite(created) && now.getTime()-created>=48*3600000)
+      return {level:'review',rank:1,reason:'접수 후 48시간 경과'};
+    return {level:'normal',rank:0,reason:'일반 확인'};
+  }
+  function renderItems(){
+    rows.replaceChildren();
+    var now=new Date();
+    var list=activeItems.map(function(item,idx){return {item:item,idx:idx,priority:classifyPriority(item,now)}});
+    if(priorityFirst.checked)list.sort(function(a,b){return b.priority.rank-a.priority.rank || a.idx-b.idx});
+    list.forEach(function(entry){
+      var item=entry.item;
+      var tr=document.createElement('tr');
+      cell(tr,item.request_code||item.id);
+      cell(tr,Array.isArray(item.services)?item.services.join(', '):item.services);
+      cell(tr,item.region);
+      cell(tr,item.desired_date);
+      var statusCell=cell(tr,item.status);
+      statusCell.dataset.status=String(item.status||'');
+      var td=document.createElement('td'),chip=document.createElement('span');
+      chip.className='priority-chip';chip.dataset.level=entry.priority.level;
+      chip.textContent=entry.priority.rank>=2?'우선 확인':entry.priority.rank===1?'재확인':'일반';
+      var reason=document.createElement('span');reason.className='priority-explain';reason.textContent=entry.priority.reason;
+      td.append(chip,reason);tr.appendChild(td);
+      cell(tr,item.created_at?new Date(item.created_at).toLocaleString('ko-KR'):null);
+      rows.appendChild(tr);
+    });
+  }
+  priorityFirst.addEventListener('change',renderItems);
+
   async function load(){
     if (controller) controller.abort();
     controller = new AbortController();
     var current = controller;
     feedback.textContent = '서버에서 신청 정보를 조회하는 중…';
     reload.disabled = true; status.disabled = true; prev.disabled = true; next.disabled = true;
-    rows.replaceChildren(); empty.hidden = true;
+    rows.replaceChildren(); activeItems=[]; empty.hidden = true;
     var query = new URLSearchParams({page:String(page),limit:String(pageSize)});
     if (status.value) query.set('status',status.value);
     try{
@@ -525,17 +579,8 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
       }
       var data = await response.json();
       if(!data.ok || !Array.isArray(data.requests)) throw new Error('INVALID_RESPONSE');
-      data.requests.forEach(function(item){
-        var tr = document.createElement('tr');
-        cell(tr,item.request_code || item.id);
-        cell(tr,Array.isArray(item.services) ? item.services.join(', ') : item.services);
-        cell(tr,item.region);
-        cell(tr,item.desired_date);
-        var statusCell = cell(tr,item.status);
-        statusCell.dataset.status = String(item.status || '');
-        cell(tr,item.created_at ? new Date(item.created_at).toLocaleString('ko-KR') : null);
-        rows.appendChild(tr);
-      });
+      activeItems=data.requests;
+      renderItems();
       empty.hidden = data.requests.length !== 0;
       pagination.textContent = page + '페이지 · 전체 ' + data.pagination.total + '건';
       feedback.textContent = '서버 조회 완료 · 현재 페이지 ' + data.requests.length + '건';
