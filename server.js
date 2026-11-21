@@ -455,10 +455,10 @@ h1{font-size:clamp(26px,4vw,40px);margin:7px 0 8px;font-weight:600;letter-spacin
 p{color:var(--muted);line-height:1.6}.panel{border:1px solid var(--border);border-radius:18px;background:var(--panel);padding:22px;margin-top:24px}
 .controls{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin-bottom:18px}
 label{display:grid;gap:7px;font-size:12px;color:var(--muted)}
-select,button{font:inherit;border:1px solid #5b4a35;border-radius:10px;min-height:44px;padding:0 14px;background:#27231e;color:var(--text)}
-button{cursor:pointer}button:hover:not(:disabled){border-color:var(--gold);background:#30291f}
+select,input[type="search"],button{font:inherit;border:1px solid #5b4a35;border-radius:10px;min-height:44px;padding:0 14px;background:#27231e;color:var(--text)}
+input[type="search"]{min-width:220px;max-width:330px;background:#222125}button{cursor:pointer}button:hover:not(:disabled){border-color:var(--gold);background:#30291f}
 button:disabled{opacity:.48;cursor:not-allowed}
-:where(button,select,a):focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+:where(button,select,input,a):focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .table-scroll{overflow-x:auto}
 table{width:100%;min-width:680px;border-collapse:collapse}th,td{padding:14px 12px;border-bottom:1px solid var(--border);text-align:left;font-size:13px;vertical-align:top}
 th{color:var(--gold);font-weight:600}td{color:var(--muted)}
@@ -488,7 +488,9 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
 <section class="panel" aria-label="서비스 신청 조회">
 <div class="controls">
 <label for="status">신청 상태<select id="status"><option value="">전체</option><option value="OPEN">접수 OPEN</option><option value="QUOTING">견적 진행 QUOTING</option><option value="QUOTED">견적 완료 QUOTED</option><option value="BOOKED">예약 BOOKED</option><option value="COMPLETED">완료 COMPLETED</option><option value="CANCELLED">취소 CANCELLED</option></select></label>
+<label for="localSearch">현재 페이지 검색<input id="localSearch" type="search" maxlength="100" placeholder="신청 코드·서비스·지역" autocomplete="off"></label>
 <button id="reload" type="button">새로고침</button>
+<button id="exportCsv" type="button" disabled>현재 표시 목록 CSV 저장</button>
 </div>
 <div class="priority-controls"><label for="priorityFirst"><input type="checkbox" id="priorityFirst" checked>현재 페이지 내 긴급 건 먼저 보기</label><span class="note">신청일·희망일 기준 추천이며 실제 SLA 판정이 아닙니다.</span></div>
 <div id="feedback" role="status" aria-live="polite">조회 준비 중</div>
@@ -508,6 +510,9 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
   var prev = document.getElementById('prev');
   var next = document.getElementById('next');
   var reload = document.getElementById('reload');
+  var localSearch = document.getElementById('localSearch');
+  var exportCsv = document.getElementById('exportCsv');
+  var visibleItems = [];
   var page = 1, pageSize = 20, controller = null;
   function cell(row, value) {
     var td = document.createElement('td');
@@ -552,8 +557,16 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
   function renderItems(){
     rows.replaceChildren();
     var now=new Date();
-    var list=activeItems.map(function(item,idx){return {item:item,idx:idx,priority:classifyPriority(item,now)}});
+    var query=localSearch.value.trim().toLocaleLowerCase('ko-KR');
+    var list=activeItems.filter(function(item){
+      var searchable=[item.request_code,item.id,item.region,Array.isArray(item.services)?item.services.join(' '):item.services].map(function(v){return String(v||'')}).join(' ').toLocaleLowerCase('ko-KR');
+      return searchable.includes(query);
+    }).map(function(item,idx){return {item:item,idx:idx,priority:classifyPriority(item,now)}});
     if(priorityFirst.checked)list.sort(function(a,b){return b.priority.rank-a.priority.rank || a.idx-b.idx});
+    visibleItems=list;
+    exportCsv.disabled=list.length===0;
+    empty.hidden=list.length!==0;
+    empty.textContent=activeItems.length===0?'조회된 신청이 없습니다.':'현재 검색 조건에 맞는 신청이 없습니다.';
     list.forEach(function(entry){
       var item=entry.item;
       var tr=document.createElement('tr');
@@ -573,6 +586,32 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
     });
   }
   priorityFirst.addEventListener('change',renderItems);
+  localSearch.addEventListener('input',renderItems);
+
+
+  // Only already-authorized, currently displayed fields are exported; no customer PII.
+  function escapeCsvCell(value){
+    var raw=String(value == null ? '' : value).replace(/^[\\s\\u0000-\\u001f]*([=+@\\-])/,'\u0027$1');
+    return '"' + raw.replace(/"/g,'""') + '"';
+  }
+  exportCsv.addEventListener('click',function(){
+    if(!visibleItems.length)return;
+    var header=['신청코드','서비스','지역','희망일','상태','처리권장','판단근거','접수시각'];
+    var now=new Date();
+    var records=visibleItems.map(function(entry){
+      var item=entry.item;
+      return [item.request_code||item.id,Array.isArray(item.services)?item.services.join(' / '):item.services,item.region,item.desired_date,item.status,entry.priority.rank>=2?'우선 확인':entry.priority.rank===1?'재확인':'일반',entry.priority.reason,item.created_at||''];
+    });
+    var content='\uFEFF'+[header].concat(records).map(function(line){return line.map(escapeCsvCell).join(',')}).join('\\r\\n');
+    var blob=new Blob([content],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download='korual-service-requests-page-'+now.toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    feedback.textContent='현재 표시된 '+visibleItems.length+'건 CSV 다운로드 요청 완료 · 전체 DB 내보내기가 아닙니다.';
+  });
 
   async function load(){
     if (controller) controller.abort();
@@ -580,7 +619,7 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
     var current = controller;
     feedback.textContent = '서버에서 신청 정보를 조회하는 중…';
     reload.disabled = true; status.disabled = true; prev.disabled = true; next.disabled = true;
-    rows.replaceChildren(); activeItems=[]; empty.hidden = true;
+    rows.replaceChildren(); activeItems=[];visibleItems=[];exportCsv.disabled=true; empty.hidden = true;
     var query = new URLSearchParams({page:String(page),limit:String(pageSize)});
     if (status.value) query.set('status',status.value);
     try{
@@ -596,9 +635,9 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
       if(!data.ok || !Array.isArray(data.requests) || !data.pagination) throw new Error('INVALID_RESPONSE');
       activeItems=data.requests;
       renderItems();
-      empty.hidden = data.requests.length !== 0;
+      empty.hidden = visibleItems.length !== 0;
       pagination.textContent = page + '페이지 · 전체 ' + data.pagination.total + '건';
-      feedback.textContent = '서버 조회 완료 · 현재 페이지 ' + data.requests.length + '건';
+      feedback.textContent = '서버 조회 완료 · 현재 페이지 검색 결과 ' + visibleItems.length + '건 / 조회 ' + data.requests.length + '건';
       prev.disabled = page <= 1;
       next.disabled = !data.pagination.has_more;
     }catch(error){
