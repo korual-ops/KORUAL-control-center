@@ -11,7 +11,7 @@ function request(path, options = {}) {
     const server = app.listen(0, () => {
       const address = server.address();
       fetch(`http://127.0.0.1:${address.port}${path}`, options)
-        .then(async (res) => resolve({ status: res.status, body: await res.json() }))
+        .then(async (res) => resolve({ status: res.status, body: (res.headers.get('content-type') || '').includes('application/json') ? await res.json() : await res.text() }))
         .catch(reject)
         .finally(() => server.close());
     });
@@ -43,4 +43,15 @@ test('service request validation rejects missing fields before database access',
   assert.equal(result.status, 400);
   assert.equal(result.body.ok, false);
   assert.equal(result.body.error, 'INVALID_REGION');
+});
+
+test('control center landing offers module search and discloses config-only status', async () => {
+  const result = await request('/');
+  assert.equal(result.status, 200);
+  assert.equal(typeof result.body, 'string');
+  assert.match(result.body, /id="module-filter"/);
+  assert.match(result.body, /id="module-empty"/);
+  assert.match(result.body, /Database config/);
+  assert.match(result.body, /Configured · 미검증/);
+  assert.match(result.body, /prefers-reduced-motion/);
 });
