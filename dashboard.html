@@ -716,6 +716,58 @@
         justify-content: space-between;
       }
     }
+
+    /* KORUAL 2.0 — refined admin experience */
+    :root {
+      --bg:#0d0e10; --bg-soft:#161719; --panel:#1b1b1d; --panel-strong:#19191b;
+      --line:rgba(228,207,169,.12); --line-strong:rgba(228,207,169,.23);
+      --text:#f4f0e8; --text-muted:#c9c2b7; --text-soft:#a59d90;
+      --primary:#d4b77d; --primary-strong:#b99a65; --accent:#e5ce9d;
+      --gold:#d4b77d; --shadow-lg:0 16px 45px rgba(0,0,0,.25);
+      --shadow-md:0 7px 24px rgba(0,0,0,.15); --sidebar-width:256px;
+      --radius-xl:20px; --radius-lg:16px; --radius-md:12px; --radius-sm:10px;
+    }
+    body { background:#0d0e10; line-height:1.55; -webkit-font-smoothing:antialiased; }
+    .sidebar { background:#121315; border-right:1px solid var(--line); padding:22px 14px; gap:14px; }
+    .brand { padding:8px 12px 18px; gap:12px; }
+    .brand-mark { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,#ead6ac,#b89962); box-shadow:none; color:#171514; font-family:Georgia,serif; }
+    .brand-text strong { font-family:Georgia,serif; letter-spacing:.08em; }
+    .nav-group { gap:4px; }
+    .nav-title { font-size:11px; letter-spacing:.15em; padding:8px 12px 5px; }
+    .nav-item { min-height:44px; border-radius:10px; padding:0 12px; }
+    .nav-item:hover, .nav-item.is-active { background:rgba(212,183,125,.09); border-color:rgba(212,183,125,.18); }
+    .nav-icon { background:rgba(212,183,125,.08); color:var(--gold); border-radius:8px; }
+    .security-card, .card { background:#1b1b1d; border:1px solid var(--line); box-shadow:none; backdrop-filter:none; }
+    .main { gap:18px; padding:24px clamp(16px,3vw,36px); min-width:0; }
+    .topbar { background:linear-gradient(110deg,#25221e,#1b1b1e 60%); border-color:var(--line); box-shadow:none; }
+    .eyebrow { color:var(--gold); border-color:rgba(212,183,125,.2); background:rgba(212,183,125,.07); }
+    .metric-icon { color:var(--gold); background:rgba(212,183,125,.08); border-color:var(--line); }
+    .btn-primary { color:#191511; background:linear-gradient(135deg,#ead6a9,#c1a16a); box-shadow:none; }
+    .btn-primary:hover { box-shadow:0 8px 22px rgba(212,183,125,.14); }
+    .btn, .pill { border-radius:10px; }
+    .card, .security-card { border-radius:16px; }
+    :where(a,button,input,select):focus-visible { outline:2px solid #e5ce9d; outline-offset:3px; }
+    .demo-notice { display:inline-flex; align-items:center; gap:8px; padding:7px 11px; border:1px solid rgba(212,183,125,.25); background:rgba(212,183,125,.08); color:#e7d2ab; border-radius:9px; font-size:12px; font-weight:600; margin-top:10px; }
+    @media (max-width:1080px) {
+      .sidebar { position:relative; height:auto; }
+      .nav-group { grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
+      .nav-title { grid-column:1/-1; }
+      .main { padding:16px; }
+    }
+    @media (max-width:720px) {
+      .sidebar { padding:16px; }
+      .nav-item { min-height:44px; font-size:13px; padding:0 9px; gap:7px; }
+      .nav-icon { width:25px; height:25px; font-size:11px; }
+      .brand { padding-bottom:8px; }
+      .topbar { padding:20px 16px; }
+      .grid-4 { gap:12px; }
+      .card { padding:17px; }
+      .topbar-right { display:flex; flex-direction:column; gap:7px; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+    }
+
   </style>
 </head>
 <body>
@@ -791,13 +843,13 @@
       <section class="topbar">
         <div class="topbar-left">
           <span class="eyebrow">ADMIN CONTROL CENTER</span>
-          <h1>KORUAL Space 운영 대시보드</h1>
-          <p>공간, 예약, 호스트, 보안, 리뷰, 신고 처리 현황을 한 화면에서 관리하는 MVP 운영자 패널입니다.</p>
+          <h1>KORUAL 운영 대시보드</h1><div class="demo-notice" role="note">화면의 예시 수치는 실제 운영 데이터가 아닐 수 있습니다.</div>
+          <p>공간·예약·호스트 현황과 처리할 업무를 한눈에 확인하는 운영자 화면입니다.</p>
         </div>
         <div class="topbar-right">
           <div class="pill">관리자 <strong id="adminName">admin</strong></div>
           <div class="pill">역할 <strong id="adminRoleView">admin</strong></div>
-          <div class="pill">마지막 로그인 <strong>2026-03-10 20:00</strong></div>
+          <div class="pill">보안 상태 <strong id="headerAuthState">확인 중</strong></div>
         </div>
       </section>
 
@@ -1142,6 +1194,7 @@
       const roleText = document.getElementById("roleText");
       const authText = document.getElementById("authText");
       const adminRoleView = document.getElementById("adminRoleView");
+      const headerAuthState = document.getElementById("headerAuthState");
       const logoutBtn = document.getElementById("logoutBtn");
       const goIndexBtn = document.getElementById("goIndexBtn");
 
@@ -1156,6 +1209,7 @@
         roleText.textContent = role;
         authText.textContent = isAuthed ? "인증됨" : "미인증";
         adminRoleView.textContent = role;
+        if (headerAuthState) headerAuthState.textContent = isAuthed ? "인증됨" : "미인증";
 
         if (hasVpn) {
           vpnDot.classList.add("ok");
