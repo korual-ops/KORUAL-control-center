@@ -591,7 +591,9 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
 
   // Only already-authorized, currently displayed fields are exported; no customer PII.
   function escapeCsvCell(value){
-    var raw=String(value == null ? '' : value).replace(/^[\\s\\u0000-\\u001f]*([=+@\\-])/,'\u0027$1');
+    var raw=String(value == null ? '' : value);
+    var trimmed=raw.trimStart();
+    if(['=','+','-','@'].includes(trimmed.charAt(0)))raw=String.fromCharCode(39)+raw;
     return '"' + raw.replace(/"/g,'""') + '"';
   }
   exportCsv.addEventListener('click',function(){
