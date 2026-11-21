@@ -191,6 +191,45 @@ app.get('/', (_req, res) => {
     @media(max-width:1100px){.modules{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{grid-template-columns:repeat(4,minmax(0,1fr))}}
     @media(max-width:760px){.app{display:block}.rail{display:none}.workspace{padding:0 14px 88px}.topbar{min-height:72px}.topbar h1{font-size:19px}.status-pill{min-height:34px;padding:0 10px}.hero{grid-template-columns:1fr}.hero-main{min-height:240px;padding:22px}.health-card{padding:17px}.modules{grid-template-columns:1fr 1fr;gap:8px}.module{min-height:138px;padding:15px}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.mobile-dock{position:fixed;inset:auto 0 0;z-index:50;display:grid;grid-template-columns:repeat(4,1fr);padding:7px 8px calc(7px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:rgba(8,10,12,.96);backdrop-filter:blur(18px)}.mobile-dock a{display:grid;place-items:center;min-height:46px;border-radius:9px;color:#90979a;font-size:10px}.mobile-dock a.active{color:var(--gold2);background:rgba(201,164,94,.08)}}
     @media(max-width:420px){.modules{grid-template-columns:1fr}.hero-main h2{font-size:34px}}
+
+    /* KORUAL 2026: polished operational overview, intentionally lightweight */
+    :root{--gold:#c6a36c;--gold2:#edce94;--line:#30302e;--radius:20px}
+    body{background:radial-gradient(ellipse at 78% -12%,rgba(198,163,108,.12),transparent 35%),#0b0b0d}
+    .rail{background:linear-gradient(180deg,#131313,#0d0d0f);border-right-color:rgba(236,210,164,.12)}
+    .brand .mark{font-family:Georgia,serif;font-size:22px;border-radius:11px;background:linear-gradient(145deg,#363027,#181615)}
+    .brand b{font-family:Georgia,serif;letter-spacing:.13em}
+    .topbar{border-bottom-color:rgba(236,210,164,.13)}
+    .hero-main{background:radial-gradient(circle at 95% 0%,rgba(228,190,120,.16),transparent 33%),linear-gradient(120deg,#29231e,#151517 68%);border-color:rgba(219,185,129,.21)}
+    .hero-main:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(125deg,transparent 40%,rgba(255,255,255,.028) 52%,transparent 65%)}
+    .hero-main h2{font-family:Georgia,"Noto Serif KR",serif;font-weight:600;line-height:1.13;letter-spacing:-.035em}
+    .hero-main p{color:#c9c0b4}
+    .health-card,.module,.model{background:linear-gradient(160deg,#1e1d1c,#141416);border-color:rgba(237,207,154,.12)}
+    .module{position:relative;overflow:hidden}
+    .module:before{content:"";pointer-events:none;position:absolute;left:16px;right:16px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(235,202,147,.28),transparent)}
+    .module[hidden]{display:none !important}
+    .module-search{display:flex;align-items:center;gap:9px;min-height:46px;padding:0 14px;border:1px solid rgba(235,202,147,.24);border-radius:12px;background:#1b1a19;color:#d5cabc;max-width:315px}
+    .module-search:focus-within{border-color:var(--gold2);box-shadow:0 0 0 3px rgba(198,163,108,.12)}
+    .module-search input{min-width:0;width:100%;height:44px;border:0;outline:0;background:transparent;color:#f5f1e9;font:inherit;font-size:13px}
+    .module-search input::placeholder{color:#b6ab9b}
+    .module-result{font-size:12px;color:#bbb0a0;margin:8px 0 0}
+    .module-empty{border:1px dashed rgba(235,202,147,.24);border-radius:14px;padding:22px;color:#cfc5b6;margin-top:12px}
+    .module-empty[hidden]{display:none}
+    .action,.nav a,.mobile-dock a{outline-offset:3px}
+    :where(a,input):focus-visible{outline:2px solid var(--gold2)}
+    @media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+      .module,.health-card{transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}
+      .module:hover,.health-card:hover{transform:translateY(-3px);border-color:rgba(235,202,147,.33);box-shadow:0 18px 35px rgba(0,0,0,.19)}
+      .action{transition:transform .2s ease,background-color .2s ease}
+      .action:hover{transform:translateY(-2px)}
+    }
+    @media(prefers-reduced-motion:no-preference){
+      @keyframes korual-appear{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+      .hero,.modules{animation:korual-appear .48s ease-out both}
+      .modules{animation-delay:.08s}
+    }
+    @media(max-width:760px){.module-search{max-width:none;width:100%}.hero-main h2{line-height:1.17}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero,.modules{animation:none!important}}
+
   </style>
 </head>
 <body>
@@ -219,13 +258,13 @@ app.get('/', (_req, res) => {
           <h3>Live system</h3>
           <div class="health-grid">
             <div class="health-row"><span>Runtime</span><strong id="runtime-state">확인 중</strong></div>
-            <div class="health-row"><span>Database</span><strong id="database-state">확인 중</strong></div>
+            <div class="health-row"><span>Database config</span><strong id="database-state">확인 중</strong></div>
             <div class="health-row"><span>Platform</span><strong id="platform-version">확인 중</strong></div>
             <div class="health-row"><span>Modules</span><strong id="module-count">확인 중</strong></div>
           </div>
         </aside>
       </section>
-      <div id="modules" class="section-head"><div><h3>Core modules</h3><p>운영 우선순위에 맞춘 핵심 플랫폼 영역</p></div><span>Connected architecture</span></div>
+      <div id="modules" class="section-head"><div><h3>Core modules</h3><p>운영 우선순위에 맞춘 핵심 플랫폼 영역</p><div id="module-result" class="module-result" aria-live="polite">8개 영역</div></div><label class="module-search"><span aria-hidden="true">⌕</span><input id="module-filter" type="search" placeholder="모듈 검색 · Commerce, Travel..." aria-label="운영 모듈 검색" autocomplete="off"></label></div>
       <section class="modules">
         <article class="module"><span class="icon">01</span><h4>Commerce</h4><p>상품·주문·공급처·마진 의사결정과 판매 자동화.</p><small>Cashflow</small></article>
         <article class="module"><span class="icon">02</span><h4>Travel</h4><p>AI 일정, 항공·호텔·동선·파트너 예약 연결.</p><small>Network</small></article>
@@ -236,6 +275,7 @@ app.get('/', (_req, res) => {
         <article class="module"><span class="icon">07</span><h4>Life Services</h4><p>입주청소·이사·렌탈·수리 등 비교 견적 네트워크.</p><small>Marketplace</small></article>
         <article class="module"><span class="icon">08</span><h4>Data Layer</h4><p>운영 로그와 고객·상품·거래 데이터를 장기 자산화.</p><small>Asset</small></article>
       </section>
+      <div class="module-empty" id="module-empty" role="status" hidden>검색 결과가 없습니다. 다른 모듈 이름이나 키워드를 입력하세요.</div>
       <section class="model">
         <div class="section-head" style="margin:0"><div><h3>Operating model</h3><p>KORUAL 성장 프레임</p></div></div>
         <div class="flow"><span>현금흐름</span><span>레버리지</span><span>시스템화</span><span>자동화</span><span>자산화</span><span>네트워크 효과</span><span>장기 복리</span><span>리스크 차단</span></div>
@@ -245,6 +285,25 @@ app.get('/', (_req, res) => {
   <nav class="mobile-dock" aria-label="모바일 메뉴"><a class="active" href="#overview">홈</a><a href="#modules">모듈</a><a href="/platform/summary">API</a><a href="/travel">여행</a></nav>
   <script>
     (function(){
+
+      var moduleInput=document.getElementById('module-filter');
+      var moduleCards=Array.from(document.querySelectorAll('.modules .module'));
+      var moduleResult=document.getElementById('module-result');
+      var moduleEmpty=document.getElementById('module-empty');
+      function filterModules(){
+        var q=(moduleInput.value||'').trim().toLocaleLowerCase('ko-KR');
+        var count=0;
+        moduleCards.forEach(function(card){
+          var hit=card.textContent.toLocaleLowerCase('ko-KR').includes(q);
+          card.hidden=!hit;
+          if(hit)count+=1;
+        });
+        moduleResult.textContent='표시 중 '+count+'개 / 전체 '+moduleCards.length+'개';
+        moduleEmpty.hidden=count>0;
+      }
+      moduleInput.addEventListener('input',filterModules);
+      filterModules();
+
       var dots=[document.getElementById('rail-dot'),document.getElementById('top-dot')];
       var statuses=[document.getElementById('rail-status'),document.getElementById('top-status')];
       function setState(ok,label){dots.forEach(function(el){if(!el)return;el.className='dot '+(ok?'good':'bad')});statuses.forEach(function(el){if(el)el.textContent=label})}
@@ -255,7 +314,7 @@ app.get('/', (_req, res) => {
         var health=result[0],summary=result[1]||{};
         setState(Boolean(health.ok && health.data && health.data.ok),health.ok?'System online':'Config check');
         document.getElementById('runtime-state').textContent=health.ok?'Online':'Check';
-        document.getElementById('database-state').textContent=(health.data&&health.data.database)||'Unknown';
+        document.getElementById('database-state').textContent=(health.data&&health.data.database)==='supabase'?'Configured · 미검증':'미설정';
         document.getElementById('platform-version').textContent=summary.version?'v'+summary.version:'Unknown';
         document.getElementById('module-count').textContent=Array.isArray(summary.modules)?String(summary.modules.length):'Unknown';
       }).catch(function(){setState(false,'Connection check');document.getElementById('runtime-state').textContent='Unavailable'});
