@@ -83,3 +83,14 @@ test('admin queue API rejects missing token even with filtering query', async ()
   assert.ok([401,503].includes(result.status));
   assert.equal(result.body.ok, false);
 });
+
+test('operator queue HTML includes Seoul-time priority and safe stale-response handling', async () => {
+  // The view is authenticated; verify the implementation statically as part of CI.
+  const { readFile } = await import('node:fs/promises');
+  const serverSource = await readFile(new URL('./server.js', import.meta.url), 'utf8');
+  assert.match(serverSource, /timeZone:'Asia\\/Seoul'/);
+  assert.match(serverSource, /function parseCalendarDay\(input\)/);
+  assert.match(serverSource, /parsed\.getUTCFullYear\(\)!==y/);
+  assert.match(serverSource, /if\(current!==controller\)return;/);
+  assert.match(serverSource, /if\(current===controller && error\.name/);
+});
