@@ -786,6 +786,22 @@
       .reservation-tools input, .reservation-tools select { flex:1 1 100%; width:100%; }
     }
 
+
+    /* KORUAL demo provenance + action-first queue */
+    .demo-notice { display:flex; align-items:flex-start; line-height:1.55; max-width:800px; }
+    .demo-notice strong { color:#f1d9a8; }
+    .metric-card .metric-label::after { content:" · 예시"; font-size:11px; font-weight:500; color:var(--gold); }
+    .action-queue { display:grid; gap:10px; padding:20px 22px; background:#19191b; border:1px solid var(--line); border-radius:16px; }
+    .action-queue-head { display:flex; justify-content:space-between; align-items:start; gap:12px; flex-wrap:wrap; }
+    .action-queue-head h2 { margin:0; font-size:19px; }
+    .action-queue-head p { margin:5px 0 0; font-size:13px; color:var(--text-muted); }
+    .action-queue-items { display:flex; gap:10px; flex-wrap:wrap; }
+    .action-queue-items button { min-height:44px; padding:10px 14px; border:1px solid var(--line-strong); border-radius:10px; color:var(--text); background:rgba(212,183,125,.055); font-weight:600; }
+    .action-queue-items button:hover { background:rgba(212,183,125,.14); }
+    .action-queue-items button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    .action-queue-meta { font-size:12px; color:var(--text-soft); }
+    @media(max-width:720px) { .action-queue {padding:16px;} .action-queue-items button { flex:1 1 100%; } }
+
   </style>
 </head>
 <body>
@@ -801,13 +817,13 @@
 
       <div class="security-card">
         <div class="security-title">
-          <span>보안 접속 상태</span>
+          <span>브라우저 데모 설정</span>
           <span class="status-dot" id="vpnDot"></span>
         </div>
         <div class="security-meta">
-          <div>VPN 상태: <strong id="vpnText">확인 중</strong></div>
+          <div>VPN 설정값: <strong id="vpnText">확인 중</strong></div>
           <div>관리자 역할: <strong id="roleText">확인 중</strong></div>
-          <div>세션 상태: <strong id="authText">확인 중</strong></div>
+          <div>인증 설정값: <strong id="authText">확인 중</strong></div>
         </div>
       </div>
 
@@ -861,13 +877,26 @@
       <section class="topbar">
         <div class="topbar-left">
           <span class="eyebrow">ADMIN CONTROL CENTER</span>
-          <h1>KORUAL 운영 대시보드</h1><div class="demo-notice" role="note">화면의 예시 수치는 실제 운영 데이터가 아닐 수 있습니다.</div>
+          <h1>KORUAL 운영 대시보드</h1><div class="demo-notice" role="note"><strong>데모 화면</strong> · 통계·차트·예약·알림은 실제 서버 데이터로 검증되지 않은 예시입니다. 브라우저 저장값은 서버 인증이나 VPN 연결을 증명하지 않습니다.</div>
           <p>공간·예약·호스트 현황과 처리할 업무를 한눈에 확인하는 운영자 화면입니다.</p>
         </div>
         <div class="topbar-right">
           <div class="pill">관리자 <strong id="adminName">admin</strong></div>
           <div class="pill">역할 <strong id="adminRoleView">admin</strong></div>
-          <div class="pill">보안 상태 <strong id="headerAuthState">확인 중</strong></div>
+          <div class="pill">데모 세션 <strong id="headerAuthState">확인 중</strong></div>
+        </div>
+      </section>
+
+      <section class="action-queue" aria-labelledby="actionQueueTitle">
+        <div class="action-queue-head">
+          <div><h2 id="actionQueueTitle">처리 대기 업무 · 예시</h2>
+          <p>아래 건수는 화면에 포함된 예약 샘플에서만 계산되며 실제 업무량이 아닙니다.</p></div>
+          <span class="action-queue-meta" id="actionQueueSummary" aria-live="polite">예시 예약 확인 중</span>
+        </div>
+        <div class="action-queue-items" role="group" aria-label="예약 예시 빠른 필터">
+          <button type="button" data-queue-status="승인대기">승인대기 <span data-queue-count="승인대기">—</span>건 보기</button>
+          <button type="button" data-queue-status="취소요청">취소요청 <span data-queue-count="취소요청">—</span>건 보기</button>
+          <button type="button" data-queue-status="검토중">검토중 <span data-queue-count="검토중">—</span>건 보기</button>
         </div>
       </section>
 
@@ -1258,6 +1287,31 @@
       reservationStatus?.addEventListener("change", filterSampleReservations);
       filterSampleReservations();
 
+
+      // Derive the action queue strictly from the existing visible sample dataset.
+      const queueSummary = document.getElementById("actionQueueSummary");
+      const queueStatusList = ["승인대기", "취소요청", "검토중"];
+      const queueCounts = Object.fromEntries(queueStatusList.map((name) => [name, 0]));
+      for (const row of reservationRows) {
+        const status = row.querySelectorAll("td")[3]?.textContent?.trim() || "";
+        if (Object.prototype.hasOwnProperty.call(queueCounts, status)) queueCounts[status] += 1;
+      }
+      for (const name of queueStatusList) {
+        const node = document.querySelector('[data-queue-count="' + name + '"]');
+        if (node) node.textContent = String(queueCounts[name]);
+      }
+      if (queueSummary) queueSummary.textContent =
+        "예시 처리 대기 " + Object.values(queueCounts).reduce((a,b) => a+b,0) + "건";
+      document.querySelectorAll("[data-queue-status]").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (reservationStatus) reservationStatus.value = button.getAttribute("data-queue-status") || "";
+          if (reservationQuery) reservationQuery.value = "";
+          filterSampleReservations();
+          reservationQuery?.closest(".section-card")?.scrollIntoView({behavior:"smooth",block:"start"});
+          reservationStatus?.focus({preventScroll:true});
+        });
+      });
+
       const logoutBtn = document.getElementById("logoutBtn");
       const goIndexBtn = document.getElementById("goIndexBtn");
 
@@ -1268,11 +1322,11 @@
         const role = localStorage.getItem(STORAGE_KEYS.role) || "guest";
         const isAuthed = localStorage.getItem(STORAGE_KEYS.auth) === "true";
 
-        vpnText.textContent = hasVpn ? "연결됨" : "미연결";
+        vpnText.textContent = hasVpn ? "허용(데모)" : "해제(데모)";
         roleText.textContent = role;
-        authText.textContent = isAuthed ? "인증됨" : "미인증";
+        authText.textContent = isAuthed ? "허용(데모)" : "해제(데모)";
         adminRoleView.textContent = role;
-        if (headerAuthState) headerAuthState.textContent = isAuthed ? "인증됨" : "미인증";
+        if (headerAuthState) headerAuthState.textContent = isAuthed ? "허용(데모)" : "해제(데모)";
 
         if (hasVpn) {
           vpnDot.classList.add("ok");
