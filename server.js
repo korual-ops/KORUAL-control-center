@@ -523,7 +523,7 @@ td:first-child{color:var(--text);font-weight:600}td[data-status]{color:var(--gol
     var state=String(item.status||'').toUpperCase();
     if(state==='COMPLETED'||state==='CANCELLED'||state==='BOOKED')
       return {level:'normal',rank:0,reason:'후속 처리 상태'};
-    var due=typeof item.desired_date==='string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(item.desired_date)
+    var due=typeof item.desired_date==='string' && /^\d{4}-\d{2}-\d{2}$/.test(item.desired_date)
       ? Date.parse(item.desired_date+'T00:00:00Z') : NaN;
     var today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
     if(Number.isFinite(due) && due<today)
