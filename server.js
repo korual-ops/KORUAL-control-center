@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
+import { validateLivingRequest } from './living-rules.js';
 import { createClient } from '@supabase/supabase-js';
 
 const app = express();
@@ -336,6 +337,12 @@ app.get('/marketplace/summary', async (req, res) => {
 
 app.post('/service-requests', async (req, res) => {
   try {
+    // Opt-in contract for the new customer portal; legacy clients remain unchanged.
+    if (req.body?.source === 'living-portal') {
+      if (process.env.LIVING_REQUESTS_ENABLED !== 'true') return res.status(503).json({ok:false,error:'LIVING_REQUESTS_DISABLED'});
+      const invalid = validateLivingRequest(req.body);
+      if (invalid) return res.status(400).json({ok:false,error:invalid});
+    }
     const ip = getClientIp(req) || 'unknown';
     if (quoteRateLimited(ip)) return res.status(429).json({ ok: false, error: 'RATE_LIMITED' });
     const { error: validationError, value } = validateQuoteRequest(req.body);
