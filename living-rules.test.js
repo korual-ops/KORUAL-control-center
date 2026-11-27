@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateLivingRequest,commissionEstimate} from './living-rules.js';
+const good={consent:true,date:'2026-12-01',name:'테스트',phone:'01000000000',region:'영종도',services:['입주청소']};
+const today='2026-11-27';
+test('valid request',()=>assert.equal(validateLivingRequest(good,today),null));
+test('explicit consent required',()=>assert.equal(validateLivingRequest({...good,consent:false},today),'CONSENT_REQUIRED'));
+test('past and impossible dates rejected',()=>{for(const date of ['2026-11-26','2026-02-30','2026-13-01'])assert.equal(validateLivingRequest({...good,date},today),'INVALID_DATE')});
+test('type validation',()=>assert.equal(validateLivingRequest({...good,phone:123},today),'INVALID_BODY'));
+test('commission uses integer won',()=>assert.deepEqual(commissionEstimate(320000,1000,5000),{gmv:320000,estimatedRevenue:32000,estimatedContribution:27000}));
+test('bad commission rejected',()=>assert.throws(()=>commissionEstimate(100,10001),RangeError));
